@@ -1,0 +1,357 @@
+/**
+ * Intent Detector
+ * 
+ * Detects user intent from messages using pattern matching and context analysis.
+ * Implements Section 5.1.2 from AGENT_ARMY_SYSTEM.md
+ */
+
+import type { Intent, ConversationState } from '../types/shared'
+
+export class IntentDetector {
+  /**
+   * Detect intent from a user message
+   */
+  async detect(
+    message: string,
+    conversationState?: ConversationState
+  ): Promise<Intent> {
+    const lowerMessage = message.toLowerCase().trim()
+
+    // Pattern-based detection
+    const patternIntent = this.detectByPattern(lowerMessage)
+    
+    // Context-based refinement
+    if (conversationState) {
+      return this.refineWithContext(patternIntent, lowerMessage, conversationState)
+    }
+
+    return patternIntent
+  }
+
+  /**
+   * Detect intent using pattern matching
+   */
+  private detectByPattern(message: string): Intent {
+    // Greeting patterns
+    if (this.isGreeting(message)) {
+      return {
+        type: 'greeting',
+        confidence: 0.95,
+        entities: {}
+      }
+    }
+
+    // Farewell patterns
+    if (this.isFarewell(message)) {
+      return {
+        type: 'farewell',
+        confidence: 0.95,
+        entities: {}
+      }
+    }
+
+    // Calculation patterns
+    if (this.isCalculation(message)) {
+      return {
+        type: 'calculation',
+        confidence: 0.85,
+        requiresCalculation: true,
+        entities: this.extractCalculationEntities(message)
+      }
+    }
+
+    // How-to patterns
+    if (this.isHowTo(message)) {
+      return {
+        type: 'howto',
+        confidence: 0.80,
+        requiresRAG: true,
+        entities: this.extractHowToEntities(message)
+      }
+    }
+
+    // Troubleshooting patterns
+    if (this.isTroubleshooting(message)) {
+      return {
+        type: 'troubleshooting',
+        confidence: 0.75,
+        requiresRAG: true,
+        entities: {}
+      }
+    }
+
+    // Repeat/clarification patterns
+    if (this.isRepeat(message)) {
+      return {
+        type: 'repeat',
+        confidence: 0.90,
+        entities: {}
+      }
+    }
+
+    // Follow-up patterns
+    if (this.isFollowUp(message)) {
+      return {
+        type: 'followup',
+        confidence: 0.70,
+        entities: {}
+      }
+    }
+
+    // Frustration patterns
+    if (this.isFrustration(message)) {
+      return {
+        type: 'frustration',
+        confidence: 0.85,
+        entities: {}
+      }
+    }
+
+    // Default: information request
+    return {
+      type: 'information',
+      confidence: 0.60,
+      requiresRAG: true,
+      entities: {}
+    }
+  }
+
+  /**
+   * Refine intent using conversation context
+   */
+  private refineWithContext(
+    intent: Intent,
+    message: string,
+    state: ConversationState
+  ): Intent {
+    // If this is a follow-up, inherit context from previous question
+    if (intent.type === 'followup' && state.questionsAsked.length > 0) {
+      const lastQuestion = state.questionsAsked[state.questionsAsked.length - 1]
+      return {
+        ...intent,
+        type: lastQuestion.intent.type,
+        confidence: Math.max(intent.confidence, 0.75),
+        requiresArtworkData: lastQuestion.intent.requiresArtworkData,
+        requiresRAG: lastQuestion.intent.requiresRAG,
+        requiresCalculation: lastQuestion.intent.requiresCalculation,
+        entities: {
+          ...lastQuestion.intent.entities,
+          followUpContext: true
+        }
+      }
+    }
+
+    // Detect frustration based on conversation history
+    if (state.questionsAsked.length > 3) {
+      const recentQuestions = state.questionsAsked.slice(-3)
+      const repeatedTopics = this.detectRepeatedTopics(recentQuestions)
+      
+      if (repeatedTopics.length > 0 && this.isFrustration(message)) {
+        return {
+          type: 'frustration',
+          confidence: 0.95,
+          entities: {
+            repeatedTopics,
+            conversationLength: state.messageCount
+          }
+        }
+      }
+    }
+
+    return intent
+  }
+
+  /**
+   * Check if message is a greeting
+   */
+  private isGreeting(message: string): boolean {
+    const greetingPatterns = [
+      /^(hi|hello|hey|howdy|greetings|good morning|good afternoon|good evening)/i,
+      /^(hi|hello)\s+(there|everyone|folks)/i,
+      /^(what's up|sup|yo)/i
+    ]
+    return greetingPatterns.some(pattern => pattern.test(message))
+  }
+
+  /**
+   * Check if message is a farewell
+   */
+  private isFarewell(message: string): boolean {
+    const farewellPatterns = [
+      /^(bye|goodbye|see you|later|farewell|thanks|thank you)/i,
+      /^(that's all|that is all|i'm done|im done)/i
+    ]
+    return farewellPatterns.some(pattern => pattern.test(message))
+  }
+
+  /**
+   * Check if message is a calculation request
+   */
+  private isCalculation(message: string): boolean {
+    const calculationPatterns = [
+      /what (is|would be) the dpi/i,
+      /calculate.*dpi/i,
+      /dpi (at|for|if)/i,
+      /what size (at|for|if)/i,
+      /how (big|large|wide|tall)/i,
+      /max(imum)? size/i,
+      /\d+\s*(cm|inch|in|px|pixel)/i
+    ]
+    return calculationPatterns.some(pattern => pattern.test(message))
+  }
+
+  /**
+   * Check if message is a how-to question
+   */
+  private isHowTo(message: string): boolean {
+    const howToPatterns = [
+      /^how (do|can|to)/i,
+      /how (do i|can i)/i,
+      /what('s| is) the (best )?way to/i,
+      /can you (show|tell|explain)/i,
+      /steps to/i,
+      /guide (for|to)/i
+    ]
+    return howToPatterns.some(pattern => pattern.test(message))
+  }
+
+  /**
+   * Check if message is troubleshooting
+   */
+  private isTroubleshooting(message: string): boolean {
+    const troublePatterns = [
+      /(problem|issue|error|wrong|not working|doesn't work|broken)/i,
+      /(fix|solve|resolve)/i,
+      /(why (is|does|can't|won't))/i
+    ]
+    return troublePatterns.some(pattern => pattern.test(message))
+  }
+
+  /**
+   * Check if message is asking for repetition
+   */
+  private isRepeat(message: string): boolean {
+    const repeatPatterns = [
+      /^(what|huh|pardon|sorry|excuse me)/i,
+      /can you repeat/i,
+      /say that again/i,
+      /didn't (understand|get|catch)/i,
+      /^again/i
+    ]
+    return repeatPatterns.some(pattern => pattern.test(message))
+  }
+
+  /**
+   * Check if message is a follow-up
+   */
+  private isFollowUp(message: string): boolean {
+    const followUpPatterns = [
+      /^(and|also|what about|how about)/i,
+      /^(ok|okay|alright),?\s+(and|but|so)/i,
+      /^(yes|yeah|yep|sure),?\s+(and|but)/i
+    ]
+    return followUpPatterns.some(pattern => pattern.test(message))
+  }
+
+  /**
+   * Check if message indicates frustration
+   */
+  private isFrustration(message: string): boolean {
+    const frustrationPatterns = [
+      /(frustrated|annoyed|confused|lost)/i,
+      /(don't understand|doesn't make sense|not helping)/i,
+      /(give up|never mind|forget it)/i,
+      /!!+/,
+      /\?\?+/,
+      /(ugh|argh|grrr)/i
+    ]
+    return frustrationPatterns.some(pattern => pattern.test(message))
+  }
+
+  /**
+   * Extract calculation entities from message
+   */
+  private extractCalculationEntities(message: string): Record<string, any> {
+    const entities: Record<string, any> = {}
+
+    // Extract dimensions
+    const dimensionMatch = message.match(/(\d+(?:\.\d+)?)\s*(cm|inch|in|px|pixel)/i)
+    if (dimensionMatch) {
+      entities.dimension = parseFloat(dimensionMatch[1])
+      entities.unit = dimensionMatch[2].toLowerCase()
+    }
+
+    // Extract DPI
+    const dpiMatch = message.match(/(\d+)\s*dpi/i)
+    if (dpiMatch) {
+      entities.targetDPI = parseInt(dpiMatch[1])
+    }
+
+    // Check for "max" or "optimal"
+    if (/max(imum)?|largest|biggest/i.test(message)) {
+      entities.findMaximum = true
+    }
+    if (/optimal|best|recommended/i.test(message)) {
+      entities.findOptimal = true
+    }
+
+    return entities
+  }
+
+  /**
+   * Extract how-to entities from message
+   */
+  private extractHowToEntities(message: string): Record<string, any> {
+    const entities: Record<string, any> = {}
+
+    // Extract software mentioned
+    const softwarePatterns = [
+      { pattern: /photoshop/i, name: 'Photoshop' },
+      { pattern: /illustrator/i, name: 'Illustrator' },
+      { pattern: /canva/i, name: 'Canva' },
+      { pattern: /gimp/i, name: 'GIMP' },
+      { pattern: /inkscape/i, name: 'Inkscape' }
+    ]
+
+    for (const { pattern, name } of softwarePatterns) {
+      if (pattern.test(message)) {
+        entities.software = name
+        break
+      }
+    }
+
+    // Extract action
+    if (/increase|raise|boost/i.test(message)) {
+      entities.action = 'increase'
+    } else if (/decrease|reduce|lower/i.test(message)) {
+      entities.action = 'decrease'
+    } else if (/fix|correct|repair/i.test(message)) {
+      entities.action = 'fix'
+    } else if (/create|make|generate/i.test(message)) {
+      entities.action = 'create'
+    }
+
+    return entities
+  }
+
+  /**
+   * Detect repeated topics in recent questions
+   */
+  private detectRepeatedTopics(questions: Array<{ question: string; intent: Intent }>): string[] {
+    const topics: Record<string, number> = {}
+
+    for (const q of questions) {
+      const words = q.question.toLowerCase().split(/\s+/)
+      for (const word of words) {
+        if (word.length > 4) { // Only count significant words
+          topics[word] = (topics[word] || 0) + 1
+        }
+      }
+    }
+
+    return Object.entries(topics)
+      .filter(([_, count]) => count >= 2)
+      .map(([topic]) => topic)
+  }
+}
+
