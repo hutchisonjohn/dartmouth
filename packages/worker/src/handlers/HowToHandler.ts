@@ -68,7 +68,7 @@ export class HowToHandler implements Handler {
     };
   }
 
-  private formatHowToResponse(question: string, ragResults: any[]): string {
+  private formatHowToResponse(_question: string, ragResults: any[]): string {
     // Combine RAG results into step-by-step format
     let response = "Here's how to do that:\n\n";
 
@@ -81,7 +81,7 @@ export class HowToHandler implements Handler {
     return response;
   }
 
-  private getGenericHowToResponse(question: string): string {
+  private getGenericHowToResponse(_question: string): string {
     return "I'd be happy to help with that! However, I need more specific information to provide accurate step-by-step instructions. Could you provide more details about what you're trying to accomplish?";
   }
 }

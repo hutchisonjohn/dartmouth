@@ -16,7 +16,7 @@ export class GreetingHandler implements Handler {
   }
 
   async handle(
-    message: string,
+    _message: string,
     intent: Intent,
     context: HandlerContext
   ): Promise<Response> {
@@ -61,7 +61,7 @@ export class GreetingHandler implements Handler {
     return greetings[Math.floor(Math.random() * greetings.length)];
   }
 
-  private getReturningGreeting(state: any): string {
+  private getReturningGreeting(_state: any): string {
     const greetings = [
       "Welcome back! How can I help you today?",
       "Hello again! What can I assist you with?",
@@ -71,7 +71,7 @@ export class GreetingHandler implements Handler {
     return greetings[Math.floor(Math.random() * greetings.length)];
   }
 
-  private getFarewell(state: any): string {
+  private getFarewell(_state: any): string {
     const farewells = [
       "Goodbye! Feel free to come back if you have more questions.",
       "Take care! I'm here whenever you need help.",

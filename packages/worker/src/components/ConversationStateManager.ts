@@ -8,14 +8,11 @@
 import type {
   ConversationState,
   Intent,
-  QuestionLog,
-  AnswerLog,
   UserGoal,
   Message,
   Pattern,
   SessionSummary,
-  Summary,
-  Plan
+  Summary
 } from '../types/shared';
 
 export class ConversationStateManager {
@@ -34,6 +31,7 @@ export class ConversationStateManager {
       agentId: 'default', // Will be set by agent config
       tenantId: 'default', // Will be set by auth
       startedAt: now,
+      lastMessageAt: now,
       lastActivityAt: now,
       expiresAt: new Date(now.getTime() + 3600 * 1000), // 1 hour TTL for KV
       messages: [],
@@ -50,6 +48,7 @@ export class ConversationStateManager {
       intentsDetected: [],
       isRepeatDetected: false,
       isFrustrationDetected: false,
+      isGoalAchieved: false,
       needsEscalation: false,
       isMultiTurn: false,
       metadata: {},
@@ -164,7 +163,7 @@ export class ConversationStateManager {
    * @param messages Recent messages to analyze.
    * @returns The identified user goal or null.
    */
-  identifyGoal(state: ConversationState, messages: Message[]): UserGoal | null {
+  identifyGoal(_state: ConversationState, messages: Message[]): UserGoal | null {
     // TODO: Implement actual goal identification logic (e.g., using IntentDetector, LLM)
     console.log('Identifying goal for messages:', messages);
     return null;
@@ -184,7 +183,7 @@ export class ConversationStateManager {
    * @param state The current conversation state.
    * @returns True if the goal is achieved, false otherwise.
    */
-  isGoalAchieved(state: ConversationState): boolean {
+  isGoalAchieved(_state: ConversationState): boolean {
     // TODO: Implement logic to determine if goal is achieved
     return false;
   }
@@ -243,6 +242,7 @@ export class ConversationStateManager {
   logAnswer(state: ConversationState, answer: string, type: string): void {
     state.answersGiven.push({
       answer,
+      handler: type,
       type,
       timestamp: new Date(),
       validationPassed: true, // Assume passed for now
@@ -274,6 +274,9 @@ export class ConversationStateManager {
     return {
       short: `Conversation with ${state.agentId} about ${state.topicsDiscussed.join(', ')}.`,
       detailed: JSON.stringify(state.messages.map(m => `${m.role}: ${m.content}`)),
+      topics: state.topicsDiscussed,
+      keyPoints: [],
+      sentiment: 'neutral'
     };
   }
 

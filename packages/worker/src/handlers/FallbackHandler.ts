@@ -11,7 +11,7 @@ export class FallbackHandler implements Handler {
   name = 'fallback';
   version = '1.0.0';
 
-  canHandle(intent: Intent): boolean {
+  canHandle(_intent: Intent): boolean {
     // Fallback handler accepts all intents
     return true;
   }
@@ -19,7 +19,7 @@ export class FallbackHandler implements Handler {
   async handle(
     message: string,
     intent: Intent,
-    context: HandlerContext
+    _context: HandlerContext
   ): Promise<Response> {
     const startTime = Date.now();
 
@@ -51,7 +51,7 @@ export class FallbackHandler implements Handler {
     };
   }
 
-  private getFallbackResponse(message: string, intent: Intent): string {
+  private getFallbackResponse(_message: string, _intent: Intent): string {
     const responses = [
       "I'm not quite sure I understand. Could you rephrase that?",
       "I didn't quite catch that. Can you try asking in a different way?",

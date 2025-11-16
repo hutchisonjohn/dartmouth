@@ -17,7 +17,7 @@ export class RepeatHandler implements Handler {
 
   async handle(
     message: string,
-    intent: Intent,
+    _intent: Intent,
     context: HandlerContext
   ): Promise<Response> {
     const startTime = Date.now();
@@ -62,7 +62,7 @@ export class RepeatHandler implements Handler {
     };
   }
 
-  private findPreviousAnswer(question: string, state: any): string | null {
+  private findPreviousAnswer(_question: string, state: any): string | null {
     if (!state || !state.answersGiven || state.answersGiven.length === 0) {
       return null;
     }
@@ -72,7 +72,7 @@ export class RepeatHandler implements Handler {
     return lastAnswer?.answer || null;
   }
 
-  private getVariedResponse(previousAnswer: string, question: string): string {
+  private getVariedResponse(previousAnswer: string, _question: string): string {
     const variations = [
       `Let me rephrase that: ${previousAnswer}`,
       `To clarify my previous answer: ${previousAnswer}`,

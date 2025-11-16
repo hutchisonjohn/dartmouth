@@ -40,14 +40,29 @@ export interface ConversationState {
   sessionId: string
   userId?: string
   agentId: string
+  tenantId?: string
   startedAt: Date
   lastMessageAt: Date
+  lastActivityAt: Date
+  expiresAt: Date
   messageCount: number
+  messages: Message[]
   questionsAsked: QuestionLog[]
   answersGiven: AnswerLog[]
   topicsDiscussed: string[]
-  userGoal?: UserGoal
+  intentsDetected: Intent[]
+  userGoal?: UserGoal | null
+  currentTopic?: string | null
+  conversationPlan?: Plan | null
   isFrustrationDetected: boolean
+  isRepeatDetected: boolean
+  isGoalAchieved: boolean
+  needsEscalation: boolean
+  isMultiTurn: boolean
+  userPreferences: Map<string, any>
+  learnedPatterns: Pattern[]
+  previousSessions: string[]
+  tags: string[]
   metadata: Record<string, any>
 }
 
@@ -55,12 +70,15 @@ export interface QuestionLog {
   question: string
   intent: Intent
   timestamp: Date
+  wasAnswered: boolean
 }
 
 export interface AnswerLog {
   answer: string
   handler: string
+  type: string
   timestamp: Date
+  validationPassed?: boolean
 }
 
 export interface UserGoal {
@@ -84,6 +102,14 @@ export interface ResponseMetadata {
   cached: boolean
   confidence: number
   sources?: Source[]
+  sessionId?: string
+  messageId?: string
+  processingTimeMs?: number
+  validationPassed?: boolean
+  error?: string
+  calculationResult?: any
+  frustrationLevel?: string
+  [key: string]: any
 }
 
 export interface Suggestion {
@@ -138,6 +164,7 @@ export interface AgentConfig {
   agentId: string
   name: string
   version: string
+  description?: string
   systemPrompt?: string
   llmProvider?: 'openai' | 'anthropic' | 'google'
   llmModel?: string
@@ -154,5 +181,32 @@ export interface HandlerContext {
   ragEngine: any
   calculationEngine: any
   frustrationHandler: any
+}
+
+export interface Pattern {
+  type: string
+  pattern: string
+  frequency: number
+  lastSeen: Date
+}
+
+export interface SessionSummary {
+  short: string
+  detailed: string
+}
+
+export interface Summary {
+  short?: string
+  detailed?: string
+  topics: string[]
+  keyPoints: string[]
+  sentiment: string
+}
+
+export interface Plan {
+  goal: string
+  steps: string[]
+  currentStep: number
+  completed: boolean
 }
 

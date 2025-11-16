@@ -68,7 +68,7 @@ export class InformationHandler implements Handler {
     };
   }
 
-  private formatInformationResponse(question: string, ragResults: any[]): string {
+  private formatInformationResponse(_question: string, ragResults: any[]): string {
     // Combine RAG results into coherent answer
     let response = "";
 
@@ -88,7 +88,7 @@ export class InformationHandler implements Handler {
     return response;
   }
 
-  private getGenericInformationResponse(question: string): string {
+  private getGenericInformationResponse(_question: string): string {
     return "I'd be happy to provide information about that! However, I don't have specific details in my knowledge base at the moment. Could you rephrase your question or ask about something else I might be able to help with?";
   }
 }

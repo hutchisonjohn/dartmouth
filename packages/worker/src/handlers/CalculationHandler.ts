@@ -17,7 +17,7 @@ export class CalculationHandler implements Handler {
 
   async handle(
     message: string,
-    intent: Intent,
+    _intent: Intent,
     context: HandlerContext
   ): Promise<Response> {
     const startTime = Date.now();
@@ -106,7 +106,7 @@ export class CalculationHandler implements Handler {
     }
   }
 
-  private formatCalculationResponse(result: any, params: any): string {
+  private formatCalculationResponse(result: any, _params: any): string {
     if (!result) {
       return "I couldn't perform that calculation. Could you provide more details?";
     }

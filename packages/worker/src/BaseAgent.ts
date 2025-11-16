@@ -18,7 +18,7 @@
  * @implements Section 5.1 from AGENT_ARMY_SYSTEM.md
  */
 
-import type { ConversationState, Intent, Response, Message, AgentConfig, HandlerContext } from './types/shared';
+import type { ConversationState, Response, Message, AgentConfig, HandlerContext } from './types/shared';
 import { ConversationStateManager } from './components/ConversationStateManager';
 import { IntentDetector } from './components/IntentDetector';
 import { ResponseRouter } from './components/ResponseRouter';
@@ -100,8 +100,8 @@ export class BaseAgent {
     this.intentDetector = new IntentDetector();
     this.responseRouter = new ResponseRouter();
     this.responseValidator = new ResponseValidator();
-    this.memorySystem = new MemorySystem(config.env.DB, config.env.WORKERS_AI);
-    this.ragEngine = new RAGEngine(config.env.DB, config.env.WORKERS_AI);
+    this.memorySystem = new MemorySystem(config.env.APP_CONFIG, config.env.DB);
+    this.ragEngine = new RAGEngine(config.env.DB, config.env.WORKERS_AI, config.env.CACHE);
     this.repetitionDetector = new RepetitionDetector();
     this.frustrationHandler = new FrustrationHandler();
     this.calculationEngine = new CalculationEngine();
@@ -166,8 +166,8 @@ export class BaseAgent {
       this.stateManager.addMessage(this.state, userMessage);
 
       // STEP 5: Check for Repetition
-      const repetition = await this.repetitionDetector.detectQuestionRepetition(message, this.state.questionsAsked);
-      if (repetition.isRepeat) {
+      const repetition = await this.repetitionDetector.detectQuestionRepetition(message, this.state);
+      if (repetition.isRepetition) {
         console.log(`[BaseAgent] Repetition detected (count: ${repetition.count})`);
         this.state.isRepeatDetected = true;
         // Update intent to reflect repetition
@@ -175,7 +175,7 @@ export class BaseAgent {
       }
 
       // STEP 6: Check for Frustration
-      const frustrationLevel = await this.frustrationHandler.detectFrustrationLevel(message, this.state.answersGiven);
+      const frustrationLevel = await this.frustrationHandler.detectFrustrationLevel(message, this.state);
       if (frustrationLevel !== 'none') {
         console.log(`[BaseAgent] Frustration detected: ${frustrationLevel}`);
         this.state.isFrustrationDetected = true;
@@ -200,7 +200,7 @@ export class BaseAgent {
       console.log(`[BaseAgent] Handler response generated (${response.content.length} chars)`);
 
       // STEP 9: Validate Response
-      const validation = await this.responseValidator.validate(response, message, intent, this.state);
+      const validation = await this.responseValidator.validate(response, message);
       if (!validation.isValid) {
         console.warn(`[BaseAgent] Response validation failed: ${validation.issues.join(', ')}`);
         
@@ -268,6 +268,11 @@ export class BaseAgent {
       return {
         content: "I apologize, but I encountered an error processing your message. Please try again.",
         metadata: {
+          handlerName: 'error',
+          handlerVersion: '1.0.0',
+          processingTime: Date.now() - startTime,
+          cached: false,
+          confidence: 0,
           error: error instanceof Error ? error.message : 'Unknown error',
           sessionId: this.state?.sessionId,
           processingTimeMs: Date.now() - startTime
@@ -322,7 +327,8 @@ export class BaseAgent {
     if (!this.state) {
       return { short: 'No active conversation', detailed: 'No active conversation' };
     }
-    return this.stateManager.getConversationSummary(this.state);
+    const summary = this.stateManager.getConversationSummary(this.state);
+    return { short: summary.short || '', detailed: summary.detailed || '' };
   }
 
   /**
@@ -341,16 +347,17 @@ export class BaseAgent {
    */
   async ingestDocument(
     title: string,
-    content: string,
-    metadata?: Record<string, any>
+    content: string
   ): Promise<void> {
     console.log(`[BaseAgent] Ingesting document: ${title}`);
     await this.ragEngine.ingestDocument(
-      crypto.randomUUID(),
-      title,
-      content,
       this.agentId,
-      metadata
+      {
+        id: crypto.randomUUID(),
+        title,
+        content,
+        type: 'txt'
+      }
     );
     console.log(`[BaseAgent] Document ingested successfully`);
   }
@@ -358,10 +365,10 @@ export class BaseAgent {
   /**
    * Search the knowledge base
    */
-  async searchKnowledge(query: string, limit: number = 5): Promise<any[]> {
+  async searchKnowledge(query: string, limit: number = 5): Promise<any> {
     console.log(`[BaseAgent] Searching knowledge base: "${query}"`);
     const results = await this.ragEngine.retrieve(query, this.agentId, limit);
-    console.log(`[BaseAgent] Found ${results.length} results`);
+    console.log(`[BaseAgent] Found results`);
     return results;
   }
 

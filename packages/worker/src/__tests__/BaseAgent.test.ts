@@ -38,15 +38,15 @@ const createMockEnv = (): BaseAgentEnv => ({
 
 // Mock agent config
 const createMockAgentConfig = (): AgentConfig => ({
+  agentId: 'test-agent-1',
   name: 'Test Agent',
+  version: '1.0.0',
   description: 'A test agent',
   systemPrompt: 'You are a helpful test assistant.',
-  provider: 'openai-gpt4o-mini',
-  model: 'gpt-4o-mini',
-  apiKey: 'test-key',
+  llmProvider: 'openai',
+  llmModel: 'gpt-4o-mini',
   temperature: 0.7,
-  maxTokens: 150,
-  knowledgeBase: []
+  maxTokens: 150
 });
 
 describe('BaseAgent', () => {
@@ -163,7 +163,7 @@ describe('BaseAgent', () => {
 
   describe('Intent Detection', () => {
     it('should detect greeting intent', async () => {
-      const response = await agent.processMessage('Hello');
+      await agent.processMessage('Hello');
       const state = agent.getState();
       
       expect(state).not.toBeNull();
@@ -174,7 +174,7 @@ describe('BaseAgent', () => {
     });
 
     it('should detect calculation intent', async () => {
-      const response = await agent.processMessage('What is the DPI at 20cm?');
+      await agent.processMessage('What is the DPI at 20cm?');
       const state = agent.getState();
       
       expect(state).not.toBeNull();
@@ -236,7 +236,7 @@ describe('BaseAgent', () => {
   describe('Knowledge Base', () => {
     it('should ingest documents', async () => {
       await expect(
-        agent.ingestDocument('Test Doc', 'This is test content', { category: 'test' })
+        agent.ingestDocument('Test Doc', 'This is test content')
       ).resolves.not.toThrow();
     });
 

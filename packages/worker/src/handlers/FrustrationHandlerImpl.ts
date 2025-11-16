@@ -17,7 +17,7 @@ export class FrustrationHandlerImpl implements Handler {
 
   async handle(
     message: string,
-    intent: Intent,
+    _intent: Intent,
     context: HandlerContext
   ): Promise<Response> {
     const startTime = Date.now();
@@ -58,7 +58,7 @@ export class FrustrationHandlerImpl implements Handler {
     };
   }
 
-  private getEmpathicResponse(level: string, message: string): string {
+  private getEmpathicResponse(level: string, _message: string): string {
     switch (level) {
       case 'critical':
         return "I sincerely apologize for the frustration. I want to help you get this resolved. Would you like me to connect you with someone who can provide more personalized assistance?";
