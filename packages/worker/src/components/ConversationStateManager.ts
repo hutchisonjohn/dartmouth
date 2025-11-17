@@ -92,18 +92,26 @@ export class ConversationStateManager {
       timestamp: new Date(m.timestamp)
     }));
     // Ensure arrays are properly initialized (they might be missing in old sessions)
-    state.questionsAsked = (state.questionsAsked || []).map(q => ({
-      ...q,
-      timestamp: new Date(q.timestamp)
-    }));
-    state.answersGiven = (state.answersGiven || []).map(a => ({
-      ...a,
-      timestamp: new Date(a.timestamp)
-    }));
-    state.intentsDetected = state.intentsDetected || [];
-    state.topicsDiscussed = state.topicsDiscussed || [];
-    state.previousSessions = state.previousSessions || [];
-    state.tags = state.tags || [];
+    state.questionsAsked = Array.isArray(state.questionsAsked) 
+      ? state.questionsAsked.map(q => ({
+          ...q,
+          timestamp: new Date(q.timestamp)
+        }))
+      : [];
+    state.answersGiven = Array.isArray(state.answersGiven)
+      ? state.answersGiven.map(a => ({
+          ...a,
+          timestamp: new Date(a.timestamp)
+        }))
+      : [];
+    state.intentsDetected = Array.isArray(state.intentsDetected) ? state.intentsDetected : [];
+    state.topicsDiscussed = Array.isArray(state.topicsDiscussed) ? state.topicsDiscussed : [];
+    state.previousSessions = Array.isArray(state.previousSessions) ? state.previousSessions : [];
+    state.tags = Array.isArray(state.tags) ? state.tags : [];
+    
+    // Debug: Log array lengths after rehydration
+    console.log(`[StateManager] Loaded session ${sessionId}: questionsAsked=${state.questionsAsked.length}, answersGiven=${state.answersGiven.length}, messages=${state.messages.length}`);
+    
     return state;
   }
 

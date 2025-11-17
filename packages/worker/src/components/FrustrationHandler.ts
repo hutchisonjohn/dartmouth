@@ -39,9 +39,11 @@ export class FrustrationHandler {
     }
 
     // Factor 3: Repeated questions
-    const recentQuestions = conversationState.questionsAsked.slice(-5)
-    const repeatedTopics = this.countRepeatedTopics(recentQuestions.map(q => q.question))
-    score += repeatedTopics
+    if (conversationState.questionsAsked && Array.isArray(conversationState.questionsAsked)) {
+      const recentQuestions = conversationState.questionsAsked.slice(-5)
+      const repeatedTopics = this.countRepeatedTopics(recentQuestions.map(q => q.question))
+      score += repeatedTopics
+    }
 
     // Factor 4: Short, terse responses
     if (message.length < 10 && conversationState.messageCount > 3) {

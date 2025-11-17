@@ -15,6 +15,9 @@ export class RepetitionDetector {
     currentQuestion: string,
     conversationState: ConversationState
   ): { isRepetition: boolean; previousQuestion?: string; count: number } {
+    if (!conversationState.questionsAsked || !Array.isArray(conversationState.questionsAsked)) {
+      return { isRepetition: false, count: 0 };
+    }
     const recentQuestions = conversationState.questionsAsked.slice(-5)
     const normalized = this.normalizeText(currentQuestion)
 
@@ -43,6 +46,9 @@ export class RepetitionDetector {
     currentAnswer: string,
     conversationState: ConversationState
   ): { isRepetition: boolean; previousAnswer?: string; count: number } {
+    if (!conversationState.answersGiven || !Array.isArray(conversationState.answersGiven)) {
+      return { isRepetition: false, count: 0 };
+    }
     const recentAnswers = conversationState.answersGiven.slice(-3)
     const normalized = this.normalizeText(currentAnswer)
 

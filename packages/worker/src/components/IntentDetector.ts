@@ -161,7 +161,7 @@ export class IntentDetector {
     }
 
     // Detect frustration based on conversation history
-    if (state.questionsAsked.length > 3) {
+    if (state.questionsAsked && state.questionsAsked.length > 3) {
       const recentQuestions = state.questionsAsked.slice(-3)
       const repeatedTopics = this.detectRepeatedTopics(recentQuestions)
       
