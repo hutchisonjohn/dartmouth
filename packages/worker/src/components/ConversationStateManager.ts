@@ -91,6 +91,19 @@ export class ConversationStateManager {
       ...m,
       timestamp: new Date(m.timestamp)
     }));
+    // Ensure arrays are properly initialized (they might be missing in old sessions)
+    state.questionsAsked = (state.questionsAsked || []).map(q => ({
+      ...q,
+      timestamp: new Date(q.timestamp)
+    }));
+    state.answersGiven = (state.answersGiven || []).map(a => ({
+      ...a,
+      timestamp: new Date(a.timestamp)
+    }));
+    state.intentsDetected = state.intentsDetected || [];
+    state.topicsDiscussed = state.topicsDiscussed || [];
+    state.previousSessions = state.previousSessions || [];
+    state.tags = state.tags || [];
     return state;
   }
 
