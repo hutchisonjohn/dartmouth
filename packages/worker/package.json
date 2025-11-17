@@ -6,10 +6,22 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "deploy:check": "npm run lint && npm run test",
+    "deploy:full": "npm run deploy:check && npm run deploy",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "db:create": "wrangler d1 create agent-army-db",
+    "db:migrate:local": "wrangler d1 execute agent-army-db --local --file=./migrations/0001_initial_schema.sql",
+    "db:migrate:remote": "wrangler d1 execute agent-army-db --remote --file=./migrations/0001_initial_schema.sql",
+    "db:query:local": "wrangler d1 execute agent-army-db --local --command",
+    "db:query:remote": "wrangler d1 execute agent-army-db --remote --command",
+    "kv:create:config": "wrangler kv:namespace create APP_CONFIG",
+    "kv:create:cache": "wrangler kv:namespace create CACHE",
+    "r2:create": "wrangler r2 bucket create agent-army-files",
+    "logs": "wrangler tail",
+    "logs:pretty": "wrangler tail --format=pretty"
   },
   "dependencies": {
     "hono": "^3.11.7",
