@@ -191,6 +191,7 @@
             display: inline-block;
             margin-right: 4px;
             animation: typing 1.4s infinite;
+            vertical-align: middle;
         }
         
         .typing-indicator span:nth-child(2) {
@@ -390,11 +391,20 @@
                 
                 hideTyping();
                 
-                if (data.response) {
+                // Handle different response formats
+                if (data.content) {
+                    // New format from BaseAgent
+                    sessionId = data.metadata?.sessionId || sessionId;
+                    addMessage('bot', data.content);
+                } else if (data.response) {
+                    // Old format
                     sessionId = data.sessionId;
                     addMessage('bot', data.response);
                 } else if (data.error) {
                     addMessage('bot', `Error: ${data.error}`);
+                } else {
+                    // Unknown format - show raw response
+                    addMessage('bot', JSON.stringify(data, null, 2));
                 }
             } catch (error) {
                 hideTyping();
