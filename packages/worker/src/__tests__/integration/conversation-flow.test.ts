@@ -8,13 +8,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BaseAgent } from '../../BaseAgent';
 import type { BaseAgentConfig } from '../../BaseAgent';
+import { createMockKV, createMockD1 } from '../test-helpers';
 
 describe('Conversation Flow Integration', () => {
   let agent: BaseAgent;
   let config: BaseAgentConfig;
 
   beforeEach(() => {
-    // Create a test configuration
+    // Create a test configuration with working mocks
     config = {
       agentId: 'test-agent',
       tenantId: 'test-tenant',
@@ -30,9 +31,9 @@ describe('Conversation Flow Integration', () => {
         maxTokens: 1000,
       },
       env: {
-        DB: null as any, // Mock DB
-        APP_CONFIG: null as any,
-        CACHE: null as any,
+        DB: createMockD1(),
+        APP_CONFIG: createMockKV(),
+        CACHE: createMockKV(),
         FILES: null as any,
         WORKERS_AI: null as any,
       },

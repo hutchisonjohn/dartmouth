@@ -7,6 +7,36 @@
 import type { ConversationState, HandlerContext, Intent, AgentConfig } from '../types/shared';
 
 /**
+ * Create a mock KV namespace for testing
+ */
+export function createMockKV(): any {
+  const storage = new Map<string, string>();
+  return {
+    get: async (key: string) => storage.get(key) || null,
+    put: async (key: string, value: string) => {
+      storage.set(key, value);
+    },
+    delete: async (key: string) => storage.delete(key),
+    list: async () => ({ keys: Array.from(storage.keys()).map(name => ({ name })) }),
+  };
+}
+
+/**
+ * Create a mock D1 database for testing
+ */
+export function createMockD1(): any {
+  return {
+    prepare: (_query: string) => ({
+      bind: (..._params: any[]) => ({
+        first: async () => null,
+        all: async () => ({ results: [] }),
+        run: async () => ({ success: true }),
+      }),
+    }),
+  };
+}
+
+/**
  * Create a mock ConversationState with all required properties
  */
 export function createMockConversationState(overrides?: Partial<ConversationState>): ConversationState {

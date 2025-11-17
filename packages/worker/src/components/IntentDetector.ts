@@ -50,6 +50,15 @@ export class IntentDetector {
       }
     }
 
+    // Follow-up patterns (check BEFORE calculation - high priority)
+    if (this.isFollowUp(message)) {
+      return {
+        type: 'followup',
+        confidence: 0.70,
+        entities: {}
+      }
+    }
+
     // Calculation patterns
     if (this.isCalculation(message)) {
       return {
@@ -57,15 +66,6 @@ export class IntentDetector {
         confidence: 0.85,
         requiresCalculation: true,
         entities: this.extractCalculationEntities(message)
-      }
-    }
-
-    // Follow-up patterns (check early - high priority)
-    if (this.isFollowUp(message)) {
-      return {
-        type: 'followup',
-        confidence: 0.70,
-        entities: {}
       }
     }
 
@@ -207,23 +207,21 @@ export class IntentDetector {
    * Check if message is a calculation request
    */
   private isCalculation(message: string): boolean {
-    // Don't match "what is X?" questions - those are information requests
-    if (/^what is /i.test(message)) {
-      return false
-    }
+    // If message has measurements, it's likely a calculation
+    const hasMeasurements = /\d+\s*(cm|inch|in|px|pixel|x\d+)/i.test(message);
     
     const calculationPatterns = [
       /calculate/i,
-      /what.*dpi (do i need|should i use|for)/i,
+      /what.*dpi.*(at|for|if|need|use|cm|inch|px)/i, // "What is the DPI at 20cm?" (has context)
+      /what.*(size|dimension).*can.*print/i, // "What size can I print"
       /dpi (at|for|if|do i need|should i use)/i,
-      /what size/i,
       /how (big|large|wide|tall|many pixels)/i,
       /max(imum)? size/i,
-      /print size/i,
-      /\d+\s*(cm|inch|in|px|pixel)/i,
-      /(width|height|dimension).*\d+/i
+      /print size/i
     ]
-    return calculationPatterns.some(pattern => pattern.test(message))
+    
+    // Match if has measurements OR matches specific calculation patterns
+    return hasMeasurements || calculationPatterns.some(pattern => pattern.test(message));
   }
 
   /**

@@ -8,33 +8,42 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BaseAgent, type BaseAgentEnv, type BaseAgentConfig } from '../BaseAgent';
 import type { AgentConfig } from '../types/shared';
 
-// Mock environment
-const createMockEnv = (): BaseAgentEnv => ({
-  DB: {
-    prepare: vi.fn().mockReturnValue({
-      bind: vi.fn().mockReturnThis(),
-      run: vi.fn().mockResolvedValue({ success: true }),
-      first: vi.fn().mockResolvedValue(null),
-      all: vi.fn().mockResolvedValue({ results: [] })
-    })
-  } as any,
-  APP_CONFIG: {
-    get: vi.fn().mockResolvedValue(null),
-    put: vi.fn().mockResolvedValue(undefined),
-    delete: vi.fn().mockResolvedValue(undefined)
-  } as any,
-  CACHE: {
-    get: vi.fn().mockResolvedValue(null),
-    put: vi.fn().mockResolvedValue(undefined),
-    delete: vi.fn().mockResolvedValue(undefined)
-  } as any,
-  FILES: {} as any,
-  WORKERS_AI: {
-    run: vi.fn().mockResolvedValue({
-      data: [[0.1, 0.2, 0.3]] // Mock embedding
-    })
-  } as any
-});
+// Mock environment with in-memory storage
+const createMockEnv = (): BaseAgentEnv => {
+  const kvStorage = new Map<string, string>();
+  const cacheStorage = new Map<string, string>();
+  
+  return {
+    DB: {
+      prepare: vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn().mockResolvedValue(null),
+        all: vi.fn().mockResolvedValue({ results: [] })
+      })
+    } as any,
+    APP_CONFIG: {
+      get: vi.fn().mockImplementation(async (key: string) => kvStorage.get(key) || null),
+      put: vi.fn().mockImplementation(async (key: string, value: string) => {
+        kvStorage.set(key, value);
+      }),
+      delete: vi.fn().mockImplementation(async (key: string) => kvStorage.delete(key))
+    } as any,
+    CACHE: {
+      get: vi.fn().mockImplementation(async (key: string) => cacheStorage.get(key) || null),
+      put: vi.fn().mockImplementation(async (key: string, value: string) => {
+        cacheStorage.set(key, value);
+      }),
+      delete: vi.fn().mockImplementation(async (key: string) => cacheStorage.delete(key))
+    } as any,
+    FILES: {} as any,
+    WORKERS_AI: {
+      run: vi.fn().mockResolvedValue({
+        data: [[0.1, 0.2, 0.3]] // Mock embedding
+      })
+    } as any
+  };
+};
 
 // Mock agent config
 const createMockAgentConfig = (): AgentConfig => ({
