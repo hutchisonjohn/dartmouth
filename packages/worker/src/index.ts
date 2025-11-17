@@ -3,58 +3,32 @@
  * Cloudflare Worker for AI Agent Platform
  */
 
-import { Hono } from 'hono'
-import { cors } from 'hono/cors'
-import { logger } from 'hono/logger'
-import type { Bindings, Variables } from './types/env'
+import { router } from './routes';
+import type { Env } from './types/shared';
 
-// Initialize Hono app
-const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
-
-// Middleware
-app.use('*', logger())
-app.use('*', cors({
-  origin: '*', // TODO: Restrict in production
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
-  exposeHeaders: ['Content-Length', 'X-Request-Id'],
-  maxAge: 600,
-  credentials: true,
-}))
-
-// Health check
-app.get('/health', (c) => {
-  return c.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: c.env?.ENVIRONMENT || 'unknown'
-  })
-})
-
-// API routes will be added here
-// app.route('/api/v1', apiRoutes)
-
-// 404 handler
-app.notFound((c) => {
-  return c.json({
-    error: 'Not Found',
-    message: 'The requested resource was not found',
-    path: c.req.path
-  }, 404)
-})
-
-// Error handler
-app.onError((err, c) => {
-  console.error('Worker error:', err)
-  
-  return c.json({
-    error: 'Internal Server Error',
-    message: err.message,
-    ...(c.env.ENVIRONMENT === 'development' && { stack: err.stack })
-  }, 500)
-})
-
-// Export worker
-export default app
+/**
+ * Cloudflare Worker fetch handler
+ */
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    try {
+      // Route the request
+      return await router(request, env);
+    } catch (error) {
+      console.error('Worker error:', error);
+      
+      return new Response(
+        JSON.stringify({
+          error: 'Internal Server Error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString(),
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+  },
+}
 

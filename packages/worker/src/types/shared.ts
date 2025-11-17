@@ -6,6 +6,42 @@
 // For now, we'll define the types locally until we set up proper workspace linking
 // TODO: Import from @agent-army/shared once workspace is configured
 
+import type { D1Database, KVNamespace, R2Bucket, Ai } from '@cloudflare/workers-types';
+
+/**
+ * Environment bindings for Cloudflare Worker
+ */
+export interface Env {
+  // D1 Database
+  DB: D1Database;
+  
+  // KV Namespaces
+  APP_CONFIG: KVNamespace;
+  CACHE: KVNamespace;
+  
+  // R2 Bucket
+  FILES: R2Bucket;
+  
+  // Workers AI
+  WORKERS_AI: Ai;
+  
+  // Environment Variables
+  ENVIRONMENT?: string;
+  LLM_PROVIDER?: 'openai' | 'anthropic' | 'google';
+  LLM_MODEL?: string;
+  
+  // API Keys
+  OPENAI_API_KEY?: string;
+  ANTHROPIC_API_KEY?: string;
+  GOOGLE_API_KEY?: string;
+  
+  // Secrets
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
+  CLERK_SECRET_KEY?: string;
+  JWT_SECRET?: string;
+}
+
 export interface Message {
   id: string
   role: 'user' | 'assistant' | 'system'
