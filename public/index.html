@@ -243,8 +243,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 Dartmouth Agent Army</h1>
-            <p>AI-Powered Conversational Agent</p>
+            <h1>🎨 McCarthy Artwork Analyzer</h1>
+            <p>AI-Powered Artwork Analysis & Print Preparation Assistant</p>
         </div>
         
         <div class="status" id="status">
@@ -252,18 +252,19 @@
         </div>
         
         <div class="quick-tests">
-            <button class="quick-test-btn" onclick="sendQuickTest('Hello! Can you help me?')">👋 Greeting</button>
-            <button class="quick-test-btn" onclick="sendQuickTest('What size can I print 4000x6000 pixels at 300 DPI?')">📐 Calculation</button>
-            <button class="quick-test-btn" onclick="sendQuickTest('How do I prepare artwork for printing?')">❓ How-to</button>
+            <button class="quick-test-btn" onclick="sendQuickTest('Hello! I need help with artwork.')">👋 Greeting</button>
+            <button class="quick-test-btn" onclick="sendQuickTest('What size can I print 4000x6000 pixels at 300 DPI?')">📐 DPI Calculation</button>
+            <button class="quick-test-btn" onclick="sendQuickTest('How do I prepare artwork for DTF printing?')">❓ DTF How-to</button>
+            <button class="quick-test-btn" onclick="sendQuickTest('What is the minimum text size for DTF?')">📏 Min Text Size</button>
             <button class="quick-test-btn" onclick="testHealth()">🏥 Health Check</button>
         </div>
         
         <div class="messages" id="messages">
             <div class="message bot">
-                <div class="message-avatar">🤖</div>
+                <div class="message-avatar">🎨</div>
                 <div>
                     <div class="message-content">
-                        Welcome! I'm your AI assistant. I can help you with artwork calculations, printing questions, and more. How can I help you today?
+                        Hello! I'm McCarthy, your artwork analysis assistant. I can help you with DPI calculations, print size recommendations, DTF/UV DTF requirements, and artwork preparation guidance. What can I help you with today?
                     </div>
                     <div class="message-time">Just now</div>
                 </div>
@@ -291,7 +292,7 @@
                 const data = await response.json();
                 
                 if (data.status === 'healthy') {
-                    updateStatus('✅ Connected to Dartmouth Agent Army', 'connected');
+                    updateStatus('✅ Connected to McCarthy Artwork Analyzer', 'connected');
                     return true;
                 } else {
                     updateStatus('⚠️ Agent is not healthy', 'error');
@@ -326,7 +327,7 @@
             });
             
             messageEl.innerHTML = `
-                <div class="message-avatar">${type === 'bot' ? '🤖' : '👤'}</div>
+                <div class="message-avatar">${type === 'bot' ? '🎨' : '👤'}</div>
                 <div>
                     <div class="message-content">${content.replace(/\n/g, '<br>')}</div>
                     <div class="message-time">${time}</div>
@@ -343,7 +344,7 @@
             typingEl.className = 'message bot';
             typingEl.id = 'typing-indicator';
             typingEl.innerHTML = `
-                <div class="message-avatar">🤖</div>
+                <div class="message-avatar">🎨</div>
                 <div class="typing-indicator active">
                     <span></span>
                     <span></span>
@@ -384,7 +385,7 @@
                     },
                     body: JSON.stringify({
                         message: message,
-                        agentId: 'test-agent',
+                        agentId: 'mccarthy-artwork',
                         tenantId: 'test-tenant',
                         sessionId: sessionId
                     })

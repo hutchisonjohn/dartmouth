@@ -6,6 +6,7 @@
  */
 
 import { BaseAgent } from '../BaseAgent';
+import { McCarthyArtworkAgent } from '../../../mccarthy-artwork/src/McCarthyArtworkAgent';
 import { DatabaseManager } from '../services/DatabaseManager';
 import type { Env } from '../types/shared';
 
@@ -145,8 +146,13 @@ export async function handleChat(
     // Get agent configuration
     const config = await getBaseAgentConfig(agentId, env, body.userId);
     
-    // Create agent instance
-    const agent = new BaseAgent(config);
+    // Create agent instance based on agentId
+    let agent: BaseAgent;
+    if (agentId === 'mccarthy-artwork' || agentId === 'artwork-analyzer') {
+      agent = new McCarthyArtworkAgent(config);
+    } else {
+      agent = new BaseAgent(config);
+    }
     
     // Generate session ID if not provided
     const sessionId = body.sessionId || `session-${agentId}-${Date.now()}`;

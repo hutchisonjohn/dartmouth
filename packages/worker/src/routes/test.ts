@@ -6,9 +6,10 @@
  */
 
 import { BaseAgent } from '../BaseAgent';
+import { McCarthyArtworkAgent } from '../../../mccarthy-artwork/src/McCarthyArtworkAgent';
 import { IntentDetector } from '../components/IntentDetector';
 import { ResponseValidator } from '../components/ResponseValidator';
-import { CalculationEngine } from '../components/CalculationEngine';
+import { CalculationEngine } from '../../../mccarthy-artwork/src/components/CalculationEngine';
 import type { Env } from '../types/shared';
 
 /**
@@ -49,7 +50,7 @@ function createTestBaseAgentConfig(env: Env, agentId: string = 'test-agent') {
  */
 export async function handleTestChat(request: Request, env: Env): Promise<Response> {
   try {
-    const body = await request.json() as { message: string; sessionId?: string };
+    const body = await request.json() as { message: string; sessionId?: string; agentId?: string };
     
     if (!body.message) {
       return new Response(
@@ -58,8 +59,16 @@ export async function handleTestChat(request: Request, env: Env): Promise<Respon
       );
     }
 
-    const config = createTestBaseAgentConfig(env);
-    const agent = new BaseAgent(config);
+    const agentId = body.agentId || 'test-agent';
+    const config = createTestBaseAgentConfig(env, agentId);
+    
+    // Create agent based on agentId
+    let agent: BaseAgent;
+    if (agentId === 'mccarthy-artwork' || agentId === 'artwork-analyzer') {
+      agent = new McCarthyArtworkAgent(config);
+    } else {
+      agent = new BaseAgent(config);
+    }
     
     const sessionId = body.sessionId || `test-session-${Date.now()}`;
     const response = await agent.processMessage(body.message, sessionId);
