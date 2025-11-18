@@ -92,16 +92,12 @@ export class CalculationHandler implements Handler {
 
     // Format response with print sizes
     const sizeList = Object.entries(result.sizes as Record<string, any>)
-      .map(([size, data]: [string, any]) => {
-        if (data.available) {
-          return `${size}: ${data.widthCm}cm x ${data.heightCm}cm (${data.widthIn}" x ${data.heightIn}")`;
-        }
-        return null;
+      .map(([sizeName, data]: [string, any]) => {
+        return `${sizeName} (${data.widthCm}cm x ${data.heightCm}cm / ${data.widthInches.toFixed(2)}" x ${data.heightInches.toFixed(2)}" at ${data.dpi} DPI - ${data.quality})`;
       })
-      .filter(Boolean)
-      .join(', ');
+      .join('\n- ');
 
-    return `For artwork ${params.widthPixels}x${params.heightPixels} pixels at ${params.dpi} DPI, you can print: ${sizeList}`;
+    return `Great question! For artwork ${params.widthPixels}x${params.heightPixels} pixels at ${params.dpi} DPI, you can print at these sizes:\n\n- ${sizeList}\n\nAll of these maintain excellent print quality!`;
   }
 }
 
