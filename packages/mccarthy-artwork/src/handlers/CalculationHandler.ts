@@ -97,7 +97,15 @@ export class CalculationHandler implements Handler {
       })
       .join('\n- ');
 
-    return `Great question! For artwork ${params.widthPixels}x${params.heightPixels} pixels at ${params.dpi} DPI, you can print at these sizes:\n\n- ${sizeList}\n\nAll of these maintain excellent print quality!`;
+    // Also show maximum sizes
+    const maxSizes = result.maxSizes ? Object.entries(result.maxSizes)
+      .slice(0, 3)  // Show first 3
+      .map(([name, data]: [string, any]) => 
+        `${data.widthCm.toFixed(2)}cm x ${data.heightCm.toFixed(2)}cm (${data.widthInches.toFixed(2)}" x ${data.heightInches.toFixed(2)}") at ${data.dpi} DPI`)
+      .join('\n- ')
+      : '';
+
+    return `At ${params.dpi} DPI, your ${params.widthPixels}x${params.heightPixels} pixel artwork can be printed at:\n\n- ${maxSizes}\n\nThese sizes maintain optimal print quality!`;
   }
 }
 

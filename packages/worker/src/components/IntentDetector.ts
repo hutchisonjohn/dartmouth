@@ -207,6 +207,10 @@ export class IntentDetector {
    * Check if message is a calculation request
    */
   private isCalculation(message: string): boolean {
+    // If message has pixel dimensions and DPI, it's ALWAYS a calculation
+    const hasPixelsAndDPI = /\d+\s*x\s*\d+\s*(pixels?|px)/i.test(message) && /\d+\s*dpi/i.test(message);
+    if (hasPixelsAndDPI) return true;
+    
     // If message has measurements, it's likely a calculation
     const hasMeasurements = /\d+\s*(cm|inch|in|px|pixel|x\d+)/i.test(message);
     
@@ -214,6 +218,7 @@ export class IntentDetector {
       /calculate/i,
       /what.*dpi.*(at|for|if|need|use|cm|inch|px)/i, // "What is the DPI at 20cm?" (has context)
       /what.*(size|dimension).*can.*print/i, // "What size can I print"
+      /(what about|can i print).*(pixels|x\d+)/i,  // "What about 6000x9000 pixels"
       /dpi (at|for|if|do i need|should i use)/i,
       /how (big|large|wide|tall|many pixels)/i,
       /max(imum)? size/i,
