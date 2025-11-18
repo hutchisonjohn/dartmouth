@@ -29,7 +29,6 @@ import { RepetitionDetector } from './components/RepetitionDetector';
 import { FrustrationHandler } from './components/FrustrationHandler';
 import { ConversationQualityValidator } from './components/ConversationQualityValidator';
 import { EmpathyInjector } from './components/EmpathyInjector';
-import { PersonalityPrompt } from './components/PersonalityPrompt';
 import { 
   GreetingHandler, 
   FallbackHandler, 
@@ -277,7 +276,7 @@ export class BaseAgent {
           validationPassed: validation.isValid,
           conversationQualityScore: qualityCheck.score,
           conversationQualityPassed: qualityCheck.passed,
-          userSentiment,
+          userSentiment: userSentiment as string,
           processingTimeMs: Date.now() - startTime
         }
       };
@@ -294,7 +293,7 @@ export class BaseAgent {
         question: message,
         answer: response.content,
         intent: intent.type,
-        sentiment: userSentiment,
+        sentiment: userSentiment as string,
         qualityScore: qualityCheck.score,
         timestamp: new Date()
       });

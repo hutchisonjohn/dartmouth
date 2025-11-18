@@ -70,6 +70,7 @@ export type IntentType =
   | 'repeat'
   | 'followup'
   | 'frustration'
+  | 'complaint'
   | 'unknown'
 
 export interface ConversationState {

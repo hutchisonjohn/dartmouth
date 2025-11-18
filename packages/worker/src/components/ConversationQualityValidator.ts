@@ -15,6 +15,7 @@
  */
 
 import type { Response } from '../types/shared';
+import type { UserSentiment } from './EmpathyInjector';
 
 export interface ConversationQualityResult {
   passed: boolean
@@ -42,7 +43,7 @@ export class ConversationQualityValidator {
       userMessage: string
       conversationHistory: string[]
       providedData?: any
-      userSentiment?: 'neutral' | 'frustrated' | 'confused' | 'excited'
+      userSentiment?: UserSentiment
     }
   ): ConversationQualityResult {
     this.conversationHistory = context.conversationHistory
