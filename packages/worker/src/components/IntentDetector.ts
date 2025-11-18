@@ -326,7 +326,10 @@ export class IntentDetector {
     const followUpPatterns = [
       /^(and|also|what about|how about)/i,
       /^(ok|okay|alright),?\s+(and|but|so)/i,
-      /^(yes|yeah|yep|sure),?\s+(and|but)/i
+      /^(yes|yeah|yep|sure),?\s+(and|but)/i,
+      /^what (is|was|are|were|size)/i,  // "What is...", "What was...", "What size..."
+      /(that|this|it|my)/i,  // References to previous context
+      /^(where|when|why)/i  // Other question words that likely reference context
     ]
     return followUpPatterns.some(pattern => pattern.test(message))
   }
