@@ -6,10 +6,16 @@
 
 import type { Intent, Response } from '@agent-army/shared';
 import type { Handler, HandlerContext } from '@agent-army/shared';
+import type { CalculationEngine } from '../components/CalculationEngine';
 
 export class CalculationHandler implements Handler {
   name = 'CalculationHandler';
   version = '1.0.0';
+  private calculationEngine: CalculationEngine;
+
+  constructor(calculationEngine: CalculationEngine) {
+    this.calculationEngine = calculationEngine;
+  }
 
   canHandle(intent: Intent): boolean {
     return intent.type === 'calculation';
@@ -29,9 +35,9 @@ export class CalculationHandler implements Handler {
     let result: any;
     let responseText: string;
 
-    if (calcParams && context.calculationEngine) {
+    if (calcParams && this.calculationEngine) {
       // Use CalculationEngine.preCompute for artwork calculations
-      result = context.calculationEngine.preCompute(
+      result = this.calculationEngine.preCompute(
         'artwork-' + Date.now(),
         calcParams.widthPixels,
         calcParams.heightPixels,
@@ -39,7 +45,7 @@ export class CalculationHandler implements Handler {
       );
       responseText = this.formatCalculationResponse(result, calcParams);
     } else {
-      responseText = "I can help with print size calculations. Please provide artwork dimensions in pixels and desired DPI (e.g., '4000x6000 pixels at 300 DPI').";
+      responseText = "Hey! I can help with print size calculations. Please provide artwork dimensions in pixels and desired DPI (e.g., '4000x6000 pixels at 300 DPI').";
     }
 
     return {

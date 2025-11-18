@@ -10,6 +10,11 @@ import type { Handler, HandlerContext } from '@agent-army/shared';
 export class HowToHandler implements Handler {
   name = 'HowToHandler';
   version = '1.0.0';
+  private ragEngine: any;
+
+  constructor(ragEngine: any) {
+    this.ragEngine = ragEngine;
+  }
 
   canHandle(intent: Intent): boolean {
     return intent.type === 'howto';
@@ -27,9 +32,9 @@ export class HowToHandler implements Handler {
     let confidence = 0.7;
 
     // Try to get answer from RAG knowledge base
-    if (context.ragEngine && intent.requiresRAG) {
+    if (this.ragEngine && intent.requiresRAG) {
       try {
-        const ragResults = await context.ragEngine.retrieve(
+        const ragResults = await this.ragEngine.retrieve(
           message,
           context.state?.agentId || 'default',
           5
