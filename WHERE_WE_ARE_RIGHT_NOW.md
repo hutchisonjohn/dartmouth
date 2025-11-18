@@ -1,215 +1,173 @@
-# 📍 WHERE WE ARE RIGHT NOW
+# 📍 Where We Are Right Now
 
-**Last Updated:** November 18, 2025  
-**Current Phase:** Phase 5 ✅ COMPLETE → Phase 6 Ready to Start
-
----
-
-## 🎯 **CURRENT STATUS**
-
-### **✅ COMPLETED PHASES**
-
-#### **Phase 1: Documentation** ✅
-- ✅ Complete project documentation
-- ✅ **BACKED UP TO GITHUB** 🔒
-
-#### **Phase 2: Conversation Quality System** ✅
-- ✅ ConversationQualityValidator, EmpathyInjector, PersonalityPrompt
-- ✅ **BACKED UP TO GITHUB** 🔒
-
-#### **Phase 3: Foundation Refactor** ✅
-- ✅ Created McCarthy Artwork package
-- ✅ Foundation is domain-agnostic
-- ✅ **BACKED UP TO GITHUB** 🔒
-
-#### **Phase 4: Agent Routing System** ✅
-- ✅ AgentRegistry, AgentRouter, AgentOrchestrator
-- ✅ **BACKED UP TO GITHUB** 🔒
-
-#### **Phase 5: Agent Constraints System** ✅ **JUST COMPLETED!**
-- ✅ ConstraintValidator (380 lines)
-- ✅ 7 default global constraints
-- ✅ 3-level constraint hierarchy
-- ✅ Automatic violation detection
-- ✅ Automatic escalation
-- ✅ **BACKED UP TO GITHUB** 🔒
+**Last Updated:** November 18, 2025, 8:30 PM  
+**Current Phase:** Phase 6 - McCarthy Artwork Analyzer + Chat Widget (In Progress)  
+**Git Commit:** `82e90a4` - "Phase 6 (WIP): Widget components created but build incomplete"
 
 ---
 
-## 🚀 **NEXT: PHASE 6 - MCCARTHY ARTWORK ANALYZER**
+## ✅ What's Complete
 
-**Status:** Ready to start  
-**Time Estimate:** 3-4 hours
+### Phase 1-5: Foundation (100% Complete)
+- ✅ BaseAgent with conversation quality system
+- ✅ Agent routing and orchestration
+- ✅ Constraint validation system
+- ✅ LLM fallback integration
+- ✅ Memory and RAG systems
+- ✅ All core handlers (Greeting, Fallback, Frustration, Repeat)
+- ✅ Deployed to Cloudflare Workers
+- ✅ Test interface working at `https://dartmouth-chat.pages.dev`
+- ✅ Manual testing completed with critical bugs fixed
 
-### **What We'll Build:**
+### Phase 6: McCarthy Artwork Agent (80% Complete)
+- ✅ **McCarthyArtworkAgent** class created
+- ✅ Extends BaseAgent with artwork-specific capabilities
+- ✅ **CalculationEngine** moved to mccarthy-artwork package
+- ✅ **Artwork handlers** moved (CalculationHandler, HowToHandler, InformationHandler)
+- ✅ **Agent constraints** defined (no pricing, no discounts, no refunds)
+- ✅ Package structure complete with proper exports
+- ✅ All code committed to GitHub
 
-#### **1. McCarthyArtworkAgent Class**
-- Extends Dartmouth Foundation
-- Inherits conversation quality
-- Adds artwork-specific capabilities
-
-#### **2. Integration**
-- Register with AgentRegistry
-- Add artwork-specific constraints
-- Connect CalculationEngine
-- Connect artwork handlers
-
-#### **3. Testing**
-- Test artwork calculations
-- Test DTF knowledge retrieval
-- Test constraint enforcement
-- Test full conversation flow
-
----
-
-## 📊 **OVERALL PROGRESS**
-
-```
-Phase 1: Documentation          ████████████ 100% ✅
-Phase 2: Conversation Quality   ████████████ 100% ✅
-Phase 3: Foundation Refactor    ████████████ 100% ✅
-Phase 4: Agent Routing          ████████████ 100% ✅
-Phase 5: Constraints System     ████████████ 100% ✅
-Phase 6: McCarthy Artwork       ░░░░░░░░░░░░   0% ⏭️
-Phase 7: Integration & Testing  ░░░░░░░░░░░░   0%
-Phase 8: Deploy & Validate      ░░░░░░░░░░░░   0%
-
-Overall: ██████░░░░░░ 62.5% COMPLETE!
-```
-
-**Time spent:** ~11.5 hours  
-**Time remaining:** ~9-12 hours
-
----
-
-## 🏗️ **CURRENT ARCHITECTURE**
-
-### **Dartmouth Foundation (BaseAgent)**
-**Status:** ✅ Complete and production-ready
-
-**Systems:**
-- ✅ Conversation Quality System (THE HEART)
-- ✅ Agent Routing System (ORCHESTRATION)
-- ✅ Constraint System (BUSINESS RULES)
-- ✅ Memory System
-- ✅ RAG Engine
-- ✅ Intent Detection
-- ✅ Response Validation
-- ✅ Repetition Detection
-- ✅ Frustration Handling
-- ✅ State Management
-
-**Handlers:**
-- ✅ GreetingHandler
-- ✅ RepeatHandler
-- ✅ FrustrationHandlerImpl
-- ✅ FallbackHandler
-
-### **McCarthy Artwork Package**
-**Status:** ✅ Components ready, awaiting agent class
-
-**Components:**
-- ✅ CalculationEngine
-- ✅ CalculationHandler
-- ✅ HowToHandler
-- ✅ InformationHandler
-- ✅ DTF Knowledge Base (3 RAG docs)
+### Phase 6: Chat Widget (70% Complete)
+- ✅ **All component files created:**
+  - ChatWindow.tsx
+  - ChatHeader.tsx
+  - ChatBubble.tsx
+  - ChatInput.tsx
+  - ChatButton.tsx
+  - TypingIndicator.tsx
+- ✅ **Core infrastructure:**
+  - McCarthyWidget.tsx (main wrapper)
+  - index.tsx (entry point + vanilla JS API)
+  - dev.tsx (development environment)
+- ✅ **Support files:**
+  - api/client.ts (McCarthyApiClient)
+  - lib/utils.ts (helper functions)
+  - types/index.ts (TypeScript definitions)
+  - styles/globals.css (Tailwind + shadcn/ui)
+- ✅ **Configuration:**
+  - package.json with all dependencies
+  - vite.config.ts for ES + UMD builds
+  - tailwind.config.js with shadcn/ui design tokens
+  - tsconfig.json
+- ✅ **All files committed to GitHub**
 
 ---
 
-## 📝 **TODO LIST**
+## ⏳ What's In Progress
 
-### **Immediate (Phase 6):**
-- [ ] Create McCarthyArtworkAgent class
-- [ ] Register with AgentRegistry
-- [ ] Add artwork-specific constraints
-- [ ] Test artwork calculations
-- [ ] Test full agent
-- [ ] **BACKUP TO GITHUB** 🔒
-
-### **Next (Phase 7):**
-- [ ] End-to-end testing
-- [ ] Multi-agent collaboration tests
-- [ ] Constraint violation tests
-- [ ] **BACKUP TO GITHUB** 🔒
-
-### **Final (Phase 8):**
-- [ ] Deploy to Cloudflare
-- [ ] Validate production deployment
-- [ ] **BACKUP TO GITHUB** 🔒
+### Chat Widget - Build & Deploy (Blocked)
+**Status:** Component files created but build failing  
+**Issue:** Widget needs to be built and deployed to Cloudflare for testing  
+**Next Steps:**
+1. Fix build issues (verify all imports working)
+2. Run `npm run build` successfully
+3. Deploy widget to Cloudflare Pages
+4. Test with live Dartmouth worker
 
 ---
 
-## 🎯 **WHAT'S WORKING**
+## 🚫 What's NOT Done Yet
 
-### **✅ Foundation is Production-Ready**
-- Clean, domain-agnostic orchestration
-- Conversation quality at the core
-- Intelligent agent routing
-- Business rule enforcement
+### Phase 6 Remaining Tasks:
+1. **Widget Build & Deploy** - Need to get widget building and deployed
+2. **DTF Knowledge Base** - Load 3 RAG documents with embeddings
+3. **Integration Testing** - Test widget on HTML and React sites
+4. **Widget Documentation** - Complete README and examples
+5. **Phase 6 Tests** - CalculationEngine, handlers, widget E2E tests
 
-### **✅ Conversation Quality**
-- Personal, empathetic responses
-- Concise, not verbose
-- No hallucinations
-- Remembers context
-- Detects sentiment
-
-### **✅ Agent Routing**
-- Intelligent routing decisions
-- Single-agent routing
-- Multi-agent orchestration
-- Foundation handler fallback
-
-### **✅ Constraint Enforcement**
-- 7 global constraints active
-- Automatic violation detection
-- Automatic escalation
-- Customizable per tenant/agent
+### Future Phases (Not Started):
+- **Phase 7:** Dartmouth Dashboard (agent management UI)
+- **Phase 8:** Additional McCarthy Agents (CS, Content, etc.)
+- **Phase 9:** Production deployment & monitoring
 
 ---
 
-## 📚 **KEY DOCUMENTS**
+## 📊 Overall Progress
 
-### **Must Read:**
-1. **BACKUP_POLICY.md** - **MANDATORY** backup rules 🔒
-2. **START_HERE.md** - Documentation navigation
-3. **DARTMOUTH_BLUEPRINT.md** - System overview
-4. **BUILD_PLAN_COMPLETE.md** - Full build plan
-5. **WHERE_WE_ARE_RIGHT_NOW.md** - This file!
+**Project Completion:** ~72%
 
-### **Phase Summaries:**
-- **PHASE_1_COMPLETE_SUMMARY.md** - Documentation
-- **PHASE_2_COMPLETE_SUMMARY.md** - Conversation quality
-- **PHASE_3_FOUNDATION_REFACTOR_COMPLETE.md** - Foundation refactor
-- **PHASE_4_AGENT_ROUTING_COMPLETE.md** - Agent routing
-- **PHASE_5_CONSTRAINTS_COMPLETE.md** - Latest completion
-
----
-
-## 🔗 **GITHUB STATUS**
-
-**Repository:** https://github.com/hutchisonjohn/dartmouth  
-**Visibility:** 🔒 Private  
-**Branch:** master  
-**Status:** ✅ Up to date  
-**Last Commit:** "Phase 5: Add Agent Constraints System"  
-**All Phases Backed Up:** ✅ YES (5/5)
+| Phase | Status | Progress |
+|-------|--------|----------|
+| Phase 1: Foundation | ✅ Complete | 100% |
+| Phase 2: Core Systems | ✅ Complete | 100% |
+| Phase 3: Refactoring | ✅ Complete | 100% |
+| Phase 4: Agent Routing | ✅ Complete | 100% |
+| Phase 5: Constraints | ✅ Complete | 100% |
+| **Phase 6: McCarthy Artwork** | ⏳ In Progress | **75%** |
+| Phase 7: Dashboard | ⏳ Not Started | 0% |
+| Phase 8: More Agents | ⏳ Not Started | 0% |
+| Phase 9: Production | ⏳ Not Started | 0% |
 
 ---
 
-## ⏭️ **READY TO CONTINUE?**
+## 🎯 Immediate Next Steps
 
-**Next task:** Build McCarthy Artwork Analyzer (Phase 6)
+### Priority 1: Complete Widget Build
+1. Verify all widget files are in place
+2. Fix any import/build errors
+3. Successfully run `npm run build`
+4. Deploy to Cloudflare Pages for testing
 
-**Estimated time:** 3-4 hours
+### Priority 2: Test Widget
+1. Test widget loads correctly
+2. Test chat functionality with Dartmouth worker
+3. Test on different browsers/devices
+4. Fix any UI/UX issues
 
-**What we'll accomplish:**
-- First complete McCarthy agent
-- Full artwork analysis capabilities
-- Integrated with Dartmouth foundation
-- Ready for production deployment
+### Priority 3: Load Knowledge Base
+1. Ingest DTF_Artwork_Requirements.md
+2. Ingest UV_DTF_Artwork_Requirements.md
+3. Ingest DPI_QUALITY_STANDARDS.md
+4. Create embeddings and test RAG queries
 
 ---
 
-**Let's build the first McCarthy agent!** 🚀
+## 🔧 Current Environment
+
+**Deployed Services:**
+- **Dartmouth Worker:** `https://agent-army-worker.dartmouth.workers.dev`
+- **Test Interface:** `https://dartmouth-chat.pages.dev`
+- **GitHub Repo:** `https://github.com/hutchisonjohn/dartmouth` (Private)
+
+**Local Development:**
+- **Widget Package:** `D:\coding\agent-army-system\packages\widget`
+- **Worker Package:** `D:\coding\agent-army-system\packages\worker`
+- **McCarthy Artwork:** `D:\coding\agent-army-system\packages\mccarthy-artwork`
+
+**Reference Projects:**
+- **Artwork Analyser:** `D:\coding\Artwork Analyser AI Agent` (has working chat widget)
+- **Customer Service AI:** `D:\coding\Customer Service AI Agent` (full CS app for future reference)
+
+---
+
+## 📝 Key Documents
+
+**Read These First:**
+1. `START_HERE.md` - Documentation navigation guide
+2. `DARTMOUTH_BLUEPRINT.md` - Project vision and architecture
+3. `BUILD_PLAN_COMPLETE.md` - Full build plan with phases
+4. `WHERE_WE_ARE_RIGHT_NOW.md` - This document
+
+**Technical Docs:**
+1. `CONVERSATION_QUALITY_REQUIREMENTS.md` - Agent personality guidelines
+2. `WIDGET_STATUS.md` - Detailed widget status
+3. `ARTWORK_ANALYZER_REVIEW.md` - Previous project lessons learned
+
+---
+
+## 💡 Notes for Next Session
+
+1. **Widget Build Issue:** The widget components are all created but the build process needs to be completed. All files are in the repo.
+
+2. **Existing Chat Widget:** There's a working chat widget in the Artwork Analyser project at `D:\coding\Artwork Analyser AI Agent\src\frontend\src\components\ArtworkChat.tsx` that can be used as reference.
+
+3. **Customer Service AI:** The full CS app at `D:\coding\Customer Service AI Agent` is a separate project and will be a future McCarthy agent, not the current widget.
+
+4. **Testing Strategy:** Once widget is built, it should be deployed to Cloudflare Pages and tested with the live Dartmouth worker, not just localhost.
+
+5. **Knowledge Base:** The 3 RAG documents are ready in `packages/mccarthy-artwork/src/knowledge/` and just need to be ingested with embeddings.
+
+---
+
+**Action Required:** Fix widget build and deploy to Cloudflare for proper testing.
