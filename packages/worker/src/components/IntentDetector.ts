@@ -284,19 +284,20 @@ export class IntentDetector {
 
   /**
    * Check if message indicates frustration
+   * NOTE: Made VERY conservative to avoid false positives
    */
   private isFrustration(message: string): boolean {
+    // Only match EXPLICIT frustration expressions
+    // Do NOT match general negative words like "issue", "problem", "help"
     const frustrationPatterns = [
-      /(frustrated|annoyed|confused|lost)/i,
-      /(don't understand|doesn't make sense|not helping)/i,
-      /(give up|never mind|forget it)/i,
-      /(doesn't work|not working|won't work)/i,
-      /(terrible|awful|useless|horrible)/i,
-      /help!.*not working/i,
-      /nothing.*working/i,
-      /!!+/,
-      /\?\?+/,
-      /(ugh|argh|grrr)/i
+      /\b(frustrated|annoyed)\b/i,  // Explicit frustration words
+      /(give up|never mind|forget it)/i,  // Giving up
+      /(terrible|awful|useless|horrible|worst)/i,  // Strong negative
+      /!!{2,}/,  // Multiple exclamation marks (3+)
+      /\?{3,}/,  // Multiple question marks (3+)
+      /(ugh|argh|grrr)/i,  // Frustration sounds
+      /this (is|isn't) working/i,  // Explicit "not working"
+      /nothing (is )?working/i  // "nothing working"
     ]
     return frustrationPatterns.some(pattern => pattern.test(message))
   }
