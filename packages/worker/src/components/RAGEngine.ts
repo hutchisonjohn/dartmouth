@@ -21,12 +21,33 @@ export class RAGEngine {
     agentId: string,
     document: Document
   ): Promise<{ chunks: number; embeddings: number }> {
-    // Step 1: Split document into chunks
+    // Step 1: Store document metadata FIRST (before chunks due to foreign key constraint)
+    await this.db
+      .prepare(`
+        INSERT INTO documents (id, organization_id, agent_id, title, file_name, file_type, file_size, content, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .bind(
+        document.id,
+        'default', // Default organization for knowledge base documents
+        agentId,
+        document.title,
+        document.title,
+        document.type,
+        document.content.length,
+        document.content,
+        'ready',
+        new Date().toISOString(),
+        new Date().toISOString()
+      )
+      .run()
+
+    // Step 2: Split document into chunks
     const chunks = this.splitIntoChunks(document.content, 500) // 500 chars per chunk
 
     let embeddingsGenerated = 0
 
-    // Step 2: Generate embeddings and store
+    // Step 3: Generate embeddings and store chunks
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]
       
@@ -53,27 +74,6 @@ export class RAGEngine {
 
       embeddingsGenerated++
     }
-
-    // Store document metadata
-    await this.db
-      .prepare(`
-        INSERT INTO documents (id, organization_id, agent_id, title, file_name, file_type, file_size, content, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `)
-      .bind(
-        document.id,
-        '', // TODO: Get from context
-        agentId,
-        document.title,
-        document.title,
-        document.type,
-        document.content.length,
-        document.content,
-        'ready',
-        new Date().toISOString(),
-        new Date().toISOString()
-      )
-      .run()
 
     return {
       chunks: chunks.length,

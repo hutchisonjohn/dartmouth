@@ -260,11 +260,14 @@ export async function handleTestMemory(request: Request, _env: Env): Promise<Res
  * POST /test/rag
  * Test the RAG Engine component
  */
-export async function handleTestRAG(request: Request, _env: Env): Promise<Response> {
+export async function handleTestRAG(request: Request, env: Env): Promise<Response> {
   try {
     const body = await request.json() as { 
       action: 'ingest' | 'search';
       agentId: string;
+      title?: string;
+      content?: string;
+      query?: string;
     };
     
     if (!body.action || !body.agentId) {
@@ -274,14 +277,71 @@ export async function handleTestRAG(request: Request, _env: Env): Promise<Respon
       );
     }
 
-    // TODO: Implement RAG testing once RAGEngine API is finalized
+    const { RAGEngine } = await import('../components/RAGEngine');
+    const ragEngine = new RAGEngine(env.DB, env.WORKERS_AI, env.CACHE);
+
+    if (body.action === 'ingest') {
+      if (!body.title || !body.content) {
+        return new Response(
+          JSON.stringify({ error: 'Missing required fields for ingest: title, content' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      try {
+        const result = await ragEngine.ingestDocument(body.agentId, {
+          id: crypto.randomUUID(),
+          title: body.title,
+          content: body.content,
+          type: 'md'
+        });
+
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            message: 'Document ingested successfully',
+            agentId: body.agentId,
+            title: body.title,
+            chunks: result.chunks,
+            embeddings: result.embeddings
+          }, null, 2),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      } catch (ingestError) {
+        console.error('Ingest error:', ingestError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to ingest document',
+            details: ingestError instanceof Error ? ingestError.message : String(ingestError),
+            stack: ingestError instanceof Error ? ingestError.stack : undefined
+          }, null, 2),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    } else if (body.action === 'search') {
+      if (!body.query) {
+        return new Response(
+          JSON.stringify({ error: 'Missing required field for search: query' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const result = await ragEngine.retrieve(body.agentId, body.query, 5, 0.7);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          agentId: body.agentId,
+          query: body.query,
+          results: result
+        }, null, 2),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ 
-        message: 'RAG engine testing not yet implemented',
-        action: body.action,
-        agentId: body.agentId
-      }, null, 2),
-      { status: 501, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'Invalid action. Use "ingest" or "search"' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     return new Response(
