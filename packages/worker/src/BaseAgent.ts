@@ -29,6 +29,7 @@ import { RepetitionDetector } from './components/RepetitionDetector';
 import { FrustrationHandler } from './components/FrustrationHandler';
 import { ConversationQualityValidator } from './components/ConversationQualityValidator';
 import { EmpathyInjector } from './components/EmpathyInjector';
+import { ConstraintValidator } from './components/ConstraintValidator';
 import { AgentRegistry, AgentRouter, AgentOrchestrator } from './services';
 import { 
   GreetingHandler, 
@@ -82,6 +83,9 @@ export class BaseAgent {
   private agentRouter: AgentRouter;
   private agentOrchestrator: AgentOrchestrator;
 
+  // Constraint System (BUSINESS RULES ENFORCEMENT)
+  private constraintValidator: ConstraintValidator;
+
   // Configuration
   private agentId: string;
   private tenantId: string;
@@ -120,6 +124,9 @@ export class BaseAgent {
     this.agentRegistry = new AgentRegistry();
     this.agentOrchestrator = new AgentOrchestrator();
     this.agentRouter = new AgentRouter(this.agentRegistry, this.agentOrchestrator);
+
+    // Initialize Constraint System (BUSINESS RULES ENFORCEMENT)
+    this.constraintValidator = new ConstraintValidator();
 
     // Register all handlers
     this.registerHandlers();
@@ -166,6 +173,13 @@ export class BaseAgent {
    */
   getAgentRegistry(): AgentRegistry {
     return this.agentRegistry;
+  }
+
+  /**
+   * Get constraint validator (for external constraint registration)
+   */
+  getConstraintValidator(): ConstraintValidator {
+    return this.constraintValidator;
   }
 
   /**
@@ -282,7 +296,34 @@ export class BaseAgent {
         console.log(`[BaseAgent] Conversation quality passed (score: ${qualityCheck.score}/100)`);
       }
 
-      // STEP 11: Validate Response (Technical)
+      // STEP 11: Validate Constraints (BUSINESS RULES ENFORCEMENT)
+      const constraintCheck = this.constraintValidator.validate(response, {
+        tenantId: this.tenantId,
+        agentId: this.agentId,
+        userMessage: message
+      });
+
+      if (!constraintCheck.passed) {
+        console.warn(`[BaseAgent] Constraint validation failed (${constraintCheck.violations.length} violation(s))`);
+        constraintCheck.violations.forEach(v => {
+          console.warn(`  - ${v.type} (${v.severity}): ${v.message}`);
+        });
+
+        // If escalation required, use escalation response
+        if (constraintCheck.requiresEscalation && constraintCheck.suggestedResponse) {
+          response.content = constraintCheck.suggestedResponse;
+          this.state.needsEscalation = true;
+          console.log(`[BaseAgent] Escalation required to: ${constraintCheck.escalateTo}`);
+        } else if (constraintCheck.suggestedResponse) {
+          // Use suggested fix
+          response.content = constraintCheck.suggestedResponse;
+          console.log(`[BaseAgent] Applied constraint fix`);
+        }
+      } else {
+        console.log(`[BaseAgent] Constraint validation passed`);
+      }
+
+      // STEP 12: Validate Response (Technical)
       const validation = await this.responseValidator.validate(response, message);
       if (!validation.isValid) {
         console.warn(`[BaseAgent] Response validation failed: ${validation.issues.join(', ')}`);
@@ -297,7 +338,7 @@ export class BaseAgent {
         }
       }
 
-      // STEP 12: Create Assistant Message
+      // STEP 13: Create Assistant Message
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -309,19 +350,22 @@ export class BaseAgent {
           validationPassed: validation.isValid,
           conversationQualityScore: qualityCheck.score,
           conversationQualityPassed: qualityCheck.passed,
+          constraintsPassed: constraintCheck.passed,
+          constraintViolations: constraintCheck.violations.length,
+          needsEscalation: constraintCheck.requiresEscalation,
           userSentiment: userSentiment as string,
           processingTimeMs: Date.now() - startTime
         }
       };
 
-      // STEP 13: Add Assistant Message to State
+      // STEP 14: Add Assistant Message to State
       this.stateManager.addMessage(this.state, assistantMessage);
 
-      // STEP 14: Log Question and Answer
+      // STEP 15: Log Question and Answer
       this.stateManager.logQuestion(this.state, message, intent);
       this.stateManager.logAnswer(this.state, response.content, intent.type);
 
-      // STEP 15: Store in Memory System
+      // STEP 16: Store in Memory System
       await this.memorySystem.setShortTerm(this.state.sessionId, `msg_${assistantMessage.id}`, {
         question: message,
         answer: response.content,
@@ -331,11 +375,11 @@ export class BaseAgent {
         timestamp: new Date()
       });
 
-      // STEP 16: Save Session State
+      // STEP 17: Save Session State
       await this.stateManager.saveSession(this.state);
       console.log(`[BaseAgent] Session saved`);
 
-      // STEP 17: Return Response
+      // STEP 18: Return Response
       const totalTime = Date.now() - startTime;
       console.log(`[BaseAgent] Message processed in ${totalTime}ms`);
 
