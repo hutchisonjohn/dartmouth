@@ -415,35 +415,6 @@ export class IntentDetector {
     return false
   }
 
-  /**
-   * Extract calculation entities from message
-   */
-  private extractCalculationEntities(message: string): Record<string, any> {
-    const entities: Record<string, any> = {}
-
-    // Extract dimensions
-    const dimensionMatch = message.match(/(\d+(?:\.\d+)?)\s*(cm|inch|in|px|pixel)/i)
-    if (dimensionMatch) {
-      entities.dimension = parseFloat(dimensionMatch[1])
-      entities.unit = dimensionMatch[2].toLowerCase()
-    }
-
-    // Extract DPI
-    const dpiMatch = message.match(/(\d+)\s*dpi/i)
-    if (dpiMatch) {
-      entities.targetDPI = parseInt(dpiMatch[1])
-    }
-
-    // Check for "max" or "optimal"
-    if (/max(imum)?|largest|biggest/i.test(message)) {
-      entities.findMaximum = true
-    }
-    if (/optimal|best|recommended/i.test(message)) {
-      entities.findOptimal = true
-    }
-
-    return entities
-  }
 
   /**
    * Extract how-to entities from message
