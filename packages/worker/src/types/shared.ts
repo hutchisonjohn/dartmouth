@@ -215,7 +215,6 @@ export interface HandlerContext {
   stateManager: any
   memorySystem: any
   ragEngine: any
-  calculationEngine: any
   frustrationHandler: any
 }
 

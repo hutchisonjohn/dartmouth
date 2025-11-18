@@ -32,11 +32,9 @@ export interface HandlerContext {
   stateManager?: any
   memorySystem?: any
   ragEngine?: any
-  calculationEngine?: any
   frustrationHandler?: any
   artworkData?: any
   ragContext?: string
-  calculationData?: any
   metadata?: Record<string, any>
 }
 

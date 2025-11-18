@@ -27,7 +27,6 @@ import { MemorySystem } from './components/MemorySystem';
 import { RAGEngine } from './components/RAGEngine';
 import { RepetitionDetector } from './components/RepetitionDetector';
 import { FrustrationHandler } from './components/FrustrationHandler';
-import { CalculationEngine } from './components/CalculationEngine';
 import { ConversationQualityValidator } from './components/ConversationQualityValidator';
 import { EmpathyInjector } from './components/EmpathyInjector';
 import { PersonalityPrompt } from './components/PersonalityPrompt';
@@ -35,10 +34,7 @@ import {
   GreetingHandler, 
   FallbackHandler, 
   RepeatHandler, 
-  FrustrationHandlerImpl,
-  CalculationHandler,
-  HowToHandler,
-  InformationHandler
+  FrustrationHandlerImpl
 } from './handlers';
 
 /**
@@ -76,7 +72,6 @@ export class BaseAgent {
   private ragEngine: RAGEngine;
   private repetitionDetector: RepetitionDetector;
   private frustrationHandler: FrustrationHandler;
-  private calculationEngine: CalculationEngine;
   
   // Conversation Quality System (THE HEART OF DARTMOUTH)
   private conversationQualityValidator: ConversationQualityValidator;
@@ -111,7 +106,6 @@ export class BaseAgent {
     this.ragEngine = new RAGEngine(config.env.DB, config.env.WORKERS_AI, config.env.CACHE);
     this.repetitionDetector = new RepetitionDetector();
     this.frustrationHandler = new FrustrationHandler();
-    this.calculationEngine = new CalculationEngine();
     
     // Initialize Conversation Quality System (THE HEART OF DARTMOUTH)
     this.conversationQualityValidator = new ConversationQualityValidator();
@@ -125,20 +119,21 @@ export class BaseAgent {
 
   /**
    * Register all handlers with the ResponseRouter
+   * 
+   * NOTE: Only foundation handlers are registered here.
+   * Domain-specific handlers (calculation, howto, information) are now
+   * part of specialized McCarthy agents.
    */
   private registerHandlers(): void {
-    // Register specific handlers
+    // Register foundation handlers only
     this.responseRouter.registerHandler(new GreetingHandler());
     this.responseRouter.registerHandler(new RepeatHandler());
     this.responseRouter.registerHandler(new FrustrationHandlerImpl());
-    this.responseRouter.registerHandler(new CalculationHandler());
-    this.responseRouter.registerHandler(new HowToHandler());
-    this.responseRouter.registerHandler(new InformationHandler());
 
     // Set fallback handler (catches all unhandled intents)
     this.responseRouter.setDefaultHandler(new FallbackHandler());
 
-    console.log('[BaseAgent] All handlers registered');
+    console.log('[BaseAgent] Foundation handlers registered (greeting, repeat, frustration, fallback)');
   }
 
   /**
@@ -204,7 +199,6 @@ export class BaseAgent {
         stateManager: this.stateManager,
         memorySystem: this.memorySystem,
         ragEngine: this.ragEngine,
-        calculationEngine: this.calculationEngine,
         frustrationHandler: this.frustrationHandler
       };
 
