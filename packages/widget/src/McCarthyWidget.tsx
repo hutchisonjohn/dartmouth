@@ -37,7 +37,7 @@ export const McCarthyWidget: React.FC<McCarthyWidgetProps> = ({ config }) => {
   };
 
   return (
-    <div className=\"mccarthy-widget\" style={positionStyles[position]}>
+    <div className="mccarthy-widget" style={positionStyles[position]}>
       {isOpen ? (
         <ChatWindow config={config} onClose={() => setIsOpen(false)} />
       ) : (
