@@ -17,6 +17,18 @@ export class IntentDetector {
   ): Promise<Intent> {
     const lowerMessage = message.toLowerCase().trim()
 
+    // HIGH PRIORITY: If message has pixels AND DPI, it's ALWAYS a calculation
+    // This prevents ANY other intent from overriding calculation requests
+    const hasPixelsAndDPI = /\d+\s*x\s*\d+\s*(pixels?|px)/i.test(message) && /\d+\s*dpi/i.test(message);
+    if (hasPixelsAndDPI) {
+      return {
+        type: 'calculation',
+        confidence: 1.0,
+        requiresCalculation: true,
+        entities: this.extractCalculationEntities(message)
+      };
+    }
+
     // Pattern-based detection
     const patternIntent = this.detectByPattern(lowerMessage)
     
@@ -211,6 +223,28 @@ export class IntentDetector {
       /^(that's all|that is all|i'm done|im done)/i
     ]
     return farewellPatterns.some(pattern => pattern.test(message))
+  }
+
+  /**
+   * Extract calculation entities from message
+   */
+  private extractCalculationEntities(message: string): Record<string, any> {
+    const entities: Record<string, any> = {};
+    
+    // Extract pixel dimensions
+    const pixelMatch = message.match(/(\d+)\s*x\s*(\d+)\s*(pixels?|px)?/i);
+    if (pixelMatch) {
+      entities.widthPixels = parseInt(pixelMatch[1]);
+      entities.heightPixels = parseInt(pixelMatch[2]);
+    }
+    
+    // Extract DPI
+    const dpiMatch = message.match(/(\d+)\s*dpi/i);
+    if (dpiMatch) {
+      entities.dpi = parseInt(dpiMatch[1]);
+    }
+    
+    return entities;
   }
 
   /**
