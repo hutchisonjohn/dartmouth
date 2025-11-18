@@ -66,8 +66,8 @@ export class McCarthyArtworkAgent extends BaseAgent {
   private registerArtworkConstraints(): void {
     const constraintValidator = this.getConstraintValidator();
 
-    // Register global constraints for this agent
-    constraintValidator.registerGlobalConstraints(ARTWORK_AGENT_CONSTRAINTS);
+    // Register agent-specific constraints
+    constraintValidator.registerAgentConstraints((this as any).agentId, ARTWORK_AGENT_CONSTRAINTS);
 
     console.log('[McCarthy Artwork] Constraints registered (no pricing, no discounts, no refunds)');
   }
