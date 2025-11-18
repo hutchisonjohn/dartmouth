@@ -17,3 +17,6 @@ export type {
   OrchestrationResult,
   StepResult
 } from './AgentOrchestrator';
+
+export { LLMService } from './LLMService';
+export type { LLMRequest, LLMResponse } from './LLMService';

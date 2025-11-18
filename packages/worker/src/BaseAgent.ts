@@ -30,7 +30,7 @@ import { FrustrationHandler } from './components/FrustrationHandler';
 import { ConversationQualityValidator } from './components/ConversationQualityValidator';
 import { EmpathyInjector } from './components/EmpathyInjector';
 import { ConstraintValidator } from './components/ConstraintValidator';
-import { AgentRegistry, AgentRouter, AgentOrchestrator } from './services';
+import { AgentRegistry, AgentRouter, AgentOrchestrator, LLMService } from './services';
 import { 
   GreetingHandler, 
   FallbackHandler, 
@@ -47,6 +47,9 @@ export interface BaseAgentEnv {
   CACHE: KVNamespace;
   FILES: R2Bucket;
   WORKERS_AI: Ai;
+  OPENAI_API_KEY?: string;
+  ANTHROPIC_API_KEY?: string;
+  GOOGLE_API_KEY?: string;
 }
 
 /**
@@ -80,11 +83,15 @@ export class BaseAgent {
 
   // Agent Routing System (MCCARTHY AGENT ORCHESTRATION)
   private agentRegistry: AgentRegistry;
-  private agentRouter: AgentRouter;
+  // @ts-ignore - Will be used in Phase 6 for McCarthy agents
+  private _agentRouter: AgentRouter;
   private agentOrchestrator: AgentOrchestrator;
 
   // Constraint System (BUSINESS RULES ENFORCEMENT)
   private constraintValidator: ConstraintValidator;
+
+  // LLM Service (CONVERSATION GENERATION)
+  private llmService: LLMService | null = null;
 
   // Configuration
   private agentId: string;
@@ -123,10 +130,13 @@ export class BaseAgent {
     // Initialize Agent Routing System (MCCARTHY AGENT ORCHESTRATION)
     this.agentRegistry = new AgentRegistry();
     this.agentOrchestrator = new AgentOrchestrator();
-    this.agentRouter = new AgentRouter(this.agentRegistry, this.agentOrchestrator);
+    this._agentRouter = new AgentRouter(this.agentRegistry, this.agentOrchestrator);
 
     // Initialize Constraint System (BUSINESS RULES ENFORCEMENT)
     this.constraintValidator = new ConstraintValidator();
+
+    // Initialize LLM Service (CONVERSATION GENERATION)
+    this.initializeLLMService();
 
     // Register all handlers
     this.registerHandlers();
@@ -135,6 +145,42 @@ export class BaseAgent {
     this.registerMcCarthyAgents();
 
     console.log(`[BaseAgent] Initialized for agent: ${this.agentId}, tenant: ${this.tenantId}`);
+  }
+
+  /**
+   * Initialize LLM Service based on agent configuration
+   */
+  private initializeLLMService(): void {
+    const provider = this.agentConfig.llmProvider;
+    let apiKey: string | undefined;
+
+    switch (provider) {
+      case 'openai':
+        apiKey = this.env.OPENAI_API_KEY;
+        break;
+      case 'anthropic':
+        apiKey = this.env.ANTHROPIC_API_KEY;
+        break;
+      case 'google':
+        apiKey = this.env.GOOGLE_API_KEY;
+        break;
+      default:
+        console.warn(`[BaseAgent] Unknown LLM provider: ${provider}`);
+        return;
+    }
+
+    if (!apiKey) {
+      console.warn(`[BaseAgent] No API key found for ${provider}. LLM fallback will not be available.`);
+      return;
+    }
+
+    this.llmService = new LLMService(
+      provider,
+      apiKey!,  // We already checked apiKey exists above
+      this.agentConfig.llmModel
+    );
+
+    console.log(`[BaseAgent] LLM Service initialized: ${provider} (${this.agentConfig.llmModel})`);
   }
 
   /**
@@ -233,8 +279,14 @@ export class BaseAgent {
       if (frustrationLevel !== 'none') {
         console.log(`[BaseAgent] Frustration detected: ${frustrationLevel}`);
         this.state.isFrustrationDetected = true;
-        // Update intent to reflect frustration
-        intent.type = 'frustration';
+        // Only override intent for moderate/high/critical frustration
+        // Mild frustration should not hijack the conversation
+        if (frustrationLevel === 'moderate' || frustrationLevel === 'high' || frustrationLevel === 'critical') {
+          intent.type = 'frustration';
+          console.log(`[BaseAgent] Intent overridden to frustration (level: ${frustrationLevel})`);
+        } else {
+          console.log(`[BaseAgent] Mild frustration noted, but not overriding intent`);
+        }
       }
 
       // STEP 7: Build Handler Context
@@ -251,6 +303,12 @@ export class BaseAgent {
       // STEP 8: Route to Appropriate Handler
       let response = await this.responseRouter.route(message, intent, context);
       console.log(`[BaseAgent] Handler response generated (${response.content.length} chars)`);
+
+      // STEP 8.5: LLM Fallback (if handler returned generic response and LLM is available)
+      if (this.shouldUseLLMFallback(response, intent) && this.llmService) {
+        console.log(`[BaseAgent] Using LLM fallback for better response`);
+        response = await this.generateLLMResponse(message, intent, context);
+      }
 
       // STEP 9: Add Empathy (THE HEART OF DARTMOUTH)
       const userSentiment = this.empathyInjector.detectSentiment(
@@ -541,6 +599,103 @@ export class BaseAgent {
       repetitionCount: this.stateManager.getRepetitionCount(this.state),
       isFrustrated: this.state.isFrustrationDetected
     };
+  }
+
+  /**
+   * Determine if we should use LLM fallback instead of handler response
+   */
+  private shouldUseLLMFallback(response: Response, intent: any): boolean {
+    // Use LLM for fallback/unknown intents
+    if (intent.type === 'unknown' || intent.type === 'information') {
+      return true;
+    }
+
+    // Use LLM if handler returned a generic "I don't know" response
+    const genericPhrases = [
+      "i'm not sure",
+      "i don't know",
+      "i can't help",
+      "i'm not quite sure",
+      "could you rephrase"
+    ];
+
+    const lowerContent = response.content.toLowerCase();
+    if (genericPhrases.some(phrase => lowerContent.includes(phrase))) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Generate response using LLM
+   */
+  private async generateLLMResponse(
+    _message: string,
+    _intent: any,
+    _context: HandlerContext
+  ): Promise<Response> {
+    if (!this.llmService) {
+      throw new Error('LLM Service not initialized');
+    }
+
+    const startTime = Date.now();
+
+    // Build system prompt with personality, context, and constraints
+    const basePrompt = this.agentConfig.systemPrompt || 'You are a helpful AI assistant.';
+    
+    // Get active constraints
+    const constraints: string[] = [];
+    constraints.push('NEVER offer discounts or pricing without authorization');
+    constraints.push('NEVER make promises you cannot keep');
+    constraints.push('ALWAYS be honest if you don\'t know something');
+    constraints.push('ALWAYS be concise - no more than 2-3 sentences unless asked for details');
+    
+    const systemPrompt = LLMService.buildSystemPrompt(
+      basePrompt,
+      this.state || undefined,
+      constraints
+    );
+
+    // Prepare conversation history
+    const conversationMessages = this.state?.messages || [];
+
+    try {
+      const llmResponse = await this.llmService.generate({
+        messages: conversationMessages,
+        systemPrompt,
+        temperature: this.agentConfig.temperature,
+        maxTokens: this.agentConfig.maxTokens
+      });
+
+      return {
+        content: llmResponse.content,
+        metadata: {
+          handlerName: 'LLMFallback',
+          handlerVersion: '1.0.0',
+          processingTime: Date.now() - startTime,
+          cached: false,
+          confidence: 0.8,
+          llmModel: llmResponse.model,
+          llmTokensUsed: llmResponse.tokensUsed,
+          llmFinishReason: llmResponse.finishReason
+        }
+      };
+    } catch (error) {
+      console.error('[BaseAgent] LLM generation failed:', error);
+      // Return a safe fallback
+      return {
+        content: "I'm having trouble processing that right now. Could you try rephrasing your question?",
+        metadata: {
+          handlerName: 'LLMFallback',
+          handlerVersion: '1.0.0',
+          processingTime: Date.now() - startTime,
+          cached: false,
+          confidence: 0.3,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      };
+    }
   }
 }
 
