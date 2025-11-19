@@ -36,7 +36,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 ### **Category 8: Constraint Enforcement**
 ### **Category 9: LLM Fallback & Context Awareness**
 
-**Note:** RAG Knowledge Retrieval is NOT tested here - it's agent-specific and tested in specialized agent test plans (e.g., McCarthy Artwork Analyzer)
+**Note:** RAG Knowledge Retrieval is NOT tested here - it's agent-specific and tested in specialized agent test plans (e.g., McCarthy Artwork Analyzer, McCarthy Lead Scraper, etc.)
 
 ---
 
@@ -100,12 +100,12 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 **Objective:** Verify agent tracks topics discussed
 
 **Steps:**
-1. Send: "Tell me about printing"
-2. Send: "What about artwork quality?"
+1. Send: "Tell me about dogs"
+2. Send: "What about cats?"
 3. Send: "What have we discussed so far?"
 
 **Expected Result:**
-- ✅ Agent recalls topics: printing, artwork quality
+- ✅ Agent recalls topics: dogs, cats
 - ✅ Response summarizes conversation topics
 
 **Pass Criteria:** Response mentions both topics discussed
@@ -167,13 +167,13 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 **Objective:** Verify information requests are detected
 
 **Test Cases:**
-- "What is DPI?"
-- "Tell me about printing"
-- "How does this work?"
+- "What is artificial intelligence?"
+- "Tell me about the weather"
+- "How does gravity work?"
 
 **Expected Result:**
 - ✅ Intent: information
-- ✅ LLM or RAG provides answer
+- ✅ LLM provides answer
 
 **Pass Criteria:** Response attempts to answer the question
 
@@ -281,9 +281,9 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 **Objective:** Verify agent detects repeated questions
 
 **Steps:**
-1. Send: "What is DPI?"
+1. Send: "What is your name?"
 2. Wait for response
-3. Send: "What is DPI?" (same question)
+3. Send: "What is your name?" (same question)
 
 **Expected Result:**
 - ✅ Repetition detected
@@ -298,9 +298,9 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 **Objective:** Verify agent handles multiple repetitions
 
 **Steps:**
-1. Send: "What is DPI?" (1st time)
-2. Send: "What is DPI?" (2nd time)
-3. Send: "What is DPI?" (3rd time)
+1. Send: "What is your name?" (1st time)
+2. Send: "What is your name?" (2nd time)
+3. Send: "What is your name?" (3rd time)
 
 **Expected Result:**
 - ✅ Agent detects pattern
@@ -366,9 +366,9 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 **Objective:** Verify normal questions aren't flagged as frustration
 
 **Test Cases:**
-- "I have an issue with my artwork"
+- "I have an issue I need help with"
 - "Can you help me with a problem?"
-- "What's wrong with this?"
+- "What's wrong with this approach?"
 
 **Expected Result:**
 - ✅ NOT detected as frustration
@@ -415,8 +415,8 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 **Objective:** Verify responses are relevant to question
 
 **Test Cases:**
-- "What is DPI?"
-- "How do I export my file?"
+- "What is machine learning?"
+- "How do I make coffee?"
 
 **Expected Result:**
 - ✅ Response directly addresses question
@@ -563,7 +563,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 **Objective:** Verify LLM doesn't violate constraints
 
 **Steps:**
-1. Send: "I need help with my artwork"
+1. Send: "I need help with something"
 2. Send: "How much will it cost?"
 
 **Expected Result:**
@@ -611,7 +611,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 - ❌ LLM fallback not working
 - ❌ Critical bugs present
 
-**Note:** RAG testing is excluded - it's agent-specific and will be tested in McCarthy Artwork Analyzer test plan
+**Note:** RAG testing is excluded - it's agent-specific and will be tested in specialized agent test plans
 
 ---
 
@@ -620,17 +620,17 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 **Only proceed when foundation is solid:**
 
 1. ✅ Foundation tests pass (90%+)
-2. ➡️ Add Artwork Context Integration
-3. ➡️ Build Artwork Analyzer on top of foundation
-4. ➡️ Test Artwork Analyzer specifically
-5. ➡️ Deploy to Artwork Upload Page
+2. ➡️ Build specialized agents on top of foundation
+3. ➡️ Test each specialized agent
+4. ➡️ Deploy specialized agents to production
+5. ➡️ Build Dartmouth Dashboard for agent management
 
 ---
 
 ## 📝 **TEST EXECUTION INSTRUCTIONS**
 
 ### **For Manual Testing:**
-1. Go to: https://master.dartmouth-chat.pages.dev
+1. Open: `D:\coding\agent-army-system\test-fam-local.html` in your browser
 2. Open browser console (F12) to see metadata
 3. Follow each test scenario exactly
 4. Record results in spreadsheet
@@ -641,6 +641,8 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 2. Run: `npm run test:foundation`
 3. Review test report
 4. Investigate failures
+
+**Note:** Use FAM (Foundational Agent McCarthy) test UI, NOT McCarthy Artwork Analyzer
 
 ---
 
