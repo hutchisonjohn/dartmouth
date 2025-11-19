@@ -1,665 +1,702 @@
 # 🧪 FOUNDATIONAL AGENT - COMPREHENSIVE TEST PLAN
 
-**Date:** November 17, 2025  
-**Agent:** Dartmouth Foundational Agent  
-**Version:** 1.0.0  
-**Status:** Production Ready - Awaiting Full Testing
+**Version:** 1.0  
+**Date:** November 19, 2025  
+**Purpose:** Verify ALL foundational agent capabilities before building specialized agents  
+**Status:** READY FOR TESTING
 
 ---
 
-## 📋 TESTING OVERVIEW
+## 📋 **TEST OVERVIEW**
 
-### **Test Environment:**
-- **API Endpoint:** `https://agent-army-worker.dartmouth.workers.dev`
-- **Test Interface:** `https://dartmouth-chat.pages.dev`
-- **Backend:** Cloudflare Workers + D1 + KV + OpenAI GPT-4
+This test plan validates the 10 core components of the Dartmouth Foundation (BaseAgent):
 
-### **Testing Goals:**
-1. Verify all 10 core components work correctly
-2. Test all 7 conversation handlers
-3. Validate multi-turn conversation flow
-4. Confirm memory and context persistence
-5. Test edge cases and error handling
-6. Measure response quality and accuracy
-7. Verify database operations
-8. Test calculation accuracy
-9. Validate intent detection
-10. Confirm frustration and repetition handling
+1. ✅ Conversation State Manager
+2. ✅ Intent Detector
+3. ✅ Response Router
+4. ✅ Response Validator
+5. ✅ Memory System (4 levels)
+6. ✅ RAG Engine
+7. ✅ Repetition Detector
+8. ✅ Frustration Handler
+9. ✅ Conversation Quality Validator
+10. ✅ Empathy Injector
 
 ---
 
-## 🎯 TEST CATEGORIES
+## 🎯 **TEST CATEGORIES**
 
-### **1. HEALTH & INFRASTRUCTURE TESTS**
-### **2. INTENT DETECTION TESTS**
-### **3. CONVERSATION HANDLER TESTS**
-### **4. CALCULATION ENGINE TESTS**
-### **5. MEMORY & CONTEXT TESTS**
-### **6. MULTI-TURN CONVERSATION TESTS**
-### **7. ERROR HANDLING & EDGE CASES**
-### **8. PERFORMANCE & RELIABILITY TESTS**
-### **9. INTEGRATION TESTS**
-### **10. USER EXPERIENCE TESTS**
+### **Category 1: Conversation Memory & Context Tracking**
+### **Category 2: Intent Detection & Routing**
+### **Category 3: Memory System (Short-term, Long-term, Semantic, Episodic)**
+### **Category 4: RAG Knowledge Retrieval**
+### **Category 5: Repetition Detection**
+### **Category 6: Frustration Handling**
+### **Category 7: Conversation Quality**
+### **Category 8: Empathy & Personality**
+### **Category 9: Constraint Enforcement**
+### **Category 10: LLM Fallback & Context Awareness**
 
 ---
 
-## 1️⃣ HEALTH & INFRASTRUCTURE TESTS
+## 📝 **DETAILED TEST SCENARIOS**
 
-### **Test 1.1: System Health Check**
-**Endpoint:** `GET /health`  
+---
+
+## **CATEGORY 1: CONVERSATION MEMORY & CONTEXT TRACKING**
+
+### **Test 1.1: Session Creation and Persistence**
+**Objective:** Verify sessions are created and persisted across requests
+
+**Steps:**
+1. Send: "Hello"
+2. Note the sessionId from response
+3. Send: "What did I just say?" with the same sessionId
+4. Verify agent remembers "Hello"
+
 **Expected Result:**
-```json
-{
-  "status": "healthy",
-  "services": {
-    "database": "up",
-    "cache": "up",
-    "llm": "up"
-  }
-}
-```
-**Pass Criteria:** All services return "up"
+- ✅ SessionId is returned
+- ✅ Agent remembers previous message
+- ✅ Response references "Hello"
+
+**Pass Criteria:** Agent says something like "You said hello" or "You just greeted me"
 
 ---
 
-### **Test 1.2: Readiness Check**
-**Endpoint:** `GET /health/ready`  
-**Expected Result:** Status 200, ready: true  
-**Pass Criteria:** System reports ready state
+### **Test 1.2: Multi-Turn Conversation Context**
+**Objective:** Verify agent maintains context over multiple turns
+
+**Steps:**
+1. Send: "My name is John"
+2. Send: "I live in New York"
+3. Send: "I work as a designer"
+4. Send: "What do you know about me?"
+
+**Expected Result:**
+- ✅ Agent recalls: name (John), location (New York), occupation (designer)
+- ✅ Response includes all three facts
+
+**Pass Criteria:** Response mentions "John", "New York", and "designer"
 
 ---
 
-### **Test 1.3: Liveness Check**
-**Endpoint:** `GET /health/live`  
-**Expected Result:** Status 200, alive: true  
-**Pass Criteria:** System responds within 1 second
+### **Test 1.3: Message History Tracking**
+**Objective:** Verify all messages are stored in conversation state
+
+**Steps:**
+1. Send 5 different messages in same session
+2. Send: "How many messages have we exchanged?"
+
+**Expected Result:**
+- ✅ Agent knows the conversation length
+- ✅ Response indicates multiple messages
+
+**Pass Criteria:** Agent acknowledges multiple messages (doesn't have to be exact count)
 
 ---
 
-## 2️⃣ INTENT DETECTION TESTS
+### **Test 1.4: Topic Tracking**
+**Objective:** Verify agent tracks topics discussed
+
+**Steps:**
+1. Send: "Tell me about printing"
+2. Send: "What about artwork quality?"
+3. Send: "What have we discussed so far?"
+
+**Expected Result:**
+- ✅ Agent recalls topics: printing, artwork quality
+- ✅ Response summarizes conversation topics
+
+**Pass Criteria:** Response mentions both topics discussed
+
+---
+
+### **Test 1.5: Follow-up Question Handling**
+**Objective:** Verify agent understands follow-up questions with pronouns
+
+**Steps:**
+1. Send: "I have a blue car"
+2. Send: "What color is it?"
+
+**Expected Result:**
+- ✅ Agent understands "it" = car
+- ✅ Response says "blue"
+
+**Pass Criteria:** Response includes "blue"
+
+---
+
+## **CATEGORY 2: INTENT DETECTION & ROUTING**
 
 ### **Test 2.1: Greeting Intent**
-**Input:** "Hello!"  
-**Expected Intent:** `greeting`  
-**Expected Confidence:** > 0.8  
-**Pass Criteria:** Correctly identifies greeting
+**Objective:** Verify greeting detection and routing
+
+**Test Cases:**
+- "Hi"
+- "Hello"
+- "Hey there"
+- "Good morning"
+
+**Expected Result:**
+- ✅ Intent: greeting
+- ✅ Handler: GreetingHandler
+- ✅ Warm, friendly response
+
+**Pass Criteria:** Response is a greeting (not generic)
 
 ---
 
-### **Test 2.2: Calculation Intent**
-**Input:** "What size can I print 4000x6000 pixels at 300 DPI?"  
-**Expected Intent:** `calculation`  
-**Expected Confidence:** > 0.8  
-**Pass Criteria:** Correctly identifies calculation request
+### **Test 2.2: Farewell Intent**
+**Objective:** Verify farewell detection
+
+**Test Cases:**
+- "Goodbye"
+- "Thanks, bye"
+- "See you later"
+
+**Expected Result:**
+- ✅ Intent: farewell
+- ✅ Polite closing response
+
+**Pass Criteria:** Response acknowledges goodbye
 
 ---
 
-### **Test 2.3: How-To Intent**
-**Input:** "How do I prepare artwork for printing?"  
-**Expected Intent:** `how_to`  
-**Expected Confidence:** > 0.7  
-**Pass Criteria:** Correctly identifies how-to question
+### **Test 2.3: Information Request Intent**
+**Objective:** Verify information requests are detected
+
+**Test Cases:**
+- "What is DPI?"
+- "Tell me about printing"
+- "How does this work?"
+
+**Expected Result:**
+- ✅ Intent: information
+- ✅ LLM or RAG provides answer
+
+**Pass Criteria:** Response attempts to answer the question
 
 ---
 
-### **Test 2.4: Information Intent**
-**Input:** "What file formats do you support?"  
-**Expected Intent:** `information`  
-**Expected Confidence:** > 0.7  
-**Pass Criteria:** Correctly identifies information request
+### **Test 2.4: Unknown Intent Handling**
+**Objective:** Verify unknown intents route to LLM fallback
+
+**Test Cases:**
+- "The sky is blue"
+- "Random statement here"
+
+**Expected Result:**
+- ✅ Intent: unknown
+- ✅ Handler: LLMFallback
+- ✅ Conversational response
+
+**Pass Criteria:** Agent responds conversationally (doesn't error)
 
 ---
 
-### **Test 2.5: Follow-Up Intent**
-**Input:** (After previous message) "What about that?"  
-**Expected Intent:** `follow_up`  
-**Expected Confidence:** > 0.7  
-**Pass Criteria:** Correctly identifies follow-up question
+### **Test 2.5: Follow-up Intent Detection**
+**Objective:** Verify follow-ups are detected and routed to LLM
+
+**Steps:**
+1. Send: "I like pizza"
+2. Send: "What about pasta?"
+
+**Expected Result:**
+- ✅ Intent: followup → information
+- ✅ Handler: LLMFallback
+- ✅ Contextual response
+
+**Pass Criteria:** Agent understands "what about" is a follow-up
 
 ---
 
-### **Test 2.6: Clarification Intent**
-**Input:** "I don't understand"  
-**Expected Intent:** `clarification`  
-**Expected Confidence:** > 0.7  
-**Pass Criteria:** Correctly identifies clarification need
+## **CATEGORY 3: MEMORY SYSTEM**
+
+### **Test 3.1: Short-Term Memory (Current Session)**
+**Objective:** Verify short-term memory within session
+
+**Steps:**
+1. Send: "Remember this: my favorite color is red"
+2. Send: "What's my favorite color?"
+
+**Expected Result:**
+- ✅ Agent recalls "red"
+- ✅ Memory persists in current session
+
+**Pass Criteria:** Response includes "red"
 
 ---
 
-### **Test 2.7: Feedback Intent**
-**Input:** "That was helpful, thanks!"  
-**Expected Intent:** `feedback`  
-**Expected Confidence:** > 0.7  
-**Pass Criteria:** Correctly identifies feedback
+### **Test 3.2: Long-Term Memory (Across Sessions)**
+**Objective:** Verify memory persists across sessions
+
+**Steps:**
+1. Session 1: Send "My name is Sarah"
+2. Note sessionId
+3. Wait 5 minutes
+4. Session 2: Send "What's my name?" with SAME sessionId
+
+**Expected Result:**
+- ✅ Agent recalls "Sarah" from previous session
+- ✅ Memory persists after time gap
+
+**Pass Criteria:** Response includes "Sarah"
 
 ---
 
-### **Test 2.8: Ambiguous Intent**
-**Input:** "hmm"  
-**Expected Intent:** `unknown` or appropriate fallback  
-**Pass Criteria:** Handles ambiguity gracefully
+### **Test 3.3: Preference Learning**
+**Objective:** Verify agent learns user preferences
+
+**Steps:**
+1. Send: "I prefer metric measurements"
+2. Send: "What units do I prefer?"
+
+**Expected Result:**
+- ✅ Agent recalls preference
+- ✅ Response mentions "metric"
+
+**Pass Criteria:** Response includes "metric"
 
 ---
 
-## 3️⃣ CONVERSATION HANDLER TESTS
+### **Test 3.4: Memory Recall in Context**
+**Objective:** Verify agent uses memory in responses
 
-### **Test 3.1: Greeting Handler**
-**Input:** "Hi there!"  
-**Expected Response:** Friendly greeting with offer to help  
-**Pass Criteria:**
-- Responds warmly
-- Offers assistance
-- Sets positive tone
-- Response time < 2 seconds
+**Steps:**
+1. Send: "I'm working on a design project"
+2. Send: "Can you help me?"
 
----
+**Expected Result:**
+- ✅ Agent references "design project" in response
+- ✅ Contextual help offered
 
-### **Test 3.2: Calculation Handler - Simple**
-**Input:** "Calculate print size for 3000x2000 pixels at 300 DPI"  
-**Expected Response:**
-- Width: 10 inches
-- Height: 6.67 inches
-- Aspect ratio: 3:2
-**Pass Criteria:**
-- Calculations are accurate
-- Units are correct
-- Response is clear
+**Pass Criteria:** Response mentions "design project"
 
 ---
 
-### **Test 3.3: Calculation Handler - Complex**
-**Input:** "I have a 6000x4000 pixel image. What's the largest I can print at 150 DPI and 300 DPI?"  
-**Expected Response:**
-- 150 DPI: 40" x 26.67"
-- 300 DPI: 20" x 13.33"
-**Pass Criteria:**
-- Both calculations correct
-- Comparison is clear
-- Recommendations provided
+## **CATEGORY 4: RAG KNOWLEDGE RETRIEVAL**
+
+### **Test 4.1: RAG Query (Knowledge Base)**
+**Objective:** Verify RAG retrieves relevant knowledge
+
+**Test Cases:**
+- "What is DTF printing?"
+- "Tell me about UV DTF requirements"
+- "What DPI is recommended for printing?"
+
+**Expected Result:**
+- ✅ RAG engine queries knowledge base
+- ✅ Relevant information returned
+- ✅ Response includes sourced information
+
+**Pass Criteria:** Response includes specific technical details (not generic)
 
 ---
 
-### **Test 3.4: How-To Handler**
-**Input:** "How do I prepare a file for large format printing?"  
-**Expected Response:** Step-by-step guidance  
-**Pass Criteria:**
-- Provides actionable steps
-- Mentions resolution, color mode, file format
-- Professional and helpful
+### **Test 4.2: RAG Fallback (No Knowledge)**
+**Objective:** Verify graceful fallback when no RAG data
+
+**Test Cases:**
+- "What is quantum physics?"
+- "Tell me about cooking pasta"
+
+**Expected Result:**
+- ✅ RAG returns no results
+- ✅ LLM provides general response
+- ✅ No error
+
+**Pass Criteria:** Agent responds conversationally (doesn't say "no data")
 
 ---
 
-### **Test 3.5: Information Handler**
-**Input:** "What's the difference between RGB and CMYK?"  
-**Expected Response:** Clear explanation  
-**Pass Criteria:**
-- Accurate information
-- Easy to understand
-- Relevant to printing context
+## **CATEGORY 5: REPETITION DETECTION**
+
+### **Test 5.1: Question Repetition**
+**Objective:** Verify agent detects repeated questions
+
+**Steps:**
+1. Send: "What is DPI?"
+2. Wait for response
+3. Send: "What is DPI?" (same question)
+
+**Expected Result:**
+- ✅ Repetition detected
+- ✅ Agent acknowledges repetition
+- ✅ Response varies or clarifies
+
+**Pass Criteria:** Second response is different or acknowledges repetition
 
 ---
 
-### **Test 3.6: Repeat Handler**
-**Input:** (Same question twice)  
-**Expected Response:** Detects repetition, offers alternative explanation  
-**Pass Criteria:**
-- Detects repetition
-- Provides different phrasing
-- Offers to clarify
+### **Test 5.2: Multiple Repetitions**
+**Objective:** Verify agent handles multiple repetitions
+
+**Steps:**
+1. Send: "What is DPI?" (1st time)
+2. Send: "What is DPI?" (2nd time)
+3. Send: "What is DPI?" (3rd time)
+
+**Expected Result:**
+- ✅ Agent detects pattern
+- ✅ Offers to clarify or escalate
+- ✅ Doesn't give identical response 3 times
+
+**Pass Criteria:** Third response offers help or clarification
 
 ---
 
-### **Test 3.7: Fallback Handler**
-**Input:** "asdfghjkl"  
-**Expected Response:** Polite confusion, request for clarification  
-**Pass Criteria:**
-- Handles gracefully
-- Asks for clarification
-- Maintains helpful tone
+## **CATEGORY 6: FRUSTRATION HANDLING**
+
+### **Test 6.1: Mild Frustration Detection**
+**Objective:** Verify mild frustration is detected but doesn't override intent
+
+**Test Cases:**
+- "This is confusing"
+- "I don't understand"
+
+**Expected Result:**
+- ✅ Frustration noted
+- ✅ Intent NOT overridden to frustration
+- ✅ Empathetic response
+
+**Pass Criteria:** Agent responds helpfully (not with frustration handler)
 
 ---
 
-## 4️⃣ CALCULATION ENGINE TESTS
+### **Test 6.2: Moderate Frustration**
+**Objective:** Verify moderate frustration triggers empathetic response
 
-### **Test 4.1: Standard DPI Calculation**
-**Input:**
-```json
-{
-  "widthPixels": 3000,
-  "heightPixels": 2000,
-  "dpi": 300
-}
-```
-**Expected Output:**
-- Width: 10 inches
-- Height: 6.67 inches
-**Pass Criteria:** Accurate to 2 decimal places
+**Test Cases:**
+- "This isn't working"
+- "Nothing is working"
+- "This is terrible"
 
----
+**Expected Result:**
+- ✅ Frustration detected: moderate
+- ✅ Intent overridden to frustration
+- ✅ Empathetic, helpful response
 
-### **Test 4.2: Large Format Calculation**
-**Input:**
-```json
-{
-  "widthPixels": 12000,
-  "heightPixels": 8000,
-  "dpi": 150
-}
-```
-**Expected Output:**
-- Width: 80 inches (6.67 feet)
-- Height: 53.33 inches (4.44 feet)
-**Pass Criteria:** Handles large dimensions correctly
+**Pass Criteria:** Response acknowledges frustration and offers help
 
 ---
 
-### **Test 4.3: Reverse Calculation (Size to Pixels)**
-**Input:** "How many pixels do I need for a 24x36 inch print at 300 DPI?"  
-**Expected Output:**
-- Width: 7200 pixels
-- Height: 10800 pixels
-**Pass Criteria:** Reverse calculation is accurate
+### **Test 6.3: High Frustration / Profanity**
+**Objective:** Verify high frustration triggers escalation
+
+**Test Cases:**
+- "This is fucking useless"
+- "What the hell is going on?"
+
+**Expected Result:**
+- ✅ Frustration detected: high/critical
+- ✅ Empathetic response
+- ✅ Offer to escalate
+
+**Pass Criteria:** Response is calm, empathetic, offers escalation
 
 ---
 
-### **Test 4.4: Aspect Ratio Preservation**
-**Input:** Various dimensions  
-**Expected Output:** Correct aspect ratio identification (16:9, 4:3, 3:2, etc.)  
-**Pass Criteria:** Aspect ratios correctly identified
+### **Test 6.4: False Positive Prevention**
+**Objective:** Verify normal questions aren't flagged as frustration
+
+**Test Cases:**
+- "I have an issue with my artwork"
+- "Can you help me with a problem?"
+- "What's wrong with this?"
+
+**Expected Result:**
+- ✅ NOT detected as frustration
+- ✅ Routed to appropriate handler
+- ✅ Helpful response
+
+**Pass Criteria:** Agent doesn't say "What's not working?" or frustration response
 
 ---
 
-### **Test 4.5: Edge Case - Very Low DPI**
-**Input:**
-```json
-{
-  "widthPixels": 1000,
-  "heightPixels": 1000,
-  "dpi": 72
-}
-```
-**Expected Output:** Warning about print quality  
-**Pass Criteria:** Warns about low resolution
+## **CATEGORY 7: CONVERSATION QUALITY**
+
+### **Test 7.1: No Hallucination**
+**Objective:** Verify agent doesn't make up information
+
+**Test Cases:**
+- "What's the price?"
+- "How much does it cost?"
+
+**Expected Result:**
+- ✅ Agent doesn't invent prices
+- ✅ Honest response (doesn't know or redirects)
+
+**Pass Criteria:** No made-up prices or information
 
 ---
 
-### **Test 4.6: Edge Case - Very High DPI**
-**Input:**
-```json
-{
-  "widthPixels": 10000,
-  "heightPixels": 10000,
-  "dpi": 600
-}
-```
-**Expected Output:** Calculation with note about overkill  
-**Pass Criteria:** Handles high DPI appropriately
+### **Test 7.2: Concise Responses**
+**Objective:** Verify responses aren't overly verbose
+
+**Test Cases:**
+- "Hi"
+- "Thanks"
+
+**Expected Result:**
+- ✅ Response is 1-3 sentences
+- ✅ Not a wall of text
+
+**Pass Criteria:** Response is concise (< 100 words)
 
 ---
 
-## 5️⃣ MEMORY & CONTEXT TESTS
+### **Test 7.3: Relevant Responses**
+**Objective:** Verify responses are relevant to question
 
-### **Test 5.1: Short-Term Memory**
-**Conversation:**
-1. "My image is 4000x3000 pixels"
-2. "What size can I print it at 300 DPI?"
+**Test Cases:**
+- "What is DPI?"
+- "How do I export my file?"
 
-**Expected:** Agent remembers dimensions from message 1  
-**Pass Criteria:** Uses context from previous message
+**Expected Result:**
+- ✅ Response directly addresses question
+- ✅ No off-topic information
 
----
-
-### **Test 5.2: Session Persistence**
-**Test:**
-1. Start conversation
-2. Get session ID
-3. Close and reopen
-4. Use same session ID
-
-**Expected:** Conversation history retained  
-**Pass Criteria:** Previous messages accessible
+**Pass Criteria:** Response is on-topic
 
 ---
 
-### **Test 5.3: Context Window**
-**Test:** Have 10+ message conversation  
-**Expected:** Agent maintains context across all messages  
-**Pass Criteria:** References earlier messages appropriately
+## **CATEGORY 8: EMPATHY & PERSONALITY**
+
+### **Test 8.1: Empathetic Responses**
+**Objective:** Verify agent shows empathy
+
+**Test Cases:**
+- "I'm frustrated"
+- "I'm confused"
+- "I'm having trouble"
+
+**Expected Result:**
+- ✅ Response acknowledges feeling
+- ✅ Empathetic language used
+- ✅ Offers help
+
+**Pass Criteria:** Response includes empathy ("I understand", "Let's figure this out")
 
 ---
 
-### **Test 5.4: Multi-Topic Memory**
-**Conversation:**
-1. Discuss image size
-2. Ask about file formats
-3. Return to image size topic
+### **Test 8.2: Personality Consistency**
+**Objective:** Verify agent maintains consistent personality
 
-**Expected:** Agent remembers both topics  
-**Pass Criteria:** Switches between topics smoothly
+**Steps:**
+1. Send 5 different messages
+2. Observe tone and style
 
----
+**Expected Result:**
+- ✅ Consistent friendly tone
+- ✅ Professional but approachable
+- ✅ Not robotic
 
-## 6️⃣ MULTI-TURN CONVERSATION TESTS
-
-### **Test 6.1: Progressive Refinement**
-**Conversation:**
-1. "I need help with printing"
-2. "I have a 5000x3000 pixel image"
-3. "What's the best DPI for a poster?"
-4. "Calculate the size at 150 DPI"
-
-**Expected:** Natural conversation flow  
-**Pass Criteria:** Each response builds on previous context
+**Pass Criteria:** Responses feel conversational, not robotic
 
 ---
 
-### **Test 6.2: Topic Switching**
-**Conversation:**
-1. "Calculate 3000x2000 at 300 DPI"
-2. "What file format should I use?"
-3. "Back to the calculation - what about 150 DPI?"
+### **Test 8.3: Appropriate Emoji Usage**
+**Objective:** Verify emojis are used sparingly and appropriately
 
-**Expected:** Handles topic switches gracefully  
-**Pass Criteria:** Maintains context for each topic
+**Test Cases:**
+- Various questions
 
----
+**Expected Result:**
+- ✅ Emojis used occasionally (not every message)
+- ✅ Relevant emojis (not random)
 
-### **Test 6.3: Clarification Loop**
-**Conversation:**
-1. "I need to print something"
-2. Agent: "What are the dimensions?"
-3. "I'm not sure"
-4. Agent: "Can you check the file properties?"
-5. "It's 4000x3000"
-
-**Expected:** Patient clarification process  
-**Pass Criteria:** Guides user to provide needed information
+**Pass Criteria:** Emojis enhance, don't distract
 
 ---
 
-## 7️⃣ ERROR HANDLING & EDGE CASES
+## **CATEGORY 9: CONSTRAINT ENFORCEMENT**
 
-### **Test 7.1: Missing Parameters**
-**Input:** "Calculate print size" (no dimensions)  
-**Expected:** Politely asks for missing information  
-**Pass Criteria:** Identifies missing data, requests it
+### **Test 9.1: No Pricing Information**
+**Objective:** Verify agent doesn't provide pricing
 
----
+**Test Cases:**
+- "How much does it cost?"
+- "What's the price?"
+- "How much do you charge?"
 
-### **Test 7.2: Invalid Input**
-**Input:** "Calculate -1000 x 2000 pixels"  
-**Expected:** Error message about invalid dimensions  
-**Pass Criteria:** Validates input, provides helpful error
+**Expected Result:**
+- ✅ Agent doesn't provide prices
+- ✅ Redirects to sales team
+- ✅ Constraint enforced
 
----
-
-### **Test 7.3: Extremely Long Message**
-**Input:** 5000+ character message  
-**Expected:** Processes or politely asks for shorter input  
-**Pass Criteria:** Handles gracefully, doesn't crash
+**Pass Criteria:** No prices mentioned, offers to connect with sales
 
 ---
 
-### **Test 7.4: Special Characters**
-**Input:** "What about émojis 🎨 and spëcial çharacters?"  
-**Expected:** Handles correctly  
-**Pass Criteria:** No encoding errors
+### **Test 9.2: No Discounts**
+**Objective:** Verify agent doesn't offer discounts
+
+**Test Cases:**
+- "Can I get a discount?"
+- "Do you have any deals?"
+
+**Expected Result:**
+- ✅ Agent doesn't offer discounts
+- ✅ Redirects to sales team
+- ✅ Constraint enforced
+
+**Pass Criteria:** No discounts offered, redirects appropriately
 
 ---
 
-### **Test 7.5: Rapid-Fire Messages**
-**Test:** Send 5 messages in quick succession  
-**Expected:** All processed correctly  
-**Pass Criteria:** No race conditions, all responses correct
+### **Test 9.3: No Refunds**
+**Objective:** Verify agent doesn't handle refunds
+
+**Test Cases:**
+- "I want a refund"
+- "Can I return this?"
+
+**Expected Result:**
+- ✅ Agent doesn't process refunds
+- ✅ Redirects to customer service
+- ✅ Constraint enforced
+
+**Pass Criteria:** Redirects to appropriate team
 
 ---
 
-### **Test 7.6: Network Timeout Simulation**
-**Test:** Simulate slow LLM response  
-**Expected:** Graceful timeout handling  
-**Pass Criteria:** User gets feedback, no hanging
+## **CATEGORY 10: LLM FALLBACK & CONTEXT AWARENESS**
+
+### **Test 10.1: LLM Fallback Activation**
+**Objective:** Verify LLM is used for general questions
+
+**Test Cases:**
+- "What do you think about design?"
+- "Can you explain this concept?"
+
+**Expected Result:**
+- ✅ Handler: LLMFallback
+- ✅ Conversational response
+- ✅ Uses conversation context
+
+**Pass Criteria:** Response is conversational and contextual
 
 ---
 
-## 8️⃣ PERFORMANCE & RELIABILITY TESTS
+### **Test 10.2: Context Awareness in LLM**
+**Objective:** Verify LLM uses full conversation history
 
-### **Test 8.1: Response Time - Simple Query**
-**Input:** "Hello"  
-**Expected:** Response < 2 seconds  
-**Pass Criteria:** Fast response for simple queries
+**Steps:**
+1. Send: "I'm working on a poster"
+2. Send: "What dimensions should I use?"
 
----
+**Expected Result:**
+- ✅ LLM references "poster" from previous message
+- ✅ Contextual advice given
 
-### **Test 8.2: Response Time - Complex Query**
-**Input:** Complex calculation with explanation  
-**Expected:** Response < 5 seconds  
-**Pass Criteria:** Reasonable time for complex queries
-
----
-
-### **Test 8.3: Concurrent Users**
-**Test:** Simulate 10 concurrent conversations  
-**Expected:** All handled correctly  
-**Pass Criteria:** No degradation, all responses accurate
+**Pass Criteria:** Response mentions "poster"
 
 ---
 
-### **Test 8.4: Database Performance**
-**Test:** 100 messages in one session  
-**Expected:** All stored and retrievable  
-**Pass Criteria:** No database errors, fast retrieval
+### **Test 10.3: LLM Respects Constraints**
+**Objective:** Verify LLM doesn't violate constraints
+
+**Steps:**
+1. Send: "I need help with my artwork"
+2. Send: "How much will it cost?"
+
+**Expected Result:**
+- ✅ LLM doesn't provide pricing
+- ✅ Redirects appropriately
+- ✅ Constraints enforced even in LLM
+
+**Pass Criteria:** No pricing information provided
 
 ---
 
-### **Test 8.5: Cache Performance**
-**Test:** Repeat identical query  
-**Expected:** Second response faster (if cached)  
-**Pass Criteria:** Cache improves performance
+## 📊 **TEST EXECUTION CHECKLIST**
+
+### **Pre-Test Setup:**
+- [ ] Agent deployed to production
+- [ ] OpenAI API key configured
+- [ ] RAG documents loaded
+- [ ] Test environment ready
+
+### **During Testing:**
+- [ ] Record all responses
+- [ ] Note sessionIds
+- [ ] Screenshot any issues
+- [ ] Document unexpected behavior
+
+### **Post-Test:**
+- [ ] Calculate pass rate
+- [ ] Document all failures
+- [ ] Prioritize fixes
+- [ ] Create bug tickets
 
 ---
 
-## 9️⃣ INTEGRATION TESTS
+## 📈 **SUCCESS CRITERIA**
 
-### **Test 9.1: Full Conversation Flow**
-**Scenario:** Complete user journey from greeting to calculation to follow-up  
-**Expected:** Seamless experience  
-**Pass Criteria:** All components work together
+**Foundation is READY when:**
+- ✅ **90%+ tests pass** (36+ out of 40 tests)
+- ✅ **All Category 1 tests pass** (Conversation Memory - CRITICAL)
+- ✅ **All Category 10 tests pass** (LLM Fallback - CRITICAL)
+- ✅ **No critical bugs** (crashes, data loss, hallucinations)
 
----
-
-### **Test 9.2: LLM Integration**
-**Test:** Verify OpenAI API calls work  
-**Expected:** Natural language responses  
-**Pass Criteria:** LLM enhances responses appropriately
-
----
-
-### **Test 9.3: Database Integration**
-**Test:** Verify D1 storage and retrieval  
-**Expected:** Data persists correctly  
-**Pass Criteria:** No data loss, accurate retrieval
+**Foundation needs MORE WORK when:**
+- ❌ < 90% pass rate
+- ❌ Conversation memory fails
+- ❌ LLM fallback not working
+- ❌ Critical bugs present
 
 ---
 
-### **Test 9.4: KV Cache Integration**
-**Test:** Verify KV storage for sessions  
-**Expected:** Fast session access  
-**Pass Criteria:** Sessions load quickly
+## 🚀 **NEXT STEPS AFTER FOUNDATION TESTING**
+
+**Only proceed when foundation is solid:**
+
+1. ✅ Foundation tests pass (90%+)
+2. ➡️ Add Artwork Context Integration
+3. ➡️ Build Artwork Analyzer on top of foundation
+4. ➡️ Test Artwork Analyzer specifically
+5. ➡️ Deploy to Artwork Upload Page
 
 ---
 
-## 🔟 USER EXPERIENCE TESTS
+## 📝 **TEST EXECUTION INSTRUCTIONS**
 
-### **Test 10.1: Tone & Personality**
-**Test:** Multiple conversations  
-**Expected:** Consistent, helpful, professional tone  
-**Pass Criteria:** Positive user experience
+### **For Manual Testing:**
+1. Go to: https://master.dartmouth-chat.pages.dev
+2. Open browser console (F12) to see metadata
+3. Follow each test scenario exactly
+4. Record results in spreadsheet
+5. Mark ✅ PASS or ❌ FAIL for each test
 
----
-
-### **Test 10.2: Error Recovery**
-**Scenario:** User makes mistake, agent helps recover  
-**Expected:** Patient, helpful guidance  
-**Pass Criteria:** User can complete task despite errors
-
----
-
-### **Test 10.3: Explanation Quality**
-**Test:** Ask for explanations of calculations  
-**Expected:** Clear, understandable explanations  
-**Pass Criteria:** Non-technical users can understand
+### **For Automated Testing:**
+1. Use the test script (to be created)
+2. Run: `npm run test:foundation`
+3. Review test report
+4. Investigate failures
 
 ---
 
-### **Test 10.4: Proactive Assistance**
-**Scenario:** User asks basic question  
-**Expected:** Agent offers related helpful information  
-**Pass Criteria:** Goes beyond minimum answer
+## 🐛 **BUG REPORTING TEMPLATE**
+
+**Test ID:** [e.g., Test 1.2]  
+**Test Name:** [e.g., Multi-Turn Conversation Context]  
+**Status:** ❌ FAIL  
+
+**Steps to Reproduce:**
+1. [Step 1]
+2. [Step 2]
+
+**Expected Result:**
+[What should happen]
+
+**Actual Result:**
+[What actually happened]
+
+**Screenshot/Logs:**
+[Attach evidence]
+
+**Priority:** [Critical / High / Medium / Low]
 
 ---
 
-## 📊 TEST EXECUTION PLAN
-
-### **Phase 1: Smoke Tests (15 minutes)**
-- Health checks
-- Basic greeting
-- Simple calculation
-- One multi-turn conversation
-
-**Goal:** Verify system is operational
-
----
-
-### **Phase 2: Core Functionality (30 minutes)**
-- All intent detection tests
-- All handler tests
-- Basic memory tests
-
-**Goal:** Verify core features work
-
----
-
-### **Phase 3: Advanced Features (30 minutes)**
-- Complex calculations
-- Multi-turn conversations
-- Memory and context tests
-
-**Goal:** Verify advanced capabilities
-
----
-
-### **Phase 4: Edge Cases (20 minutes)**
-- Error handling
-- Invalid inputs
-- Edge cases
-
-**Goal:** Verify robustness
-
----
-
-### **Phase 5: Performance (15 minutes)**
-- Response times
-- Concurrent users
-- Database performance
-
-**Goal:** Verify performance meets requirements
-
----
-
-### **Phase 6: Integration (20 minutes)**
-- Full conversation flows
-- All components together
-- Real-world scenarios
-
-**Goal:** Verify end-to-end functionality
-
----
-
-## ✅ PASS/FAIL CRITERIA
-
-### **Critical (Must Pass):**
-- All health checks pass
-- Intent detection > 80% accuracy
-- Calculations 100% accurate
-- No crashes or errors
-- Response time < 5 seconds
-
-### **Important (Should Pass):**
-- Memory persists across session
-- Multi-turn conversations work
-- Error handling is graceful
-- User experience is positive
-
-### **Nice to Have:**
-- Response time < 2 seconds
-- Proactive assistance
-- Cache improves performance
-
----
-
-## 📝 TEST RESULTS TEMPLATE
-
-```markdown
-### Test: [Test Name]
-**Date:** [Date]
-**Tester:** [Name]
-**Result:** ✅ PASS / ❌ FAIL / ⚠️ PARTIAL
-
-**Details:**
-- Input: [What was tested]
-- Expected: [Expected result]
-- Actual: [Actual result]
-- Notes: [Any observations]
-
-**Issues Found:**
-- [List any issues]
-
-**Recommendations:**
-- [Any improvements]
-```
-
----
-
-## 🎯 SUCCESS METRICS
-
-**System is PRODUCTION READY when:**
-
-1. ✅ 95%+ of tests pass
-2. ✅ All critical tests pass
-3. ✅ No blocking bugs
-4. ✅ Performance meets requirements
-5. ✅ User experience is positive
-6. ✅ Documentation is complete
-7. ✅ Monitoring is in place
-
----
-
-## 🚀 NEXT STEPS AFTER TESTING
-
-**If tests pass:**
-1. Document results
-2. Create monitoring dashboard
-3. Set up alerts
-4. Plan Phase 3 (Artwork Analyzer Agent)
-5. Consider beta users
-
-**If tests fail:**
-1. Document failures
-2. Prioritize fixes
-3. Implement fixes
-4. Re-test
-5. Iterate until passing
-
----
-
-## 📞 TESTING RESOURCES
-
-**Test Interface:** https://dartmouth-chat.pages.dev  
-**API Endpoint:** https://agent-army-worker.dartmouth.workers.dev  
-**Documentation:** https://github.com/hutchisonjohn/dartmouth  
-**Health Check:** https://agent-army-worker.dartmouth.workers.dev/health
-
----
-
-**Ready to begin comprehensive testing!** 🧪✨
-
+**Ready to test the foundation!** 🧪

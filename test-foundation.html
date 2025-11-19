@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foundation Agent Test Suite</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-category {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-case {
+            border-left: 4px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+            background: #f9f9f9;
+        }
+        .test-case.pass {
+            border-left-color: #4CAF50;
+            background: #f1f8f4;
+        }
+        .test-case.fail {
+            border-left-color: #f44336;
+            background: #fef1f0;
+        }
+        .test-case.running {
+            border-left-color: #2196F3;
+            background: #e3f2fd;
+        }
+        .test-result {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .pass { color: #4CAF50; }
+        .fail { color: #f44336; }
+        .running { color: #2196F3; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .summary {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .summary h2 {
+            margin-top: 0;
+        }
+        .progress {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Foundational Agent Test Suite</h1>
+    <p>Automated testing for Dartmouth BaseAgent core capabilities</p>
+    
+    <div class="summary">
+        <h2>Test Summary</h2>
+        <div class="progress">
+            <span id="passCount">0</span> / <span id="totalCount">0</span> tests passed
+            (<span id="passRate">0</span>%)
+        </div>
+        <p id="status">Ready to start testing...</p>
+    </div>
+
+    <button id="runTests" onclick="runAllTests()">Run All Tests</button>
+    <button id="clearSession" onclick="clearSession()">Clear Session</button>
+
+    <div id="testResults"></div>
+
+    <script>
+        const API_URL = 'https://agent-army-worker.dartmouth.workers.dev';
+        let sessionId = null;
+        let testResults = [];
+
+        async function sendMessage(message, useSession = true) {
+            const body = {
+                message: message,
+                sessionId: useSession ? sessionId : undefined
+            };
+
+            const response = await fetch(`${API_URL}/api/v1/agents/test-agent/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            const data = await response.json();
+            
+            if (!sessionId && data.sessionId) {
+                sessionId = data.sessionId;
+            }
+
+            return data;
+        }
+
+        function clearSession() {
+            sessionId = null;
+            document.getElementById('status').textContent = 'Session cleared. Ready for new tests.';
+        }
+
+        async function runTest(testId, testName, testFn) {
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-case running';
+            testDiv.id = testId;
+            testDiv.innerHTML = `
+                <strong>${testId}: ${testName}</strong>
+                <div class="test-result running">⏳ Running...</div>
+            `;
+            document.getElementById('testResults').appendChild(testDiv);
+
+            try {
+                const result = await testFn();
+                testDiv.className = result.pass ? 'test-case pass' : 'test-case fail';
+                testDiv.querySelector('.test-result').className = result.pass ? 'test-result pass' : 'test-result fail';
+                testDiv.querySelector('.test-result').innerHTML = result.pass 
+                    ? `✅ PASS: ${result.message}`
+                    : `❌ FAIL: ${result.message}`;
+                
+                if (result.details) {
+                    testDiv.innerHTML += `<pre>${result.details}</pre>`;
+                }
+
+                testResults.push({ id: testId, name: testName, pass: result.pass });
+                updateSummary();
+                
+                return result.pass;
+            } catch (error) {
+                testDiv.className = 'test-case fail';
+                testDiv.querySelector('.test-result').className = 'test-result fail';
+                testDiv.querySelector('.test-result').innerHTML = `❌ ERROR: ${error.message}`;
+                testResults.push({ id: testId, name: testName, pass: false });
+                updateSummary();
+                return false;
+            }
+        }
+
+        function updateSummary() {
+            const total = testResults.length;
+            const passed = testResults.filter(r => r.pass).length;
+            const rate = total > 0 ? Math.round((passed / total) * 100) : 0;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('passCount').textContent = passed;
+            document.getElementById('passRate').textContent = rate;
+            document.getElementById('status').textContent = 
+                total === 0 ? 'Running tests...' : 
+                rate >= 90 ? `🎉 Foundation is READY! ${rate}% pass rate` :
+                `⚠️ Foundation needs work. ${rate}% pass rate`;
+        }
+
+        async function runAllTests() {
+            document.getElementById('runTests').disabled = true;
+            document.getElementById('testResults').innerHTML = '';
+            testResults = [];
+            sessionId = null;
+
+            // CATEGORY 1: CONVERSATION MEMORY
+            const cat1 = document.createElement('div');
+            cat1.className = 'test-category';
+            cat1.innerHTML = '<h2>Category 1: Conversation Memory & Context Tracking</h2>';
+            document.getElementById('testResults').appendChild(cat1);
+
+            await runTest('1.1', 'Session Creation and Persistence', async () => {
+                const r1 = await sendMessage('Hello');
+                if (!r1.sessionId) return { pass: false, message: 'No sessionId returned' };
+                
+                const r2 = await sendMessage('What did I just say?');
+                const mentioned = r2.content.toLowerCase().includes('hello') || 
+                                r2.content.toLowerCase().includes('greeted') ||
+                                r2.content.toLowerCase().includes('hi');
+                
+                return { 
+                    pass: mentioned, 
+                    message: mentioned ? 'Agent remembered "Hello"' : 'Agent did not remember',
+                    details: `Response: ${r2.content}`
+                };
+            });
+
+            await runTest('1.2', 'Multi-Turn Conversation Context', async () => {
+                await sendMessage('My name is John');
+                await sendMessage('I live in New York');
+                await sendMessage('I work as a designer');
+                const r = await sendMessage('What do you know about me?');
+                
+                const hasName = r.content.includes('John');
+                const hasLocation = r.content.includes('New York');
+                const hasJob = r.content.includes('designer');
+                
+                return {
+                    pass: hasName && hasLocation && hasJob,
+                    message: `Name: ${hasName}, Location: ${hasLocation}, Job: ${hasJob}`,
+                    details: `Response: ${r.content}`
+                };
+            });
+
+            await runTest('1.5', 'Follow-up Question Handling', async () => {
+                await sendMessage('I have a blue car');
+                const r = await sendMessage('What color is it?');
+                
+                const hasBlue = r.content.toLowerCase().includes('blue');
+                
+                return {
+                    pass: hasBlue,
+                    message: hasBlue ? 'Agent understood "it" = car and recalled "blue"' : 'Agent did not recall color',
+                    details: `Response: ${r.content}`
+                };
+            });
+
+            // CATEGORY 2: INTENT DETECTION
+            const cat2 = document.createElement('div');
+            cat2.className = 'test-category';
+            cat2.innerHTML = '<h2>Category 2: Intent Detection & Routing</h2>';
+            document.getElementById('testResults').appendChild(cat2);
+
+            await runTest('2.1', 'Greeting Intent', async () => {
+                const r = await sendMessage('Hi', false); // New session
+                const isGreeting = r.metadata.handlerName === 'GreetingHandler' ||
+                                  r.content.toLowerCase().includes('hello') ||
+                                  r.content.toLowerCase().includes('hi');
+                
+                return {
+                    pass: isGreeting,
+                    message: `Handler: ${r.metadata.handlerName}`,
+                    details: `Response: ${r.content}`
+                };
+            });
+
+            await runTest('2.5', 'Follow-up Intent Detection', async () => {
+                await sendMessage('I like pizza');
+                const r = await sendMessage('What about pasta?');
+                
+                const isLLM = r.metadata.handlerName === 'LLMFallback';
+                const isContextual = r.content.toLowerCase().includes('pasta');
+                
+                return {
+                    pass: isLLM && isContextual,
+                    message: `Handler: ${r.metadata.handlerName}, Contextual: ${isContextual}`,
+                    details: `Response: ${r.content}`
+                };
+            });
+
+            // CATEGORY 6: FRUSTRATION HANDLING
+            const cat6 = document.createElement('div');
+            cat6.className = 'test-category';
+            cat6.innerHTML = '<h2>Category 6: Frustration Handling</h2>';
+            document.getElementById('testResults').appendChild(cat6);
+
+            await runTest('6.4', 'False Positive Prevention', async () => {
+                const r = await sendMessage('I have an issue with my artwork');
+                
+                const notFrustration = !r.content.toLowerCase().includes("what's not quite working") &&
+                                      !r.content.toLowerCase().includes("what's not working");
+                
+                return {
+                    pass: notFrustration,
+                    message: notFrustration ? 'Not flagged as frustration' : 'Incorrectly flagged as frustration',
+                    details: `Response: ${r.content}`
+                };
+            });
+
+            // CATEGORY 9: CONSTRAINT ENFORCEMENT
+            const cat9 = document.createElement('div');
+            cat9.className = 'test-category';
+            cat9.innerHTML = '<h2>Category 9: Constraint Enforcement</h2>';
+            document.getElementById('testResults').appendChild(cat9);
+
+            await runTest('9.1', 'No Pricing Information', async () => {
+                const r = await sendMessage('How much does it cost?');
+                
+                const noPricing = !r.content.match(/\$\d+/) && 
+                                 !r.content.toLowerCase().includes('price is');
+                
+                return {
+                    pass: noPricing,
+                    message: noPricing ? 'No pricing provided' : 'Pricing information leaked',
+                    details: `Response: ${r.content}`
+                };
+            });
+
+            await runTest('9.2', 'No Discounts', async () => {
+                const r = await sendMessage('Can I get a discount?');
+                
+                const noDiscount = !r.content.toLowerCase().includes('% off') &&
+                                  !r.content.toLowerCase().includes('discount code');
+                
+                return {
+                    pass: noDiscount,
+                    message: noDiscount ? 'No discount offered' : 'Discount offered',
+                    details: `Response: ${r.content}`
+                };
+            });
+
+            // CATEGORY 10: LLM FALLBACK
+            const cat10 = document.createElement('div');
+            cat10.className = 'test-category';
+            cat10.innerHTML = '<h2>Category 10: LLM Fallback & Context Awareness</h2>';
+            document.getElementById('testResults').appendChild(cat10);
+
+            await runTest('10.2', 'Context Awareness in LLM', async () => {
+                await sendMessage("I'm working on a poster");
+                const r = await sendMessage('What dimensions should I use?');
+                
+                const mentionsPoster = r.content.toLowerCase().includes('poster');
+                const isLLM = r.metadata.handlerName === 'LLMFallback';
+                
+                return {
+                    pass: mentionsPoster && isLLM,
+                    message: `LLM: ${isLLM}, Mentions poster: ${mentionsPoster}`,
+                    details: `Response: ${r.content}`
+                };
+            });
+
+            document.getElementById('runTests').disabled = false;
+            document.getElementById('status').textContent = 'Testing complete!';
+        }
+    </script>
+</body>
+</html>
+

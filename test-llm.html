@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LLM Test</title>
+</head>
+<body>
+    <h1>Testing LLM Conversation Memory</h1>
+    <div id="output"></div>
+    
+    <script>
+        const API_URL = 'https://agent-army-worker.dartmouth.workers.dev';
+        const output = document.getElementById('output');
+        
+        async function testConversation() {
+            let sessionId = null;
+            
+            // Message 1: Provide artwork details
+            output.innerHTML += '<h3>Message 1: my artwork is 800x1200 pixels at 72 DPI</h3>';
+            let response = await fetch(`${API_URL}/api/v1/agents/mccarthy-artwork/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: 'my artwork is 800x1200 pixels at 72 DPI',
+                    sessionId: sessionId
+                })
+            });
+            let data = await response.json();
+            sessionId = data.sessionId;
+            output.innerHTML += `<p><strong>Response:</strong> ${data.content.substring(0, 200)}...</p>`;
+            output.innerHTML += `<p><strong>Session ID:</strong> ${sessionId}</p>`;
+            
+            // Wait 2 seconds
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Message 2: Follow-up question (should use conversation history)
+            output.innerHTML += '<h3>Message 2: What size is my artwork?</h3>';
+            response = await fetch(`${API_URL}/api/v1/agents/mccarthy-artwork/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: 'What size is my artwork?',
+                    sessionId: sessionId
+                })
+            });
+            data = await response.json();
+            output.innerHTML += `<p><strong>Response:</strong> ${data.content}</p>`;
+            output.innerHTML += `<p><strong>Metadata:</strong> ${JSON.stringify(data.metadata, null, 2)}</p>`;
+            
+            // Check if response mentions "800x1200" or "72 DPI"
+            if (data.content.includes('800') || data.content.includes('1200') || data.content.includes('72')) {
+                output.innerHTML += '<p style="color: green;"><strong>✅ SUCCESS: Agent remembered the artwork details!</strong></p>';
+            } else {
+                output.innerHTML += '<p style="color: red;"><strong>❌ FAIL: Agent did not remember the artwork details</strong></p>';
+            }
+        }
+        
+        testConversation().catch(err => {
+            output.innerHTML += `<p style="color: red;">Error: ${err.message}</p>`;
+        });
+    </script>
+</body>
+</html>
+
