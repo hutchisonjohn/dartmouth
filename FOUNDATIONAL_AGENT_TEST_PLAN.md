@@ -29,13 +29,14 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 ### **Category 1: Conversation Memory & Context Tracking**
 ### **Category 2: Intent Detection & Routing**
 ### **Category 3: Memory System (Short-term, Long-term, Semantic, Episodic)**
-### **Category 4: RAG Knowledge Retrieval**
-### **Category 5: Repetition Detection**
-### **Category 6: Frustration Handling**
-### **Category 7: Conversation Quality**
-### **Category 8: Empathy & Personality**
-### **Category 9: Constraint Enforcement**
-### **Category 10: LLM Fallback & Context Awareness**
+### **Category 4: Repetition Detection**
+### **Category 5: Frustration Handling**
+### **Category 6: Conversation Quality**
+### **Category 7: Empathy & Personality**
+### **Category 8: Constraint Enforcement**
+### **Category 9: LLM Fallback & Context Awareness**
+
+**Note:** RAG Knowledge Retrieval is NOT tested here - it's agent-specific and tested in specialized agent test plans (e.g., McCarthy Artwork Analyzer)
 
 ---
 
@@ -274,44 +275,9 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-## **CATEGORY 4: RAG KNOWLEDGE RETRIEVAL**
+## **CATEGORY 4: REPETITION DETECTION**
 
-### **Test 4.1: RAG Query (Knowledge Base)**
-**Objective:** Verify RAG retrieves relevant knowledge
-
-**Test Cases:**
-- "What is DTF printing?"
-- "Tell me about UV DTF requirements"
-- "What DPI is recommended for printing?"
-
-**Expected Result:**
-- ✅ RAG engine queries knowledge base
-- ✅ Relevant information returned
-- ✅ Response includes sourced information
-
-**Pass Criteria:** Response includes specific technical details (not generic)
-
----
-
-### **Test 4.2: RAG Fallback (No Knowledge)**
-**Objective:** Verify graceful fallback when no RAG data
-
-**Test Cases:**
-- "What is quantum physics?"
-- "Tell me about cooking pasta"
-
-**Expected Result:**
-- ✅ RAG returns no results
-- ✅ LLM provides general response
-- ✅ No error
-
-**Pass Criteria:** Agent responds conversationally (doesn't say "no data")
-
----
-
-## **CATEGORY 5: REPETITION DETECTION**
-
-### **Test 5.1: Question Repetition**
+### **Test 4.1: Question Repetition**
 **Objective:** Verify agent detects repeated questions
 
 **Steps:**
@@ -328,7 +294,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 5.2: Multiple Repetitions**
+### **Test 4.2: Multiple Repetitions**
 **Objective:** Verify agent handles multiple repetitions
 
 **Steps:**
@@ -345,9 +311,9 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-## **CATEGORY 6: FRUSTRATION HANDLING**
+## **CATEGORY 5: FRUSTRATION HANDLING**
 
-### **Test 6.1: Mild Frustration Detection**
+### **Test 5.1: Mild Frustration Detection**
 **Objective:** Verify mild frustration is detected but doesn't override intent
 
 **Test Cases:**
@@ -363,7 +329,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 6.2: Moderate Frustration**
+### **Test 5.2: Moderate Frustration**
 **Objective:** Verify moderate frustration triggers empathetic response
 
 **Test Cases:**
@@ -380,7 +346,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 6.3: High Frustration / Profanity**
+### **Test 5.3: High Frustration / Profanity**
 **Objective:** Verify high frustration triggers escalation
 
 **Test Cases:**
@@ -396,7 +362,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 6.4: False Positive Prevention**
+### **Test 5.4: False Positive Prevention**
 **Objective:** Verify normal questions aren't flagged as frustration
 
 **Test Cases:**
@@ -413,9 +379,9 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-## **CATEGORY 7: CONVERSATION QUALITY**
+## **CATEGORY 6: CONVERSATION QUALITY**
 
-### **Test 7.1: No Hallucination**
+### **Test 6.1: No Hallucination**
 **Objective:** Verify agent doesn't make up information
 
 **Test Cases:**
@@ -430,7 +396,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 7.2: Concise Responses**
+### **Test 6.2: Concise Responses**
 **Objective:** Verify responses aren't overly verbose
 
 **Test Cases:**
@@ -445,7 +411,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 7.3: Relevant Responses**
+### **Test 6.3: Relevant Responses**
 **Objective:** Verify responses are relevant to question
 
 **Test Cases:**
@@ -460,9 +426,9 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-## **CATEGORY 8: EMPATHY & PERSONALITY**
+## **CATEGORY 7: EMPATHY & PERSONALITY**
 
-### **Test 8.1: Empathetic Responses**
+### **Test 7.1: Empathetic Responses**
 **Objective:** Verify agent shows empathy
 
 **Test Cases:**
@@ -479,7 +445,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 8.2: Personality Consistency**
+### **Test 7.2: Personality Consistency**
 **Objective:** Verify agent maintains consistent personality
 
 **Steps:**
@@ -495,7 +461,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 8.3: Appropriate Emoji Usage**
+### **Test 7.3: Appropriate Emoji Usage**
 **Objective:** Verify emojis are used sparingly and appropriately
 
 **Test Cases:**
@@ -509,9 +475,9 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-## **CATEGORY 9: CONSTRAINT ENFORCEMENT**
+## **CATEGORY 8: CONSTRAINT ENFORCEMENT**
 
-### **Test 9.1: No Pricing Information**
+### **Test 8.1: No Pricing Information**
 **Objective:** Verify agent doesn't provide pricing
 
 **Test Cases:**
@@ -528,7 +494,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 9.2: No Discounts**
+### **Test 8.2: No Discounts**
 **Objective:** Verify agent doesn't offer discounts
 
 **Test Cases:**
@@ -544,7 +510,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 9.3: No Refunds**
+### **Test 8.3: No Refunds**
 **Objective:** Verify agent doesn't handle refunds
 
 **Test Cases:**
@@ -560,9 +526,9 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-## **CATEGORY 10: LLM FALLBACK & CONTEXT AWARENESS**
+## **CATEGORY 9: LLM FALLBACK & CONTEXT AWARENESS**
 
-### **Test 10.1: LLM Fallback Activation**
+### **Test 9.1: LLM Fallback Activation**
 **Objective:** Verify LLM is used for general questions
 
 **Test Cases:**
@@ -578,7 +544,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 10.2: Context Awareness in LLM**
+### **Test 9.2: Context Awareness in LLM**
 **Objective:** Verify LLM uses full conversation history
 
 **Steps:**
@@ -593,7 +559,7 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 
 ---
 
-### **Test 10.3: LLM Respects Constraints**
+### **Test 9.3: LLM Respects Constraints**
 **Objective:** Verify LLM doesn't violate constraints
 
 **Steps:**
@@ -634,9 +600,9 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 ## 📈 **SUCCESS CRITERIA**
 
 **Foundation is READY when:**
-- ✅ **90%+ tests pass** (36+ out of 40 tests)
+- ✅ **90%+ tests pass** (34+ out of 38 tests)
 - ✅ **All Category 1 tests pass** (Conversation Memory - CRITICAL)
-- ✅ **All Category 10 tests pass** (LLM Fallback - CRITICAL)
+- ✅ **All Category 9 tests pass** (LLM Fallback - CRITICAL)
 - ✅ **No critical bugs** (crashes, data loss, hallucinations)
 
 **Foundation needs MORE WORK when:**
@@ -644,6 +610,8 @@ This test plan validates the 10 core components of the Dartmouth Foundation (Bas
 - ❌ Conversation memory fails
 - ❌ LLM fallback not working
 - ❌ Critical bugs present
+
+**Note:** RAG testing is excluded - it's agent-specific and will be tested in McCarthy Artwork Analyzer test plan
 
 ---
 
