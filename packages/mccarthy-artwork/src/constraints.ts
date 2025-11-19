@@ -18,7 +18,7 @@ export const ARTWORK_AGENT_CONSTRAINTS: Constraint[] = [
     severity: 'critical',
     pattern: /\b(costs?|price|pricing|\$\d+|£\d+|€\d+|USD|GBP|EUR)\b/i,
     description: 'Cannot provide pricing information',
-    suggestedResponse: "I can help with technical artwork requirements. For pricing information, I'd be happy to connect you with our sales team who can provide accurate quotes.",
+    suggestedResponse: "I focus on artwork technical requirements and can't provide pricing. For quotes and pricing information, please contact our sales team at sales@example.com or visit our pricing page.",
     escalateTo: 'sales'
   },
 
@@ -29,7 +29,7 @@ export const ARTWORK_AGENT_CONSTRAINTS: Constraint[] = [
     severity: 'critical',
     pattern: /\b(discount|promo code|coupon|sale|offer|deal|special|reduction|off|%\s*off)\b/i,
     description: 'Cannot offer discounts or promotional codes',
-    suggestedResponse: "I'd like to connect you with our sales team who can discuss any current promotions or special offers available.",
+    suggestedResponse: "I can't provide discount information, but our sales team can help with current promotions and offers. Please contact them at sales@example.com or check our website for current deals.",
     escalateTo: 'sales'
   },
 
@@ -40,7 +40,7 @@ export const ARTWORK_AGENT_CONSTRAINTS: Constraint[] = [
     severity: 'critical',
     pattern: /\b(refund|money back|return|reimburse)\b/i,
     description: 'Cannot process refunds',
-    suggestedResponse: "I'd like to connect you with our customer service manager who can assist you with your refund request.",
+    suggestedResponse: "I can't process refunds or returns, but our customer service team can help. Please contact them at support@example.com or call our support line, and they'll assist you with your request.",
     escalateTo: 'customer_service_manager'
   },
 

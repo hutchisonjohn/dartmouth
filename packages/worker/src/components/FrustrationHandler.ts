@@ -26,7 +26,8 @@ export class FrustrationHandler {
       { pattern: /(terrible|awful|useless|horrible|worst)/i, weight: 3 },  // Strong negative
       { pattern: /(ugh|argh|grrr)/i, weight: 2 },  // Frustration sounds
       { pattern: /this (is|isn't) working/i, weight: 3 },  // Explicit "not working"
-      { pattern: /nothing (is )?working/i, weight: 3 }  // "nothing working"
+      { pattern: /nothing (is )?working/i, weight: 3 },  // "nothing working"
+      { pattern: /\b(fuck|shit|damn|hell|crap)\b/i, weight: 5 }  // Profanity = high frustration
     ]
 
     for (const { pattern, weight } of frustrationKeywords) {
@@ -35,22 +36,12 @@ export class FrustrationHandler {
       }
     }
 
-    // Factor 2: Conversation length without goal achievement
-    if (conversationState.messageCount > 10 && !conversationState.userGoal?.achieved) {
-      score += 2
-    }
-
-    // Factor 3: Repeated questions
-    if (conversationState.questionsAsked && Array.isArray(conversationState.questionsAsked)) {
-      const recentQuestions = conversationState.questionsAsked.slice(-5)
-      const repeatedTopics = this.countRepeatedTopics(recentQuestions.map(q => q.question))
-      score += repeatedTopics
-    }
-
-    // Factor 4: Short, terse responses
-    if (message.length < 10 && conversationState.messageCount > 3) {
-      score += 1
-    }
+    // REMOVED: Factor 2 (conversation length) - caused false positives
+    // REMOVED: Factor 3 (repeated topics) - caused false positives on normal follow-ups
+    // REMOVED: Factor 4 (short messages) - "bye" and "goodbye" are not frustration
+    
+    // Only use explicit frustration keywords - no other factors
+    // This prevents false positives on normal conversation
 
     // Map score to frustration level
     if (score === 0) return 'none'

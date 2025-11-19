@@ -255,6 +255,10 @@ export class IntentDetector {
     const hasPixelsAndDPI = /\d+\s*x\s*\d+\s*(pixels?|px)/i.test(message) && /\d+\s*dpi/i.test(message);
     if (hasPixelsAndDPI) return true;
     
+    // If asking GENERAL questions about DPI (no specific numbers), it's information, not calculation
+    const isGeneralDPIQuestion = /what dpi (is )?(recommended|should|best)/i.test(message);
+    if (isGeneralDPIQuestion) return false;
+    
     // If message has measurements, it's likely a calculation
     const hasMeasurements = /\d+\s*(cm|inch|in|px|pixel|x\d+)/i.test(message);
     
@@ -345,13 +349,15 @@ export class IntentDetector {
     // - General negative words like "issue", "problem", "help"
     // - Punctuation alone (!!!, ???) - that's just emphasis
     // - Questions about orders, products, etc.
+    // MUST match FrustrationHandler.detectFrustrationLevel patterns exactly
     const frustrationPatterns = [
       /\b(frustrated|annoyed)\b/i,  // Explicit frustration words
       /(give up|never mind|forget it)/i,  // Giving up
       /(terrible|awful|useless|horrible|worst)/i,  // Strong negative
       /(ugh|argh|grrr)/i,  // Frustration sounds
       /this (is|isn't) working/i,  // Explicit "not working"
-      /nothing (is )?working/i  // "nothing working"
+      /nothing (is )?working/i,  // "nothing working"
+      /\b(fuck|shit|damn|hell|crap)\b/i  // Profanity
     ]
     return frustrationPatterns.some(pattern => pattern.test(message))
   }
