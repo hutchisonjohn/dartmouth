@@ -144,16 +144,19 @@ export class ConstraintValidator {
   ): ConstraintValidationResult {
     const violations: ConstraintViolation[] = [];
 
-    // STEP 0: Check if user message is requesting something forbidden
+    // STEP 0: Check if user message is requesting something forbidden (AGENT-SPECIFIC ONLY)
+    // Agent constraints take priority over global constraints for user intents
     if (context.userMessage && context.agentId) {
       const userIntentViolations = this.checkUserIntent(context.userMessage, context.agentId);
       if (userIntentViolations.length > 0) {
         console.log(`[ConstraintValidator] User requesting forbidden action: ${userIntentViolations[0].ruleId}`);
         violations.push(...userIntentViolations);
+        // If agent constraints caught it, don't check global constraints for user message
+        // This allows agent-specific responses to take priority
       }
     }
 
-    // STEP 1: Check global constraints (always apply)
+    // STEP 1: Check global constraints (only on AGENT RESPONSE, not user message)
     const globalViolations = this.checkConstraintSet(
       this.globalConstraints,
       response.content
@@ -346,36 +349,8 @@ export class ConstraintValidator {
       level: 'global',
       enabled: true,
       rules: [
-        // FORBIDDEN PHRASES - Pricing
-        {
-          id: 'no-pricing',
-          type: 'forbidden-phrase',
-          severity: 'critical',
-          pattern: /\$\d+|\d+\s*(dollars?|pounds?|euros?|gbp|usd|eur)|price\s+is|costs?\s+\d+/gi,
-          message: 'Cannot quote specific prices',
-          escalateTo: 'sales team',
-          replacementText: 'our sales team can provide pricing information'
-        },
-
-        // FORBIDDEN COMMITMENTS - Discounts
-        {
-          id: 'no-discounts',
-          type: 'forbidden-commitment',
-          severity: 'critical',
-          pattern: /\d+%\s+off|discount|special\s+offer|promotion|sale\s+price/gi,
-          message: 'Cannot offer discounts or promotions',
-          escalateTo: 'sales team'
-        },
-
-        // FORBIDDEN COMMITMENTS - Refunds
-        {
-          id: 'no-refunds',
-          type: 'forbidden-commitment',
-          severity: 'critical',
-          pattern: /refund|money\s+back|reimburse|compensation/gi,
-          message: 'Cannot promise refunds or compensation',
-          escalateTo: 'customer service manager'
-        },
+        // NOTE: Pricing, discounts, and refunds are handled by AGENT-SPECIFIC constraints
+        // Global constraints are only for truly universal rules
 
         // FORBIDDEN COMMITMENTS - Delivery dates
         {
