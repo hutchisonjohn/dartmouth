@@ -272,14 +272,24 @@ export class ConstraintValidator {
     // If we have critical violations, provide a safe fallback
     const criticalViolations = violations.filter(v => v.severity === 'critical');
     if (criticalViolations.length > 0) {
+      const firstViolation = criticalViolations[0];
+      
+      // DEBUG: Log what we have
+      console.log(`[ConstraintValidator] Critical violation: ${firstViolation.ruleId}`);
+      console.log(`[ConstraintValidator] Has suggestedResponse: ${!!firstViolation.suggestedResponse}`);
+      if (firstViolation.suggestedResponse) {
+        console.log(`[ConstraintValidator] Using custom response: ${firstViolation.suggestedResponse.substring(0, 50)}...`);
+      }
+      
       // PRIORITY 1: Use custom suggestedResponse if provided
-      if (criticalViolations[0].suggestedResponse) {
-        return criticalViolations[0].suggestedResponse;
+      if (firstViolation.suggestedResponse) {
+        return firstViolation.suggestedResponse;
       }
       
       // PRIORITY 2: Generic escalation with contact
-      const escalateTo = criticalViolations[0].escalateTo;
+      const escalateTo = firstViolation.escalateTo;
       if (escalateTo) {
+        console.log(`[ConstraintValidator] Using generic escalation template for: ${escalateTo}`);
         return `I'd like to connect you with ${escalateTo} who can better assist you with that. They'll be able to provide the specific information you need.`;
       }
       
