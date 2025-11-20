@@ -121,51 +121,59 @@ McCarthy PA is a **voice-first + text AI personal assistant** that helps users m
 
 ---
 
-## 🔄 Migration from Firebase (V7 → V8)
+## 🏗️ Fresh Build on Dartmouth OS
 
-### **What Changes?**
+### **Building from Scratch (V8)**
 
-| Component | V7 (Firebase) | V8 (Dartmouth OS) |
-|-----------|---------------|-------------------|
-| **Backend** | Firebase Functions | Cloudflare Workers |
-| **Database** | Firestore | Cloudflare D1 (SQLite) |
-| **Storage** | Firebase Storage | Cloudflare R2 (S3) |
-| **Auth** | Firebase Auth | Dartmouth Auth Service |
-| **Voice** | Custom integration | Dartmouth Voice Services |
-| **Analytics** | Custom | Dartmouth Analytics |
-| **Monitoring** | Custom | Dartmouth Health Monitoring |
-| **Cost** | $45-120/month | $15-45/month |
+McCarthy PA Agent V8 is being built **fresh from the ground up** on Dartmouth OS. This is NOT a migration - it's a new build.
 
-### **What Stays the Same?**
+**Current Status:**
+- ✅ Week 1: React Native app foundation complete
+- 🚧 Week 2: Starting backend development on Dartmouth OS
+- 📅 Week 3-4: Core features + voice integration
+- 📅 Week 5-6: Testing & refinement
+- 📅 Week 7-8: Production rollout
 
-✅ **React Native App** (frontend stays mostly the same)  
-✅ **User Experience** (same UI/UX)  
-✅ **Features** (all V7 features + new capabilities)  
-✅ **Voice Commands** (same commands work)  
-✅ **Quick Actions** (same buttons)
+### **Technology Stack**
 
-### **Migration Strategy**
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Frontend** | React Native | iOS + Android app |
+| **Backend** | Dartmouth OS (Cloudflare Workers) | Platform services |
+| **Database** | Cloudflare D1 (SQLite) | User data storage |
+| **Storage** | Cloudflare R2 (S3) | File storage |
+| **Auth** | Dartmouth Auth Service | User authentication |
+| **Voice** | Dartmouth Voice Services | STT/TTS/streaming |
+| **LLM** | OpenAI GPT-4o-mini | Conversational AI |
+| **Cost** | $15-45/month | Estimated |
 
-#### **Phase 1: Parallel Development (Week 2-3)**
-- Build V8 on Dartmouth OS
-- Keep V7 running (no disruption)
-- Test V8 with internal users
+### **Development Phases**
 
-#### **Phase 2: Data Migration (Week 4)**
-- Export Firestore data
-- Import to Cloudflare D1
-- Verify data integrity
+#### **Phase 1: Dartmouth OS Foundation (Week 2)**
+- Build core Dartmouth OS services
+- API Gateway, Agent Registry, Health Monitoring
+- Auth Service (JWT tokens)
+- Voice Services (STT/TTS/streaming/VAD)
+- Database Service (D1 wrapper)
 
-#### **Phase 3: Gradual Rollout (Week 5-6)**
-- 10% of users → V8
+#### **Phase 2: PA Agent Backend (Week 3-4)**
+- Build PA Agent on FAM foundation
+- TaskHandler, ReminderHandler, NoteHandler
+- CalendarHandler, ContactHandler
+- Voice integration
+- React Native integration
+
+#### **Phase 3: Testing & Refinement (Week 5-6)**
+- Internal testing
+- Bug fixes
+- Performance optimization
+- UI/UX polish
+
+#### **Phase 4: Production Rollout (Week 7-8)**
+- Beta testing (10% of users)
 - Monitor performance
-- 50% of users → V8
-- 100% of users → V8
-
-#### **Phase 4: Decommission V7 (Week 7)**
-- Shut down Firebase Functions
-- Archive V7 codebase
-- Full V8 production
+- Gradual rollout (50% → 100%)
+- Full production
 
 ---
 
