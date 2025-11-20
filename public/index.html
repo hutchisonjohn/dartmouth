@@ -308,7 +308,9 @@
     </div>
 
     <script>
-        const API_URL = 'https://agent-army-worker.dartmouth.workers.dev';
+        // Use local development API (Dartmouth OS V2)
+        const API_URL = 'http://localhost:8787/api/v2/chat';
+        const AGENT_ID = 'mccarthy-artwork'; // McCarthy Artwork Analyzer
         let sessionId = null;
         let messageCount = 0;
         
@@ -427,16 +429,16 @@
             showTyping();
             
             try {
-                const response = await fetch(`${API_URL}/test/chat`, {
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
+                        agentId: AGENT_ID,
                         message: message,
-                        agentId: 'mccarthy-artwork',
-                        tenantId: 'test-tenant',
-                        sessionId: sessionId
+                        sessionId: sessionId || `artwork-session-${Date.now()}`,
+                        userId: 'test-user-artwork'
                     })
                 });
                 

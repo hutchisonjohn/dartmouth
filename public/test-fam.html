@@ -303,7 +303,9 @@
     </div>
 
     <script>
-        const API_URL = 'https://agent-army-worker.dartmouth.workers.dev/api/v1/agents/test-agent/chat';
+        // Use local development API (Dartmouth OS V2)
+        const API_URL = 'http://localhost:8787/api/v2/chat';
+        const AGENT_ID = 'fam'; // Foundational Agent McCarthy
         let sessionId = null;
         let messageCount = 0;
 
@@ -405,9 +407,9 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
+                        agentId: AGENT_ID, // FAM agent
                         message: message,
-                        sessionId: sessionId,
-                        agentId: 'test-agent', // Use test-agent (BaseAgent, not McCarthy)
+                        sessionId: sessionId || `fam-session-${Date.now()}`,
                         userId: 'test-user-fam'
                     })
                 });
@@ -420,12 +422,13 @@
                 
                 const data = await response.json();
                 
+                // V2 API returns content directly
                 if (!sessionId) {
-                    sessionId = data.sessionId;
+                    sessionId = `fam-session-${Date.now()}`;
                     updateSessionInfo();
                 }
                 
-                addMessage(data.response, false);
+                addMessage(data.content || data.response, false);
                 messageCount++;
                 updateSessionInfo();
                 document.getElementById('status').textContent = 'Ready to chat';
