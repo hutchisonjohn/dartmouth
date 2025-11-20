@@ -30,11 +30,25 @@ export function createFAMAgent(config: BaseAgentConfig): Agent {
  * Create McCarthy Artwork Analyzer Agent
  */
 export function createArtworkAnalyzerAgent(config: BaseAgentConfig): Agent {
-  // McCarthyArtworkAgent extends BaseAgent, so we need to adapt it
-  const artworkAgent = new McCarthyArtworkAgent(config.agentConfig);
+  // Create specialized BaseAgentConfig for McCarthyArtworkAgent
+  const artworkConfig: BaseAgentConfig = {
+    ...config,
+    agentId: 'mccarthy-artwork',
+    agentConfig: {
+      ...config.agentConfig,
+      agentId: 'mccarthy-artwork',
+      name: 'McCarthy Artwork Analyzer',
+      description: 'Specialized agent for artwork analysis, DPI calculations, and print preparation guidance',
+      version: '1.0.0',
+      systemPrompt: '', // McCarthyArtworkAgent sets its own system prompt
+    },
+  };
 
-  // Wrap with adapter
-  return new DartmouthAgentAdapter(config, {
+  // Create McCarthyArtworkAgent instance (extends BaseAgent with specialized handlers)
+  const artworkAgent = new McCarthyArtworkAgent(artworkConfig);
+
+  // Wrap with Dartmouth adapter
+  return new DartmouthAgentAdapter(artworkAgent, {
     id: 'mccarthy-artwork',
     name: 'McCarthy Artwork Analyzer',
     version: '1.0.0',

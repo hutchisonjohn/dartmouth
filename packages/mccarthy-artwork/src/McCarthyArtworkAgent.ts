@@ -15,7 +15,7 @@
  */
 
 import type { AgentConfig, Intent, Response, HandlerContext } from '../../worker/src/types/shared';
-import { BaseAgent } from '../../worker/src/BaseAgent';
+import { BaseAgent, BaseAgentConfig } from '../../worker/src/BaseAgent';
 import { CalculationEngine } from './components/CalculationEngine';
 import { CalculationHandler } from './handlers/CalculationHandler';
 import { HowToHandler } from './handlers/HowToHandler';
@@ -38,9 +38,9 @@ export class McCarthyArtworkAgent extends BaseAgent {
   /**
    * Initialize McCarthy Artwork Analyzer
    */
-  constructor(config: AgentConfig) {
+  constructor(config: BaseAgentConfig) {
     // Override system prompt BEFORE calling super()
-    config.systemPrompt = `You are McCarthy, an expert artwork analysis assistant specializing in DTF and UV DTF printing.
+    config.agentConfig.systemPrompt = `You are McCarthy, an expert artwork analysis assistant specializing in DTF and UV DTF printing.
 
 Your expertise includes:
 - DPI calculations and print size recommendations

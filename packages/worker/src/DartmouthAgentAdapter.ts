@@ -26,7 +26,7 @@ export class DartmouthAgentAdapter implements Agent {
   private successCount: number = 0;
 
   constructor(
-    config: BaseAgentConfig,
+    configOrAgent: BaseAgentConfig | BaseAgent,
     agentMetadata: {
       id: string;
       name: string;
@@ -43,8 +43,14 @@ export class DartmouthAgentAdapter implements Agent {
     this.capabilities = agentMetadata.capabilities || [];
     this.status = 'active';
 
-    // Create BaseAgent instance
-    this.baseAgent = new BaseAgent(config);
+    // Create or use existing BaseAgent instance
+    if (configOrAgent instanceof BaseAgent) {
+      // Use existing agent (e.g., McCarthyArtworkAgent)
+      this.baseAgent = configOrAgent;
+    } else {
+      // Create new BaseAgent from config
+      this.baseAgent = new BaseAgent(configOrAgent);
+    }
   }
 
   /**
