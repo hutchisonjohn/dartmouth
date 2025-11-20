@@ -29,6 +29,7 @@ import { RepetitionDetector } from './components/RepetitionDetector';
 import { FrustrationHandler } from './components/FrustrationHandler';
 import { ConversationQualityValidator } from './components/ConversationQualityValidator';
 import { EmpathyInjector } from './components/EmpathyInjector';
+import { ResponseVariator } from './components/ResponseVariator';
 import { ConstraintValidator } from './components/ConstraintValidator';
 import { AgentRegistry, AgentRouter, AgentOrchestrator, LLMService } from './services';
 import { 
@@ -80,6 +81,7 @@ export class BaseAgent {
   // Conversation Quality System (THE HEART OF DARTMOUTH)
   private conversationQualityValidator: ConversationQualityValidator;
   private empathyInjector: EmpathyInjector;
+  private responseVariator: ResponseVariator;
 
   // Agent Routing System (MCCARTHY AGENT ORCHESTRATION)
   private agentRegistry: AgentRegistry;
@@ -126,6 +128,7 @@ export class BaseAgent {
     // Initialize Conversation Quality System (THE HEART OF DARTMOUTH)
     this.conversationQualityValidator = new ConversationQualityValidator();
     this.empathyInjector = new EmpathyInjector();
+    this.responseVariator = new ResponseVariator();
 
     // Initialize Agent Routing System (MCCARTHY AGENT ORCHESTRATION)
     this.agentRegistry = new AgentRegistry();
@@ -332,6 +335,15 @@ export class BaseAgent {
       
       response.content = this.empathyInjector.addEmpathy(response.content, empathyContext);
       console.log(`[BaseAgent] Empathy added (sentiment: ${userSentiment})`);
+
+      // STEP 9.5: Vary Response if Repetitive (PREVENT ROBOTIC RESPONSES)
+      const conversationHistory = this.state.messages.map(m => m.content);
+      response.content = this.responseVariator.varyResponse(
+        response.content,
+        this.state.sessionId,
+        conversationHistory
+      );
+      console.log(`[BaseAgent] Response variation check complete`);
 
       // STEP 10: Validate Conversation Quality (THE HEART OF DARTMOUTH)
       const qualityCheck = this.conversationQualityValidator.validate(response, {
