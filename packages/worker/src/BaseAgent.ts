@@ -660,10 +660,10 @@ export class BaseAgent {
     
     // Get active constraints
     const constraints: string[] = [];
-    constraints.push('NEVER provide pricing information - instead say: "I focus on technical requirements and can\'t provide pricing. Please contact our sales team at sales@example.com"');
-    constraints.push('NEVER offer discounts - instead say: "I can\'t provide discount information. Please contact our sales team at sales@example.com"');
-    constraints.push('NEVER process refunds - instead say: "I can\'t process refunds. Please contact our customer service team at support@example.com"');
-    constraints.push('NEVER say "I\'d like to connect you" unless you can actually connect them - provide contact info instead');
+    constraints.push('NEVER provide pricing information - instead say: "Unfortunately I don\'t have access to the latest information regarding pricing. The best place to look would be on our website for the most up to date information. Is there anything else I can help you with?"');
+    constraints.push('NEVER offer discounts - instead say: "Unfortunately I don\'t have access to the latest information regarding discounts or sales offers. The best place to look would be on our website for the most up to date information. Is there anything else I can help you with?"');
+    constraints.push('NEVER process refunds - instead say: "Unfortunately I\'m not the best person to help assist you with this request. Please reach out to our friendly team via email and a member of staff will happily help you. Is there anything else I can help you with?"');
+    constraints.push('NEVER include email addresses or phone numbers in responses');
     constraints.push('NEVER make promises you cannot keep');
     constraints.push('ALWAYS be honest if you don\'t know something');
     constraints.push('ALWAYS be concise - no more than 2-3 sentences unless asked for details');
