@@ -158,16 +158,65 @@
 
 ---
 
-### **Phase 7: Deploy to Cloudflare (30 min)**
+### **Phase 7: Comprehensive Testing (60 min)** 🔜 NEXT
+**Status:** 0% Complete  
+**Estimated Time:** 60 minutes
+
+**Tasks:**
+- ⏳ Test FAM agent locally (all scenarios from test plan)
+- ⏳ Test Artwork Analyzer agent locally (calculations, RAG, constraints)
+- ⏳ Run integration tests (`test-dartmouth.js`)
+- ⏳ Run health verification (`verify-health.js`)
+- ⏳ Test on artwork upload page (with real artwork data)
+- ⏳ Test artwork data integration (uploaded file info available to agent)
+- ⏳ Fix any bugs found
+- ⏳ Verify all endpoints working
+
+**Test Scenarios:**
+- ⏳ FAM: Conversation, memory, sentiment, constraints
+- ⏳ Artwork Analyzer: DPI calculations, print sizes, quality ratings
+- ⏳ Artwork Upload: File upload → agent receives artwork metadata
+- ⏳ Integration: Chat widget + uploaded artwork data
+
+---
+
+### **Phase 8: Deploy to Cloudflare (30 min)**
 **Status:** 0% Complete  
 **Estimated Time:** 30 minutes
 
 **Tasks:**
 - ⏳ Update wrangler.toml configuration
 - ⏳ Deploy to Cloudflare Workers
-- ⏳ Test deployed endpoints
+- ⏳ Test deployed endpoints (production)
 - ⏳ Verify all agents working in production
 - ⏳ Update documentation with live URLs
+- ⏳ Final backup (Git + GitHub)
+
+---
+
+### **Phase 9: Build Dartmouth Dashboard (2-3 hours)**
+**Status:** 0% Complete  
+**Estimated Time:** 150 minutes
+
+**Tasks:**
+- ⏳ Design dashboard UI (Tailwind CSS)
+- ⏳ Build agent management interface
+- ⏳ Build health monitoring dashboard
+- ⏳ Build analytics/metrics visualization
+- ⏳ Build configuration interface
+- ⏳ Build API key management
+- ⏳ Build real-time logs viewer
+- ⏳ Deploy dashboard to Cloudflare Pages
+- ⏳ Test dashboard end-to-end
+
+**Features:**
+- ⏳ Agent list with status indicators
+- ⏳ Health monitoring (real-time)
+- ⏳ Performance metrics (response times, error rates)
+- ⏳ Agent configuration (system prompts, settings)
+- ⏳ API key management
+- ⏳ Usage analytics
+- ⏳ Real-time logs
 
 ---
 
@@ -175,13 +224,13 @@
 
 | Metric | Value |
 |--------|-------|
-| **Total Phases** | 7 |
+| **Total Phases** | 9 |
 | **Completed Phases** | 6 |
-| **Pending Phases** | 1 |
-| **Overall Progress** | 86% |
+| **Pending Phases** | 3 |
+| **Overall Progress** | 67% |
 | **Total Time Spent** | 240 minutes (4h 0m) |
-| **Estimated Remaining** | 30 minutes (0h 30m) |
-| **Total Estimated Time** | 270 minutes (4h 30m) |
+| **Estimated Remaining** | 240 minutes (4h 0m) |
+| **Total Estimated Time** | 480 minutes (8h 0m) |
 
 ---
 
