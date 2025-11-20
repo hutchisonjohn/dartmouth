@@ -29,13 +29,6 @@ export class Logger {
 
   private log(level: LogLevel, message: string, data?: any): void {
     const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
-      level,
-      context: this.context,
-      message,
-      ...(data && { data }),
-    };
 
     // In development, log to console
     if (this.environment === 'development') {
@@ -45,6 +38,7 @@ export class Logger {
 
     // In production, send to analytics/monitoring
     // (This would integrate with Cloudflare Analytics, Sentry, etc.)
+    // const logEntry = { timestamp, level, context: this.context, message, ...(data && { data }) };
   }
 }
 

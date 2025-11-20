@@ -3,8 +3,9 @@
  * The Operating System & Heart of the AI Agent Fleet
  */
 
-export { DartmouthOS, DartmouthOSConfig } from './DartmouthOS';
+export { DartmouthOS } from './DartmouthOS';
+export type { DartmouthOSConfig } from './DartmouthOS';
 export * from './services';
-export * from './types';
+export type * from './types';
 export * from './utils';
 

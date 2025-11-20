@@ -4,7 +4,7 @@
  */
 
 import { AgentRegistry } from './AgentRegistry';
-import { AgentRequest, AgentResponse } from '../types';
+import type { AgentRequest } from '../types';
 import { Logger } from '../utils/logger';
 import { handleError, ValidationError } from '../utils/errors';
 
@@ -189,7 +189,7 @@ export class APIGateway {
   /**
    * Handle agents list request
    */
-  private async handleAgents(request: Request): Promise<Response> {
+  private async handleAgents(_request: Request): Promise<Response> {
     const stats = this.agentRegistry.getStats();
 
     return new Response(JSON.stringify(stats), {

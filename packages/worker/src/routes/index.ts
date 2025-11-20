@@ -301,10 +301,21 @@ export async function router(request: Request, env: Env): Promise<Response> {
         new Response(
           JSON.stringify(
             {
-              name: 'Dartmouth Agent Army API',
-              version: '1.0.0',
+              name: 'Dartmouth OS API',
+              version: '2.0.0',
               status: 'operational',
+              dartmouth: {
+                version: '2.0.0',
+                status: 'active',
+                agents: ['fam', 'mccarthy-artwork', 'test-agent'],
+              },
               endpoints: {
+                'dartmouth-v2': {
+                  'POST /api/v2/chat': 'Send message to agent (Dartmouth OS)',
+                  'GET /api/v2/health': 'Health check for all agents',
+                  'GET /api/v2/health?agentId=xxx': 'Health check for specific agent',
+                  'GET /api/v2/agents': 'List all registered agents',
+                },
                 health: {
                   'GET /health': 'Health check',
                   'GET /health/ready': 'Readiness check',
@@ -320,8 +331,8 @@ export async function router(request: Request, env: Env): Promise<Response> {
                   'GET /test/session/:sessionId': 'Get test session',
                   'POST /test/batch': 'Test batch messages',
                 },
-                production: {
-                  'POST /api/v1/agents/:agentId/chat': 'Send message to agent',
+                'legacy-v1': {
+                  'POST /api/v1/agents/:agentId/chat': 'Send message to agent (Legacy)',
                   'GET /api/v1/agents/:agentId/sessions/:sessionId': 'Get session',
                   'DELETE /api/v1/agents/:agentId/sessions/:sessionId': 'Delete session',
                   'POST /api/v1/agents/:agentId/feedback': 'Submit feedback',

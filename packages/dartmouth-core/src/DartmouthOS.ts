@@ -26,15 +26,17 @@ export class DartmouthOS {
   private apiGateway: APIGateway;
   private healthMonitor: HealthMonitor;
   private initialized = false;
+  private env: Env;
 
   constructor(
-    private env: Env,
+    env: Env,
     private config: DartmouthOSConfig = {
       environment: 'development',
       healthCheckInterval: 60000,
       enableHealthMonitoring: true,
     }
   ) {
+    this.env = env;
     this.logger = new Logger('DartmouthOS', config.environment);
 
     // Initialize services
@@ -139,6 +141,13 @@ export class DartmouthOS {
       health: this.healthMonitor.getHealthSummary(),
       timestamp: Date.now(),
     };
+  }
+
+  /**
+   * Get environment bindings
+   */
+  getEnv(): Env {
+    return this.env;
   }
 }
 
