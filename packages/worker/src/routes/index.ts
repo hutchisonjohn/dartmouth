@@ -222,70 +222,11 @@ export async function router(request: Request, env: Env): Promise<Response> {
     }
 
     // ========================================================================
-    // PRODUCTION API ENDPOINTS
+    // LEGACY V1 API ENDPOINTS - REMOVED (Use /api/v2/* instead)
     // ========================================================================
-
-    // POST /api/v1/agents/:agentId/chat
-    if (
-      segments[0] === 'api' &&
-      segments[1] === 'v1' &&
-      segments[2] === 'agents' &&
-      segments[4] === 'chat' &&
-      segments.length === 5
-    ) {
-      if (method !== 'POST') {
-        return addCorsHeaders(methodNotAllowed(['POST']));
-      }
-      const agentId = segments[3];
-      return addCorsHeaders(await handleChat(agentId, request, env));
-    }
-
-    // GET /api/v1/agents/:agentId/sessions/:sessionId
-    if (
-      segments[0] === 'api' &&
-      segments[1] === 'v1' &&
-      segments[2] === 'agents' &&
-      segments[4] === 'sessions' &&
-      segments.length === 6
-    ) {
-      if (method !== 'GET') {
-        return addCorsHeaders(methodNotAllowed(['GET']));
-      }
-      const agentId = segments[3];
-      const sessionId = segments[5];
-      return addCorsHeaders(await handleGetSession(agentId, sessionId, env));
-    }
-
-    // DELETE /api/v1/agents/:agentId/sessions/:sessionId
-    if (
-      segments[0] === 'api' &&
-      segments[1] === 'v1' &&
-      segments[2] === 'agents' &&
-      segments[4] === 'sessions' &&
-      segments.length === 6
-    ) {
-      if (method !== 'DELETE') {
-        return addCorsHeaders(methodNotAllowed(['DELETE']));
-      }
-      const agentId = segments[3];
-      const sessionId = segments[5];
-      return addCorsHeaders(await handleDeleteSession(agentId, sessionId, env));
-    }
-
-    // POST /api/v1/agents/:agentId/feedback
-    if (
-      segments[0] === 'api' &&
-      segments[1] === 'v1' &&
-      segments[2] === 'agents' &&
-      segments[4] === 'feedback' &&
-      segments.length === 5
-    ) {
-      if (method !== 'POST') {
-        return addCorsHeaders(methodNotAllowed(['POST']));
-      }
-      const agentId = segments[3];
-      return addCorsHeaders(await handleFeedback(agentId, request, env));
-    }
+    // All V1 endpoints have been deprecated in favor of Dartmouth OS V2
+    // V2 provides: Agent Registry, Health Monitoring, Better Error Handling
+    // Migration: /api/v1/agents/:id/chat → /api/v2/chat with agentId in body
 
     // ========================================================================
     // ROOT ENDPOINT - API Documentation
@@ -330,12 +271,6 @@ export async function router(request: Request, env: Env): Promise<Response> {
                   'POST /test/rag': 'Test RAG engine',
                   'GET /test/session/:sessionId': 'Get test session',
                   'POST /test/batch': 'Test batch messages',
-                },
-                'legacy-v1': {
-                  'POST /api/v1/agents/:agentId/chat': 'Send message to agent (Legacy)',
-                  'GET /api/v1/agents/:agentId/sessions/:sessionId': 'Get session',
-                  'DELETE /api/v1/agents/:agentId/sessions/:sessionId': 'Delete session',
-                  'POST /api/v1/agents/:agentId/feedback': 'Submit feedback',
                 },
               },
               documentation: 'https://github.com/hutchisonjohn/dartmouth',

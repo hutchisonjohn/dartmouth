@@ -193,23 +193,15 @@ async function testChatEndpoint() {
 }
 
 async function testLegacyEndpoints() {
-  logSection('TEST 5: Legacy V1 Endpoints (Backward Compatibility)');
+  logSection('TEST 5: Legacy Endpoints');
   
   try {
-    // Test legacy health endpoint
+    // Test legacy health endpoint (still supported)
     const healthResponse = await fetch(`${API_BASE}/health`);
     logTest('Legacy /health endpoint works', healthResponse.status === 200);
     
-    // Test legacy chat endpoint (if available)
-    const chatResponse = await fetch(`${API_BASE}/api/v1/agents/test-agent/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: 'Hello',
-        sessionId: `test-session-${Date.now()}`,
-      }),
-    });
-    logTest('Legacy V1 chat endpoint works', chatResponse.status === 200 || chatResponse.status === 404);
+    // Note: V1 API routes have been removed in favor of V2 (Dartmouth OS)
+    // All agents now use /api/v2/chat endpoint
     
     return true;
   } catch (error) {
