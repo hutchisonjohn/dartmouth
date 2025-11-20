@@ -32,8 +32,20 @@ export class RepeatHandler implements Handler {
       // Provide a varied response
       responseText = this.getVariedResponse(previousAnswer, message);
     } else {
-      // Shouldn't happen, but handle gracefully
-      responseText = "I understand you're asking again. Let me try to provide more clarity.";
+      // If we can't find the previous answer, it means the user is repeating a statement/command
+      // NOT a question. In this case, we should use the LLM to handle it intelligently.
+      // Return null to signal that LLM fallback should be used.
+      return {
+        content: '', // Empty content signals LLM should handle this
+        metadata: {
+          handlerName: this.name,
+          handlerVersion: this.version,
+          processingTime: Date.now() - startTime,
+          cached: false,
+          confidence: 0.3, // Low confidence - prefer LLM
+          useLLMFallback: true // Explicit flag
+        }
+      };
     }
 
     return {
