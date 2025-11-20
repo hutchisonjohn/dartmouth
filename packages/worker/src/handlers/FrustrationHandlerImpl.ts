@@ -62,10 +62,10 @@ export class FrustrationHandlerImpl implements Handler {
     // Empathetic, solution-focused, genuine (Dartmouth personality)
     switch (level) {
       case 'critical':
-        return "I'm really sorry this has been so frustrating! I'd like to help you get this sorted out. Please reach out to our friendly team via email and they'll prioritize your issue. What else can I help you with right now?";
+        return "I'm really sorry this has been so frustrating! Let me try to help. Can you tell me specifically what the issue is? If I can't resolve it, I'll make sure to connect you with our team who can.";
       
       case 'high':
-        return "I can see this is frustrating - I'm really sorry about that! If you'd like, I can help you get in touch with our support team who can provide more direct assistance. What would be most helpful for you right now?";
+        return "I can see this is frustrating - I'm really sorry about that! Let me understand what's going on. What specifically is the issue? I want to help if I can.";
       
       case 'moderate':
         return "I understand this isn't working the way you need it to, and I apologize! Let's figure this out together. What's the most important thing you're trying to do?";

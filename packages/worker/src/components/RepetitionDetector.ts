@@ -105,7 +105,10 @@ export class RepetitionDetector {
       /tell me (what|about) (i|we|my)/i,
       /what (do you|have i) (know|said|told)/i,
       /how many (messages|times|exchanges)/i,
-      /what's my (name|email|address|location)/i
+      /what's my (name|email|address|location)/i,
+      /did you (hear|understand|get|catch) (me|that|what i said)/i,
+      /are you (listening|paying attention)/i,
+      /can you (hear|understand) me/i
     ];
     
     return metaPatterns.some(pattern => pattern.test(lowerQuestion));
