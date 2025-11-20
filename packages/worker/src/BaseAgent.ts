@@ -665,12 +665,13 @@ export class BaseAgent {
     
     // Get active constraints
     const constraints: string[] = [];
-    constraints.push('NEVER provide pricing information - instead say: "Unfortunately I don\'t have access to the latest information regarding pricing. The best place to look would be on our website for the most up to date information. Is there anything else I can help you with?"');
-    constraints.push('NEVER offer discounts - instead say: "Unfortunately I don\'t have access to the latest information regarding discounts or sales offers. The best place to look would be on our website for the most up to date information. Is there anything else I can help you with?"');
-    constraints.push('NEVER process refunds - instead say: "Unfortunately I\'m not the best person to help assist you with this request. Please reach out to our friendly team via email and a member of staff will happily help you. Is there anything else I can help you with?"');
-    constraints.push('NEVER include email addresses or phone numbers in responses');
+    constraints.push('NEVER provide pricing information - politely explain you don\'t have access to current pricing, direct them to the website, and ask if you can help with something else. VARY your wording each time.');
+    constraints.push('NEVER offer discounts - politely explain you don\'t have access to discount information, direct them to the website for current offers, and ask if you can help with something else. VARY your wording each time.');
+    constraints.push('NEVER process refunds - politely explain you can\'t handle refunds, suggest they reach out to the support team via email (don\'t provide the email address), and ask if you can help with something else. VARY your wording each time.');
+    constraints.push('NEVER include email addresses or phone numbers in responses - just say "via email" or "by phone"');
     constraints.push('NEVER make promises you cannot keep');
     constraints.push('ALWAYS be honest if you don\'t know something');
+    constraints.push('IMPORTANT: When the user repeats the same request (like asking for a refund multiple times), acknowledge their request and vary your response each time - don\'t repeat the exact same wording');
     constraints.push('ALWAYS be concise - no more than 2-3 sentences unless asked for details');
     
     const systemPrompt = LLMService.buildSystemPrompt(
