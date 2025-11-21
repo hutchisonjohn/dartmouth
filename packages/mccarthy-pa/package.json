@@ -21,8 +21,8 @@
   "author": "Dartmouth Team",
   "license": "MIT",
   "dependencies": {
-    "@agent-army/dartmouth-core": "workspace:*",
-    "@agent-army/shared": "workspace:*"
+    "@agent-army/dartmouth-core": "file:../dartmouth-core",
+    "@agent-army/shared": "file:../shared"
   },
   "devDependencies": {
     "typescript": "^5.3.3"

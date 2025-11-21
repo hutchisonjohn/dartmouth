@@ -1,0 +1,38 @@
+name = "dartmouth-os-dev"
+main = "src/index.ts"
+compatibility_date = "2025-11-16"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database (same as production for now)
+[[d1_databases]]
+binding = "DB"
+database_name = "dartmouth-os-db"
+database_id = "7cf1c2ab-a284-49bb-8484-ade563391cb2"
+
+# KV Namespaces (use preview IDs for staging)
+[[kv_namespaces]]
+binding = "APP_CONFIG"
+id = "4e0fd620f6f443e687dacc43e483d553"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "ddbe6a75fde34a9daac1f58b217bfc61"
+
+# Workers AI
+[ai]
+binding = "WORKERS_AI"
+
+# Observability
+[observability]
+enabled = true
+
+# Environment Variables (non-secret)
+[vars]
+ENVIRONMENT = "development"
+
+# Secrets (set via wrangler secret put --env staging)
+# - OPENAI_API_KEY
+# - ANTHROPIC_API_KEY
+# - GOOGLE_API_KEY
+# - JWT_SECRET
+

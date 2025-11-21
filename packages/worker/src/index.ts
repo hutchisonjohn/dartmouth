@@ -5,7 +5,7 @@
 
 import { DartmouthOS } from '../../dartmouth-core/src/DartmouthOS';
 import { createFAMAgent, createArtworkAnalyzerAgent, createTestAgent } from './createDartmouthAgents';
-import { McCarthyPAAgent } from '../../mccarthy-pa/src';
+// import { McCarthyPAAgent } from '../../mccarthy-pa/src'; // TODO: Enable after package build
 import { router } from './routes';
 import type { Env } from './types/shared';
 import type { Env as DartmouthEnv } from '../../dartmouth-core/src/types';
@@ -95,13 +95,13 @@ async function initializeDartmouth(env: Env): Promise<DartmouthOS> {
   dartmouth.registerAgent(testAgent);
   console.log('[Dartmouth] ✅ Test Agent registered');
 
-  // Register PA Agent
-  const paAgent = new McCarthyPAAgent({
-    ...baseConfig,
-    agentId: 'mccarthy-pa',
-  });
-  dartmouth.registerAgent(paAgent);
-  console.log('[Dartmouth] ✅ McCarthy PA registered');
+  // Register PA Agent (TODO: Enable after package build)
+  // const paAgent = new McCarthyPAAgent({
+  //   ...baseConfig,
+  //   agentId: 'mccarthy-pa',
+  // });
+  // dartmouth.registerAgent(paAgent);
+  // console.log('[Dartmouth] ✅ McCarthy PA registered');
 
   console.log('[Dartmouth] All agents registered successfully');
 
