@@ -29,23 +29,47 @@ export class CalculationHandler implements Handler {
     const startTime = Date.now();
 
     // Extract calculation parameters from message (pixels and DPI)
-    const calcParams = this.extractArtworkParams(message);
+    let calcParams = this.extractArtworkParams(message);
+
+    // If no params in message, try to get from artwork context
+    if (!calcParams && context.conversationState?.messages) {
+      calcParams = this.extractArtworkFromContext(context.conversationState.messages);
+    }
 
     // Use CalculationEngine for accurate calculations
     let result: any;
     let responseText: string;
 
     if (calcParams && this.calculationEngine) {
-      // Use CalculationEngine.preCompute for artwork calculations
-      result = this.calculationEngine.preCompute(
-        'artwork-' + Date.now(),
-        calcParams.widthPixels,
-        calcParams.heightPixels,
-        calcParams.dpi
-      );
-      responseText = this.formatCalculationResponse(result, calcParams);
+      // Check if user is asking for DPI at a specific size
+      const targetSize = this.extractTargetSize(message);
+      
+      if (targetSize) {
+        // Calculate DPI at target size
+        responseText = this.calculateDPIAtSize(calcParams, targetSize);
+      } else {
+        // Use CalculationEngine.preCompute for artwork calculations
+        result = this.calculationEngine.preCompute(
+          'artwork-' + Date.now(),
+          calcParams.widthPixels,
+          calcParams.heightPixels,
+          calcParams.dpi
+        );
+        responseText = this.formatCalculationResponse(result, calcParams);
+      }
     } else {
-      responseText = "Hey! I can help with print size calculations. Please provide artwork dimensions in pixels and desired DPI (e.g., '4000x6000 pixels at 300 DPI').";
+      // Use LLM fallback
+      return {
+        content: '',
+        metadata: {
+          handlerName: this.name,
+          handlerVersion: this.version,
+          processingTime: Date.now() - startTime,
+          cached: false,
+          confidence: 0.3,
+          useLLMFallback: true
+        }
+      };
     }
 
     return {
@@ -83,6 +107,107 @@ export class CalculationHandler implements Handler {
     }
     
     return null;
+  }
+
+  private extractArtworkFromContext(messages: any[]): { widthPixels: number; heightPixels: number; dpi: number } | null {
+    // Look for artwork context in recent messages
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.content && msg.content.includes('[Artwork Context:')) {
+        const contextMatch = msg.content.match(/\[Artwork Context: ({.*?})\]/s);
+        if (contextMatch) {
+          try {
+            const context = JSON.parse(contextMatch[1]);
+            // Extract pixel dimensions from "2811x2539 pixels"
+            const dimMatch = context.dimensions?.match(/(\d+)x(\d+)/);
+            const dpi = parseInt(context.dpi) || 300;
+            
+            if (dimMatch) {
+              return {
+                widthPixels: parseInt(dimMatch[1]),
+                heightPixels: parseInt(dimMatch[2]),
+                dpi
+              };
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private extractTargetSize(message: string): { widthCm: number; heightCm: number } | { widthInches: number; heightInches: number } | null {
+    // Extract CM dimensions like "37.5 × 33.9 cm" or "37.5 x 33.9 cm"
+    const cmPattern = /([\d.]+)\s*[×x]\s*([\d.]+)\s*cm/i;
+    const cmMatch = message.match(cmPattern);
+    
+    if (cmMatch) {
+      return {
+        widthCm: parseFloat(cmMatch[1]),
+        heightCm: parseFloat(cmMatch[2])
+      };
+    }
+    
+    // Extract inch dimensions like "10 × 12 inches" or "10 x 12 in"
+    const inchPattern = /([\d.]+)\s*[×x]\s*([\d.]+)\s*(inches?|in|")/i;
+    const inchMatch = message.match(inchPattern);
+    
+    if (inchMatch) {
+      return {
+        widthInches: parseFloat(inchMatch[1]),
+        heightInches: parseFloat(inchMatch[2])
+      };
+    }
+    
+    return null;
+  }
+
+  private calculateDPIAtSize(params: { widthPixels: number; heightPixels: number; dpi: number }, targetSize: any): string {
+    let widthInches: number;
+    let heightInches: number;
+    let widthCm: number;
+    let heightCm: number;
+    
+    if ('widthCm' in targetSize) {
+      widthCm = targetSize.widthCm;
+      heightCm = targetSize.heightCm;
+      widthInches = widthCm / 2.54;
+      heightInches = heightCm / 2.54;
+    } else {
+      widthInches = targetSize.widthInches;
+      heightInches = targetSize.heightInches;
+      widthCm = widthInches * 2.54;
+      heightCm = heightInches * 2.54;
+    }
+    
+    // Calculate DPI
+    const dpiWidth = params.widthPixels / widthInches;
+    const dpiHeight = params.heightPixels / heightInches;
+    const avgDPI = Math.round((dpiWidth + dpiHeight) / 2);
+    
+    // Determine quality
+    let quality: string;
+    let emoji: string;
+    if (avgDPI >= 300) {
+      quality = 'EXCELLENT';
+      emoji = '✨';
+    } else if (avgDPI >= 250) {
+      quality = 'GREAT';
+      emoji = '👍';
+    } else if (avgDPI >= 200) {
+      quality = 'GOOD';
+      emoji = '👌';
+    } else if (avgDPI >= 150) {
+      quality = 'ACCEPTABLE';
+      emoji = '⚠️';
+    } else {
+      quality = 'LOW';
+      emoji = '❌';
+    }
+    
+    return `At ${widthCm.toFixed(1)} cm × ${heightCm.toFixed(1)} cm (${widthInches.toFixed(2)}" × ${heightInches.toFixed(2)}"), your artwork will be **${avgDPI} DPI**.\n\n${emoji} **Quality: ${quality}**\n\nYour artwork is ${params.widthPixels} × ${params.heightPixels} pixels.`;
   }
 
   private formatCalculationResponse(result: any, params: any): string {
