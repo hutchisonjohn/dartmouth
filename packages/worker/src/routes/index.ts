@@ -222,6 +222,24 @@ export async function router(request: Request, env: Env): Promise<Response> {
     }
 
     // ========================================================================
+    // DARTMOUTH OS V2 API ENDPOINTS
+    // ========================================================================
+
+    // POST /api/v2/chat
+    if (segments[0] === 'api' && segments[1] === 'v2' && segments[2] === 'chat' && segments.length === 3) {
+      if (method !== 'POST') {
+        return addCorsHeaders(methodNotAllowed(['POST']));
+      }
+      
+      // Parse agentId from request body (need to clone request to read body twice)
+      const clonedRequest = request.clone();
+      const body = await clonedRequest.json() as { agentId?: string };
+      const agentId = body.agentId || 'fam'; // Default to FAM if not specified
+      
+      return addCorsHeaders(await handleChat(agentId, request, env));
+    }
+
+    // ========================================================================
     // LEGACY V1 API ENDPOINTS - REMOVED (Use /api/v2/* instead)
     // ========================================================================
     // All V1 endpoints have been deprecated in favor of Dartmouth OS V2
