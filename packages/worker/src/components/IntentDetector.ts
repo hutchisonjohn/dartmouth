@@ -15,17 +15,21 @@ export class IntentDetector {
     message: string,
     conversationState?: ConversationState
   ): Promise<Intent> {
-    const lowerMessage = message.toLowerCase().trim()
+    // Strip artwork context metadata before intent detection
+    // Frontend appends "[Artwork Context: {...}]" which should NOT influence intent
+    const cleanMessage = this.stripArtworkContext(message);
+    const lowerMessage = cleanMessage.toLowerCase().trim()
 
-    // HIGH PRIORITY: If message has pixels AND DPI, it's ALWAYS a calculation
+    // HIGH PRIORITY: If user's ACTUAL message has pixels AND DPI, it's a calculation
     // This prevents ANY other intent from overriding calculation requests
-    const hasPixelsAndDPI = /\d+\s*x\s*\d+\s*(pixels?|px)/i.test(message) && /\d+\s*dpi/i.test(message);
+    // BUT we check the CLEAN message (without artwork context metadata)
+    const hasPixelsAndDPI = /\d+\s*x\s*\d+\s*(pixels?|px)/i.test(cleanMessage) && /\d+\s*dpi/i.test(cleanMessage);
     if (hasPixelsAndDPI) {
       return {
         type: 'calculation',
         confidence: 1.0,
         requiresCalculation: true,
-        entities: this.extractCalculationEntities(message)
+        entities: this.extractCalculationEntities(cleanMessage)
       };
     }
 
@@ -38,6 +42,15 @@ export class IntentDetector {
     }
 
     return patternIntent
+  }
+
+  /**
+   * Strip artwork context metadata from message
+   * Frontend appends "[Artwork Context: {...}]" which should not influence intent detection
+   */
+  private stripArtworkContext(message: string): string {
+    // Remove [Artwork Context: ...] section
+    return message.replace(/\[Artwork Context:.*?\]/gs, '').trim();
   }
 
   /**
