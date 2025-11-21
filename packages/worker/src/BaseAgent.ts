@@ -623,19 +623,28 @@ export class BaseAgent {
    * Determine if we should use LLM fallback instead of handler response
    */
   private shouldUseLLMFallback(response: Response, intent: any): boolean {
+    console.log(`[BaseAgent] shouldUseLLMFallback check:`, {
+      intentType: intent.type,
+      responseContent: response.content.substring(0, 100),
+      useLLMFallback: response.metadata?.useLLMFallback
+    });
+
     // Check if handler explicitly requested LLM fallback
     if (response.metadata?.useLLMFallback === true || response.content === '') {
+      console.log(`[BaseAgent] LLM fallback: YES (explicit request or empty content)`);
       return true;
     }
 
     // NEVER use LLM fallback for these specific intents - they have dedicated handlers
     const noLLMIntents = ['calculation', 'greeting', 'farewell', 'frustration'];
     if (noLLMIntents.includes(intent.type)) {
+      console.log(`[BaseAgent] LLM fallback: NO (intent ${intent.type} has dedicated handler)`);
       return false;
     }
 
     // Use LLM for fallback/unknown intents
     if (intent.type === 'unknown' || intent.type === 'information') {
+      console.log(`[BaseAgent] LLM fallback: YES (intent is ${intent.type})`);
       return true;
     }
 
@@ -654,10 +663,13 @@ export class BaseAgent {
     ];
 
     const lowerContent = response.content.toLowerCase();
-    if (genericPhrases.some(phrase => lowerContent.includes(phrase))) {
+    const matchedPhrase = genericPhrases.find(phrase => lowerContent.includes(phrase));
+    if (matchedPhrase) {
+      console.log(`[BaseAgent] LLM fallback: YES (matched generic phrase: "${matchedPhrase}")`);
       return true;
     }
 
+    console.log(`[BaseAgent] LLM fallback: NO (no conditions met)`);
     return false;
   }
 
@@ -697,6 +709,8 @@ export class BaseAgent {
 
     // Prepare conversation history
     const conversationMessages = this.state?.messages || [];
+    console.log(`[BaseAgent] LLM fallback: Sending ${conversationMessages.length} messages to LLM`);
+    console.log(`[BaseAgent] LLM fallback: Last user message:`, conversationMessages[conversationMessages.length - 1]?.content.substring(0, 200));
 
     try {
       const llmResponse = await this.llmService.generate({
@@ -705,6 +719,8 @@ export class BaseAgent {
         temperature: this.agentConfig.temperature,
         maxTokens: this.agentConfig.maxTokens
       });
+      
+      console.log(`[BaseAgent] LLM fallback: Generated response:`, llmResponse.content.substring(0, 200));
 
       return {
         content: llmResponse.content,
