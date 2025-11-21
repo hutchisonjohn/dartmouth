@@ -1,0 +1,31 @@
+{
+  "name": "@agent-army/mccarthy-pa",
+  "version": "1.0.0",
+  "description": "McCarthy Personal Assistant Agent for calendar, email, and task management",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "personal-assistant",
+    "calendar",
+    "email",
+    "tasks"
+  ],
+  "author": "Dartmouth Team",
+  "license": "MIT",
+  "dependencies": {
+    "@agent-army/dartmouth-core": "workspace:*",
+    "@agent-army/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
+
