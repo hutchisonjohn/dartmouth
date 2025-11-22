@@ -274,13 +274,10 @@ export class IntentDetector {
     const hasPixelsAndDPI = /\d+\s*x\s*\d+\s*(pixels?|px)/i.test(message) && /\d+\s*dpi/i.test(message);
     if (hasPixelsAndDPI) return true;
     
-    // CRITICAL: "what size at X DPI" questions (e.g., "what size is my artwork at 150 dpi?")
-    const isSizeAtDPI = /what (size|dimension|will).*(at|with|@|is|be)\s*\d+\s*dpi/i.test(message);
-    if (isSizeAtDPI) return true;
-    
-    // CRITICAL: "if my artwork is X DPI what size" questions (e.g., "if my artwork is 72 dpi what size would it be?")
-    const isDPIThenSize = /\d+\s*dpi.*what (size|dimension|will|would)/i.test(message);
-    if (isDPIThenSize) return true;
+    // CRITICAL: Any question with a specific DPI number and asking about size
+    // Matches: "what size at 150 dpi", "if my artwork is 72 dpi what size", "72 dpi what size", etc.
+    const hasDPIAndSizeQuestion = /\d+\s*dpi/i.test(message) && /(what|how).*(size|dimension|big|large)/i.test(message);
+    if (hasDPIAndSizeQuestion) return true;
     
     // CRITICAL: Short DPI questions (e.g., "and 72 dpi?", "at 150 dpi?")
     const isShortDPIQuestion = /^(and|at|with)?\s*\d+\s*dpi\??$/i.test(message);
