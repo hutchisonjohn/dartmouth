@@ -38,19 +38,28 @@ export class CalculationHandler implements Handler {
 
     // Check if user is asking "what size at X DPI?" (e.g., "what will be the size with 150 dpi")
     const targetDPI = this.extractTargetDPI(message);
-    if (targetDPI && context.conversationState?.messages) {
-      const sizeAtDPI = this.findSizeAtDPI(targetDPI, context.conversationState.messages);
-      if (sizeAtDPI) {
-        return {
-          content: sizeAtDPI,
-          metadata: {
-            handlerName: this.name,
-            handlerVersion: this.version,
-            processingTime: Date.now() - startTime,
-            cached: false,
-            confidence: 1.0
-          }
-        };
+    if (targetDPI) {
+      console.log(`[CalculationHandler] Detected target DPI: ${targetDPI}`);
+      
+      if (context.conversationState?.messages) {
+        const sizeAtDPI = this.findSizeAtDPI(targetDPI, context.conversationState.messages);
+        if (sizeAtDPI) {
+          console.log(`[CalculationHandler] Found size at DPI: ${sizeAtDPI}`);
+          return {
+            content: sizeAtDPI,
+            metadata: {
+              handlerName: this.name,
+              handlerVersion: this.version,
+              processingTime: Date.now() - startTime,
+              cached: false,
+              confidence: 1.0
+            }
+          };
+        } else {
+          console.log(`[CalculationHandler] findSizeAtDPI returned null`);
+        }
+      } else {
+        console.log(`[CalculationHandler] No conversation state or messages`);
       }
     }
 
@@ -157,8 +166,8 @@ export class CalculationHandler implements Handler {
   }
 
   private extractTargetDPI(message: string): number | null {
-    // Extract DPI like "150 dpi", "at 72 dpi", "with 300 dpi"
-    const dpiPattern = /(?:at|with|@)?\s*(\d+)\s*dpi/i;
+    // Extract DPI like "150 dpi", "at 72 dpi", "with 300 dpi", "and 150 dpi"
+    const dpiPattern = /(?:at|with|and|@)?\s*(\d+)\s*dpi/i;
     const dpiMatch = message.match(dpiPattern);
     
     if (dpiMatch) {
@@ -169,14 +178,18 @@ export class CalculationHandler implements Handler {
   }
 
   private findSizeAtDPI(targetDPI: number, messages: any[]): string | null {
+    console.log(`[findSizeAtDPI] Looking for artwork context in ${messages.length} messages`);
+    
     // Look for artwork context with pixel dimensions in recent messages
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
       if (msg.content && msg.content.includes('[Artwork Context:')) {
+        console.log(`[findSizeAtDPI] Found artwork context in message ${i}`);
         const contextMatch = msg.content.match(/\[Artwork Context: ({.*?})\]/s);
         if (contextMatch) {
           try {
             const context = JSON.parse(contextMatch[1]);
+            console.log(`[findSizeAtDPI] Parsed context:`, context);
             
             // Extract pixel dimensions from "2811x2539 pixels"
             const dimMatch = context.dimensions?.match(/(\d+)x(\d+)/);
@@ -184,6 +197,7 @@ export class CalculationHandler implements Handler {
             if (dimMatch) {
               const widthPixels = parseInt(dimMatch[1]);
               const heightPixels = parseInt(dimMatch[2]);
+              console.log(`[findSizeAtDPI] Extracted dimensions: ${widthPixels}x${heightPixels}`);
               
               // Calculate size at target DPI
               const widthInches = widthPixels / targetDPI;
@@ -206,13 +220,16 @@ export class CalculationHandler implements Handler {
               }
               
               return `At **${targetDPI} DPI**, your artwork will be:\n\n📏 **${widthCm.toFixed(2)} × ${heightCm.toFixed(2)} cm** (${widthInches.toFixed(2)}" × ${heightInches.toFixed(2)}")\n\n${emoji} **Quality: ${quality}**`;
+            } else {
+              console.log(`[findSizeAtDPI] No dimension match in context`);
             }
           } catch (e) {
-            // Ignore parse errors
+            console.log(`[findSizeAtDPI] Error parsing context:`, e);
           }
         }
       }
     }
+    console.log(`[findSizeAtDPI] No artwork context found, returning null`);
     return null;
   }
 
