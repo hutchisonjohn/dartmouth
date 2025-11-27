@@ -299,8 +299,17 @@ export class BaseAgent {
       if (repetition.isRepetition) {
         console.log(`[BaseAgent] Repetition detected (count: ${repetition.count})`);
         this.state.isRepeatDetected = true;
-        // Update intent to reflect repetition
-        intent.type = 'repeat';
+        
+        // DON'T override intent for information/howto questions - let them use RAG handlers
+        // Only override for generic questions that need varied responses
+        const dontOverrideIntents = ['information', 'howto', 'calculation'];
+        if (!dontOverrideIntents.includes(intent.type)) {
+          // Update intent to reflect repetition
+          intent.type = 'repeat';
+          console.log(`[BaseAgent] Intent overridden to 'repeat'`);
+        } else {
+          console.log(`[BaseAgent] Repetition noted but NOT overriding ${intent.type} intent - will use dedicated handler`);
+        }
       }
 
       // STEP 6: Check for Frustration
