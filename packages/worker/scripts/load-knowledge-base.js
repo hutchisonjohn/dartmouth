@@ -23,6 +23,10 @@ const documents = [
   {
     title: 'DPI_QUALITY_STANDARDS',
     path: '../../mccarthy-artwork/src/knowledge/DPI_QUALITY_STANDARDS.md'
+  },
+  {
+    title: 'DTF_vs_UV_DTF_Application_Surfaces',
+    path: '../../mccarthy-artwork/src/knowledge/DTF-vs-UV-DTF-Application-Surfaces.md'
   }
 ];
 
