@@ -118,7 +118,9 @@ export class ConstraintValidator {
     const requestConstraints = agentConstraints.rules.filter(rule => 
       rule.id === 'no-refunds' || 
       rule.id === 'no-discounts' ||
-      rule.id === 'no-pricing'
+      rule.id === 'no-pricing' ||
+      rule.id === 'no-payment-info' ||
+      rule.id === 'no-order-tracking'
     );
     
     for (const rule of requestConstraints) {
