@@ -395,7 +395,8 @@ export class BaseAgent {
         userMessage: message,
         conversationHistory: this.state.messages.map(m => m.content),
         providedData: response.metadata,
-        userSentiment
+        userSentiment,
+        intentType: intent.type  // Pass intent type to allow different rules
       });
       
       if (!qualityCheck.passed) {

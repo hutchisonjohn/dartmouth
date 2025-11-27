@@ -44,6 +44,7 @@ export class ConversationQualityValidator {
       conversationHistory: string[]
       providedData?: any
       userSentiment?: UserSentiment
+      intentType?: string  // Added to allow different rules for different intents
     }
   ): ConversationQualityResult {
     this.conversationHistory = context.conversationHistory
@@ -52,7 +53,7 @@ export class ConversationQualityValidator {
     let score = 100
     
     // Check 1: Verbosity (responses should be concise)
-    const verbosityCheck = this.checkVerbosity(response.content)
+    const verbosityCheck = this.checkVerbosity(response.content, context.intentType)
     if (verbosityCheck) {
       issues.push(verbosityCheck)
       score -= 20
@@ -115,26 +116,30 @@ export class ConversationQualityValidator {
    * Check 1: Verbosity
    * Responses should be concise (2-4 sentences ideal, max 200 words)
    */
-  private checkVerbosity(content: string): ConversationIssue | null {
+  private checkVerbosity(content: string, intentType?: string): ConversationIssue | null {
     const wordCount = content.split(/\s+/).length
     const sentenceCount = content.split(/[.!?]+/).filter(s => s.trim().length > 0).length
     
-    // Critical: Over 300 words
-    if (wordCount > 300) {
+    // Allow longer responses for how-to questions (step-by-step instructions)
+    const maxWords = intentType === 'howto' ? 1000 : 300;
+    const recommendedWords = intentType === 'howto' ? 500 : 200;
+    
+    // Critical: Over max words
+    if (wordCount > maxWords) {
       return {
         type: 'verbosity',
         severity: 'critical',
-        message: `Response is ${wordCount} words (should be under 200)`,
+        message: `Response is ${wordCount} words (should be under ${recommendedWords})`,
         suggestion: 'Cut response by 50%. Lead with the most important information. Remove fluff.'
       }
     }
     
-    // High: Over 200 words
-    if (wordCount > 200) {
+    // High: Over recommended words (but not critical for howto)
+    if (wordCount > recommendedWords && intentType !== 'howto') {
       return {
         type: 'verbosity',
         severity: 'high',
-        message: `Response is ${wordCount} words (should be under 200)`,
+        message: `Response is ${wordCount} words (should be under ${recommendedWords})`,
         suggestion: 'Be more concise. Get to the point faster. Remove unnecessary details.'
       }
     }
