@@ -54,8 +54,12 @@ export class InformationHandler implements Handler {
       }
       
       // File size questions
-      if (/file size|how big.*file/i.test(message)) {
-        responseText = `Your file is ${artworkData.fileSize}.`;
+      if (/file size|how big.*file|how large.*file|what.*size.*file/i.test(message)) {
+        if (artworkData.fileSize && artworkData.fileSize !== 'Unknown') {
+          responseText = `Your file is ${artworkData.fileSize}.`;
+        } else {
+          responseText = "I don't have the file size information available.";
+        }
         
         return {
           content: responseText,

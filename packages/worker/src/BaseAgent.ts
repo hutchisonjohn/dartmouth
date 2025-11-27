@@ -703,7 +703,7 @@ export class BaseAgent {
    * Generate response using LLM
    */
   private async generateLLMResponse(
-    _message: string,
+    message: string,
     _intent: any,
     _context: HandlerContext
   ): Promise<Response> {
@@ -712,6 +712,29 @@ export class BaseAgent {
     }
 
     const startTime = Date.now();
+
+    // ADDED 2025-11-27: Try to get RAG context for LLM
+    let ragContext = '';
+    if (this.ragEngine) {
+      try {
+        const ragResults = await this.ragEngine.retrieve(
+          this.agentConfig.id || 'default',
+          message,
+          3
+        );
+        
+        if (ragResults && ragResults.length > 0) {
+          ragContext = '\n\nRELEVANT KNOWLEDGE BASE INFORMATION:\n';
+          ragResults.forEach((result: any, index: number) => {
+            ragContext += `\n[${index + 1}] ${result.text}\n`;
+          });
+          ragContext += '\n⚠️ CRITICAL: You MUST use ONLY the information from the knowledge base above. DO NOT make up or invent information. If the knowledge base says UV DTF is for hard substrates, DO NOT say it\'s for textiles or apparel.\n';
+          console.log(`[BaseAgent] LLM fallback: Retrieved ${ragResults.length} RAG results`);
+        }
+      } catch (error) {
+        console.error('[BaseAgent] LLM fallback: RAG retrieval failed:', error);
+      }
+    }
 
     // Build system prompt with personality, context, and constraints
     const basePrompt = this.agentConfig.systemPrompt || 'You are a helpful AI assistant.';
@@ -726,9 +749,10 @@ export class BaseAgent {
     constraints.push('ALWAYS be honest if you don\'t know something');
     constraints.push('CRITICAL: If the user asks the same question multiple times, you MUST change your wording significantly each time. Use synonyms, rephrase sentences, change structure. Never repeat the exact same response twice in a row.');
     constraints.push('ALWAYS be concise - no more than 2-3 sentences unless asked for details');
+    constraints.push('CRITICAL: If knowledge base information is provided above, you MUST use it and ONLY it. DO NOT add information that is not in the knowledge base.');
     
     const systemPrompt = LLMService.buildSystemPrompt(
-      basePrompt,
+      basePrompt + ragContext,
       this.state || undefined,
       constraints
     );
