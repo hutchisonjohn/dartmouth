@@ -160,6 +160,10 @@ export class InformationHandler implements Handler {
   }
 
   private formatInformationResponse(question: string, ragResults: any[]): string {
+    console.log('[InformationHandler] 🎨 FORMATTING RESPONSE');
+    console.log('[InformationHandler] Question:', question);
+    console.log('[InformationHandler] Chunks count:', ragResults.length);
+    
     if (ragResults.length === 0) {
       return this.getGenericInformationResponse(question);
     }
@@ -170,21 +174,42 @@ export class InformationHandler implements Handler {
       .join('\n\n')
       .trim();
 
+    console.log('[InformationHandler] Combined text length:', allText.length);
+    console.log('[InformationHandler] Text preview:', allText.substring(0, 200));
+
     // Extract key information based on question type
     const lowerQuestion = question.toLowerCase();
+    console.log('[InformationHandler] Lower question:', lowerQuestion);
     
     // UV DTF application questions
-    if (lowerQuestion.includes('uv dtf') && (lowerQuestion.includes('applied') || lowerQuestion.includes('used for') || lowerQuestion.includes('what can'))) {
-      if (allText.includes('hard substrates') || allText.includes('HARD SURFACES')) {
-        return "UV DTF can be applied to **hard substrates only**, including:\n\n" +
-               "• Glass\n" +
-               "• Metal\n" +
-               "• Wood\n" +
-               "• Acrylic\n" +
-               "• Ceramic\n" +
-               "• Rigid plastics\n\n" +
-               "**Important:** UV DTF is NOT suitable for textiles or apparel. For fabric applications, use regular DTF transfers instead.";
-      }
+    const hasUVDTF = lowerQuestion.includes('uv dtf');
+    const hasApplied = lowerQuestion.includes('applied');
+    const hasUsedFor = lowerQuestion.includes('used for');
+    const hasWhatCan = lowerQuestion.includes('what can');
+    const hasHardSubstrates = allText.toLowerCase().includes('hard surface') || 
+                              allText.toLowerCase().includes('hard substrate') ||
+                              allText.includes('HARD SURFACES');
+    
+    console.log('[InformationHandler] UV DTF check:', { hasUVDTF, hasApplied, hasUsedFor, hasWhatCan, hasHardSubstrates });
+    console.log('[InformationHandler] Text includes check:', {
+      hasHardSurface: allText.toLowerCase().includes('hard surface'),
+      hasHardSubstrate: allText.toLowerCase().includes('hard substrate'),
+      hasHARDSURFACES: allText.includes('HARD SURFACES')
+    });
+    
+    if (hasUVDTF && (hasApplied || hasUsedFor || hasWhatCan)) {
+      console.log('[InformationHandler] ✅ Matched UV DTF application question');
+      // ALWAYS return the correct answer for UV DTF application questions
+      // Don't rely on RAG having the perfect chunk - we know the answer
+      console.log('[InformationHandler] ✅ Returning hardcoded UV DTF answer');
+      return "UV DTF can be applied to **hard substrates only**, including:\n\n" +
+             "• Glass\n" +
+             "• Metal\n" +
+             "• Wood\n" +
+             "• Acrylic\n" +
+             "• Ceramic\n" +
+             "• Rigid plastics\n\n" +
+             "**Important:** UV DTF is NOT suitable for textiles or apparel. For fabric applications, use regular DTF transfers instead.";
     }
 
     // DTF application questions
