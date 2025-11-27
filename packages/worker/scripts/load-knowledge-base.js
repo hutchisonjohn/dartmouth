@@ -27,6 +27,18 @@ const documents = [
   {
     title: 'DTF_vs_UV_DTF_Application_Surfaces',
     path: '../../mccarthy-artwork/src/knowledge/DTF-vs-UV-DTF-Application-Surfaces.md'
+  },
+  {
+    title: 'How_To_Resize_Artwork',
+    path: '../../mccarthy-artwork/src/knowledge/How_To_Resize_Artwork.md'
+  },
+  {
+    title: 'How_To_Change_DPI',
+    path: '../../mccarthy-artwork/src/knowledge/How_To_Change_DPI.md'
+  },
+  {
+    title: 'How_To_Fix_Transparency',
+    path: '../../mccarthy-artwork/src/knowledge/How_To_Fix_Transparency.md'
   }
 ];
 
