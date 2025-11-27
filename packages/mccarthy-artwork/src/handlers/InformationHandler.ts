@@ -106,25 +106,26 @@ export class InformationHandler implements Handler {
         );
 
         console.log('[InformationHandler] 📊 RAG RESULTS:', {
-          count: ragResults?.length || 0,
-          hasResults: !!(ragResults && ragResults.length > 0)
+          count: ragResults?.chunks?.length || 0,
+          hasResults: !!(ragResults && ragResults.chunks && ragResults.chunks.length > 0),
+          confidence: ragResults?.confidence || 0
         });
 
-        if (ragResults && ragResults.length > 0) {
-          console.log('[InformationHandler] ✅ RAG returned', ragResults.length, 'results');
-          console.log('[InformationHandler] Top result preview:', ragResults[0].text.substring(0, 200));
+        if (ragResults && ragResults.chunks && ragResults.chunks.length > 0) {
+          console.log('[InformationHandler] ✅ RAG returned', ragResults.chunks.length, 'chunks');
+          console.log('[InformationHandler] Top chunk preview:', ragResults.chunks[0].text.substring(0, 200));
           
           // Format RAG results into informative response
-          responseText = this.formatInformationResponse(message, ragResults);
+          responseText = this.formatInformationResponse(message, ragResults.chunks);
           
           console.log('[InformationHandler] 📝 FORMATTED RESPONSE:', responseText.substring(0, 200));
           
-          sources = ragResults.map((r: any) => ({
-            id: r.id,
-            title: r.documentId,
-            excerpt: r.text.substring(0, 100)
+          sources = ragResults.chunks.map((chunk: any) => ({
+            id: chunk.id,
+            title: chunk.documentId,
+            excerpt: chunk.text.substring(0, 100)
           }));
-          confidence = 0.9;
+          confidence = ragResults.confidence || 0.9;
         } else {
           console.log('[InformationHandler] ❌ NO RAG RESULTS - using generic response');
           responseText = this.getGenericInformationResponse(message);

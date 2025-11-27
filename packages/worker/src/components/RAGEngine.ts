@@ -90,18 +90,28 @@ export class RAGEngine {
     topK: number = 5,
     minSimilarity: number = 0.7
   ): Promise<RAGResult> {
-    // Check cache first
-    const cacheKey = `rag:${agentId}:${query}`
-    const cached = await this.cache.get(cacheKey)
-    if (cached) {
-      const result = JSON.parse(cached) as RAGResult
-      return { ...result, cached: true }
-    }
+    console.log(`[RAGEngine] 🔍 RETRIEVE called`);
+    console.log(`[RAGEngine] agentId: ${agentId}`);
+    console.log(`[RAGEngine] query: ${query}`);
+    console.log(`[RAGEngine] topK: ${topK}, minSimilarity: ${minSimilarity}`);
+    
+    // TEMPORARILY DISABLED: Check cache first
+    // const cacheKey = `rag:${agentId}:${query}`
+    // const cached = await this.cache.get(cacheKey)
+    // if (cached) {
+    //   console.log(`[RAGEngine] ✅ Cache hit!`);
+    //   const result = JSON.parse(cached) as RAGResult
+    //   return { ...result, cached: true }
+    // }
+    console.log(`[RAGEngine] ❌ Cache DISABLED for debugging, querying database...`);
 
     // Generate query embedding
+    console.log(`[RAGEngine] Generating query embedding...`);
     const queryEmbedding = await this.generateEmbedding(query)
+    console.log(`[RAGEngine] Query embedding generated (length: ${queryEmbedding.length})`);
 
     // Retrieve all chunks for this agent
+    console.log(`[RAGEngine] Querying database for chunks with agent_id = ${agentId}...`);
     const allChunks = await this.db
       .prepare('SELECT id, document_id, text, embedding, chunk_index FROM rag_chunks WHERE agent_id = ?')
       .bind(agentId)
@@ -112,19 +122,30 @@ export class RAGEngine {
         embedding: string
         chunk_index: number
       }>()
+    
+    console.log(`[RAGEngine] Found ${allChunks.results.length} chunks in database`);
 
     // Calculate similarity scores
+    console.log(`[RAGEngine] Calculating similarity scores...`);
     const scored = allChunks.results.map(chunk => {
       const chunkEmbedding = JSON.parse(chunk.embedding)
       const similarity = this.cosineSimilarity(queryEmbedding, chunkEmbedding)
       return { chunk, similarity }
     })
+    
+    console.log(`[RAGEngine] Similarity scores calculated:`);
+    scored.slice(0, 5).forEach((item, i) => {
+      console.log(`  ${i+1}. Similarity: ${item.similarity.toFixed(3)} - Text: ${item.chunk.text.substring(0, 80)}...`);
+    });
 
     // Filter and sort by similarity
+    console.log(`[RAGEngine] Filtering by minSimilarity >= ${minSimilarity}...`);
     const relevant = scored
       .filter(item => item.similarity >= minSimilarity)
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, topK)
+    
+    console.log(`[RAGEngine] ${relevant.length} chunks passed similarity threshold`);
 
     // Build result
     const chunks: Chunk[] = relevant.map(item => ({
@@ -146,10 +167,11 @@ export class RAGEngine {
       cached: false
     }
 
-    // Cache result for 5 minutes
-    await this.cache.put(cacheKey, JSON.stringify(result), {
-      expirationTtl: 300
-    })
+    // TEMPORARILY DISABLED: Cache result for 5 minutes
+    // await this.cache.put(cacheKey, JSON.stringify(result), {
+    //   expirationTtl: 300
+    // })
+    console.log(`[RAGEngine] ✅ Returning result (cache disabled for debugging)`);
 
     return result
   }
