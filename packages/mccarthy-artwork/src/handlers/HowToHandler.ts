@@ -46,16 +46,29 @@ export class HowToHandler implements Handler {
           5
         );
 
-        if (ragResults && ragResults.length > 0) {
+        console.log('[HowToHandler] 📊 RAG RESULTS:', {
+          count: ragResults?.chunks?.length || 0,
+          hasResults: !!(ragResults && ragResults.chunks && ragResults.chunks.length > 0),
+          confidence: ragResults?.confidence || 0
+        });
+
+        if (ragResults && ragResults.chunks && ragResults.chunks.length > 0) {
+          console.log('[HowToHandler] ✅ RAG returned', ragResults.chunks.length, 'chunks');
+          console.log('[HowToHandler] Top chunk preview:', ragResults.chunks[0].text.substring(0, 200));
+          
           // Format RAG results into step-by-step instructions
-          responseText = this.formatHowToResponse(message, ragResults);
-          sources = ragResults.map((r: any) => ({
-            id: r.id,
-            title: r.documentId,
-            excerpt: r.text.substring(0, 100)
+          responseText = this.formatHowToResponse(message, ragResults.chunks);
+          
+          console.log('[HowToHandler] 📝 FORMATTED RESPONSE:', responseText.substring(0, 200));
+          
+          sources = ragResults.chunks.map((chunk: any) => ({
+            id: chunk.id,
+            title: chunk.documentId,
+            excerpt: chunk.text.substring(0, 100)
           }));
-          confidence = 0.9;
+          confidence = ragResults.confidence || 0.9;
         } else {
+          console.log('[HowToHandler] ❌ NO RAG RESULTS - using generic response');
           responseText = this.getGenericHowToResponse(message);
         }
       } catch (error) {
