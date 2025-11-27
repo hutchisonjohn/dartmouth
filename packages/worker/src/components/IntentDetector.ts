@@ -402,6 +402,9 @@ export class IntentDetector {
     const informationPatterns = [
       /^what is /i,
       /^what are /i,
+      /^what can /i,  // "what can UV DTF be used for?"
+      /^what does /i, // "what does UV DTF do?"
+      /^what's /i,    // "what's UV DTF used for?"
       /^does (it|my|the)/i, // "does it have an ICC profile?"
       /tell me about/i,
       /explain/i,
