@@ -337,12 +337,22 @@ export class BaseAgent {
 
       // STEP 8: Route to Appropriate Handler
       let response = await this.responseRouter.route(message, intent, context);
-      console.log(`[BaseAgent] Handler response generated (${response.content.length} chars)`);
+      console.log(`[BaseAgent] ✅ Handler response generated (${response.content.length} chars)`);
+      console.log(`[BaseAgent] Handler name: ${response.metadata?.handlerName}`);
+      console.log(`[BaseAgent] Response preview: ${response.content.substring(0, 200)}`);
 
       // STEP 8.5: LLM Fallback (if handler returned generic response and LLM is available)
-      if (this.shouldUseLLMFallback(response, intent) && this.llmService) {
-        console.log(`[BaseAgent] Using LLM fallback for better response`);
+      const shouldUseLLM = this.shouldUseLLMFallback(response, intent);
+      console.log(`[BaseAgent] 🤔 Should use LLM fallback? ${shouldUseLLM}`);
+      
+      if (shouldUseLLM && this.llmService) {
+        console.log(`[BaseAgent] ⚠️ OVERRIDING WITH LLM FALLBACK`);
+        const originalResponse = response.content.substring(0, 100);
         response = await this.generateLLMResponse(message, intent, context);
+        console.log(`[BaseAgent] Original response: ${originalResponse}`);
+        console.log(`[BaseAgent] LLM response: ${response.content.substring(0, 100)}`);
+      } else {
+        console.log(`[BaseAgent] ✅ KEEPING HANDLER RESPONSE (no LLM override)`);
       }
 
       // STEP 9: Add Empathy (THE HEART OF DARTMOUTH)
@@ -649,29 +659,33 @@ export class BaseAgent {
    * Determine if we should use LLM fallback instead of handler response
    */
   private shouldUseLLMFallback(response: Response, intent: any): boolean {
-    console.log(`[BaseAgent] shouldUseLLMFallback check:`, {
-      intentType: intent.type,
-      responseContent: response.content.substring(0, 100),
-      useLLMFallback: response.metadata?.useLLMFallback
-    });
+    console.log('========================================');
+    console.log(`[BaseAgent] 🔍 CHECKING shouldUseLLMFallback`);
+    console.log(`[BaseAgent] Intent type: ${intent.type}`);
+    console.log(`[BaseAgent] Handler name: ${response.metadata?.handlerName}`);
+    console.log(`[BaseAgent] Response length: ${response.content.length}`);
+    console.log(`[BaseAgent] Response preview: ${response.content.substring(0, 100)}`);
+    console.log(`[BaseAgent] Explicit useLLMFallback flag: ${response.metadata?.useLLMFallback}`);
 
     // Check if handler explicitly requested LLM fallback
     if (response.metadata?.useLLMFallback === true || response.content === '') {
-      console.log(`[BaseAgent] LLM fallback: YES (explicit request or empty content)`);
+      console.log(`[BaseAgent] ✅ LLM fallback: YES (explicit request or empty content)`);
+      console.log('========================================');
       return true;
     }
 
     // NEVER use LLM fallback for these specific intents - they have dedicated handlers
-    const noLLMIntents = ['calculation', 'greeting', 'farewell', 'frustration'];
+    const noLLMIntents = ['calculation', 'greeting', 'farewell', 'frustration', 'information', 'howto'];
     if (noLLMIntents.includes(intent.type)) {
-      console.log(`[BaseAgent] LLM fallback: NO (intent ${intent.type} has dedicated handler)`);
+      console.log(`[BaseAgent] ❌ LLM fallback: NO (intent ${intent.type} has dedicated handler)`);
+      console.log('========================================');
       return false;
     }
 
     // Use LLM for fallback/unknown intents ONLY
-    // DO NOT use LLM for 'information' - let InformationHandler use RAG!
     if (intent.type === 'unknown') {
-      console.log(`[BaseAgent] LLM fallback: YES (intent is ${intent.type})`);
+      console.log(`[BaseAgent] ✅ LLM fallback: YES (intent is ${intent.type})`);
+      console.log('========================================');
       return true;
     }
 

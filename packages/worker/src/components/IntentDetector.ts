@@ -149,6 +149,8 @@ export class IntentDetector {
 
     // Information request patterns
     if (this.isInformation(message)) {
+      console.log('[IntentDetector] ✅ Detected as INFORMATION intent');
+      console.log('[IntentDetector] requiresRAG: true');
       return {
         type: 'information',
         confidence: 0.75,

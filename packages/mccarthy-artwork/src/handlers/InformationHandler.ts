@@ -26,6 +26,13 @@ export class InformationHandler implements Handler {
     context: HandlerContext
   ): Promise<Response> {
     const startTime = Date.now();
+    
+    console.log('========================================');
+    console.log('[InformationHandler] ✅ HANDLER CALLED');
+    console.log('[InformationHandler] Message:', message);
+    console.log('[InformationHandler] Intent type:', intent.type);
+    console.log('[InformationHandler] Intent requiresRAG:', intent.requiresRAG);
+    console.log('========================================');
 
     let responseText: string;
     let sources: any[] = [];
@@ -75,17 +82,35 @@ export class InformationHandler implements Handler {
     }
 
     // Try to get answer from RAG knowledge base
+    console.log('[InformationHandler] Checking RAG availability...');
+    console.log('[InformationHandler] ragEngine exists:', !!this.ragEngine);
+    console.log('[InformationHandler] intent.requiresRAG:', intent.requiresRAG);
+    
     if (this.ragEngine && intent.requiresRAG) {
       try {
+        console.log('[InformationHandler] 🔍 CALLING RAG with agentId: mccarthy-artwork');
+        console.log('[InformationHandler] Query:', message);
+        
         const ragResults = await this.ragEngine.retrieve(
           'mccarthy-artwork',  // Use McCarthy's agent ID to get artwork-specific knowledge
           message,
           5
         );
 
+        console.log('[InformationHandler] 📊 RAG RESULTS:', {
+          count: ragResults?.length || 0,
+          hasResults: !!(ragResults && ragResults.length > 0)
+        });
+
         if (ragResults && ragResults.length > 0) {
+          console.log('[InformationHandler] ✅ RAG returned', ragResults.length, 'results');
+          console.log('[InformationHandler] Top result preview:', ragResults[0].text.substring(0, 200));
+          
           // Format RAG results into informative response
           responseText = this.formatInformationResponse(message, ragResults);
+          
+          console.log('[InformationHandler] 📝 FORMATTED RESPONSE:', responseText.substring(0, 200));
+          
           sources = ragResults.map((r: any) => ({
             id: r.id,
             title: r.documentId,
@@ -93,15 +118,24 @@ export class InformationHandler implements Handler {
           }));
           confidence = 0.9;
         } else {
+          console.log('[InformationHandler] ❌ NO RAG RESULTS - using generic response');
           responseText = this.getGenericInformationResponse(message);
         }
       } catch (error) {
-        console.error('[InformationHandler] RAG error:', error);
+        console.error('[InformationHandler] ❌ RAG ERROR:', error);
         responseText = this.getGenericInformationResponse(message);
       }
     } else {
+      console.log('[InformationHandler] ⚠️ SKIPPING RAG - ragEngine or requiresRAG is false');
       responseText = this.getGenericInformationResponse(message);
     }
+
+    console.log('[InformationHandler] 🎯 RETURNING RESPONSE');
+    console.log('[InformationHandler] Response length:', responseText.length);
+    console.log('[InformationHandler] Response preview:', responseText.substring(0, 200));
+    console.log('[InformationHandler] Confidence:', confidence);
+    console.log('[InformationHandler] Sources count:', sources.length);
+    console.log('========================================');
 
     return {
       content: responseText,
