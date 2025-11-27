@@ -447,8 +447,9 @@ export class BaseAgent {
 
       // STEP 12: Validate Response (Technical)
       // Skip validation for howto intents (step-by-step instructions are naturally longer)
+      let validation = { isValid: true, issues: [], suggestedFix: null };
       if (intent.type !== 'howto') {
-        const validation = await this.responseValidator.validate(response, message);
+        validation = await this.responseValidator.validate(response, message);
         if (!validation.isValid) {
           console.warn(`[BaseAgent] Response validation failed: ${validation.issues.join(', ')}`);
           
