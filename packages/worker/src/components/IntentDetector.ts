@@ -302,7 +302,7 @@ export class IntentDetector {
     if (mentionsDPI) return true;
     
     // If asking GENERAL questions about DPI (no specific numbers), it's information, not calculation
-    const isGeneralDPIQuestion = /what dpi (is )?(recommended|should|best)/i.test(message);
+    const isGeneralDPIQuestion = /what (dpi |is the )?(recommended|should|best|optimal|maximum|highest|max).*dpi/i.test(message);
     if (isGeneralDPIQuestion) return false;
     
     // If message has measurements, it's likely a calculation

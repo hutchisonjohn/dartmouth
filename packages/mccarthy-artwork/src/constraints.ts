@@ -86,6 +86,28 @@ export const ARTWORK_AGENT_CONSTRAINTS: Constraint[] = [
     description: 'Cannot directly edit or modify artwork files',
     suggestedResponse: "I can't directly edit files, but I can guide you through the changes you need to make. I can also recommend design services if you need professional help with artwork modifications.",
     escalateTo: null
+  },
+
+  // CONSTRAINT 8: No Payment Information
+  {
+    id: 'no-payment-info',
+    type: 'forbidden-phrase',
+    severity: 'critical',
+    pattern: /\b(payment method|pay with|accept.*payment|credit card|paypal|stripe|payment option)\b/i,
+    description: 'Cannot provide payment method information',
+    suggestedResponse: "For payment options and methods, please visit our website or contact our sales team. Is there anything about your artwork I can help you with?",
+    escalateTo: 'sales'
+  },
+
+  // CONSTRAINT 9: No Order Tracking
+  {
+    id: 'no-order-tracking',
+    type: 'forbidden-phrase',
+    severity: 'critical',
+    pattern: /\b(where.*my order|track.*order|order status|shipping status|delivery status|when.*arrive)\b/i,
+    description: 'Cannot track orders',
+    suggestedResponse: "For order tracking and status updates, please contact our customer service team who can provide real-time information about your order.",
+    escalateTo: 'customer_service'
   }
 ];
 
