@@ -13,15 +13,17 @@
  * Created: Nov 28, 2025
  */
 
-import { BaseAgent } from '@dartmouth/core';
-import type { AgentRequest, AgentResponse } from '@dartmouth/core';
-import type { D1Database, KVNamespace } from '@cloudflare/workers-types';
+import { BaseAgent } from '../../worker/src/BaseAgent';
+import type { AgentRequest, AgentResponse } from '../../worker/src/types/shared';
+import type { D1Database, KVNamespace } from '../../worker/src/types/shared';
 import {
   ShopifyIntegration,
   PERPIntegration,
   TicketManager,
   AgentHandoffProtocol,
   AnalyticsService,
+  GmailIntegration,
+  type GmailCredentials,
 } from '../../worker/src/services';
 
 // Import handlers
@@ -41,6 +43,7 @@ export interface CustomerServiceConfig {
   shopifyAccessToken: string;
   perpApiUrl: string;
   perpApiKey: string;
+  gmailCredentials: GmailCredentials;
   aiResponseMode: 'auto' | 'draft'; // auto = send immediately, draft = save for approval
 }
 
@@ -62,6 +65,7 @@ export class CustomerServiceAgent extends BaseAgent {
   private ticketManager: TicketManager;
   private handoffProtocol: AgentHandoffProtocol;
   private analytics: AnalyticsService;
+  private gmail: GmailIntegration;
   private aiResponseMode: 'auto' | 'draft';
 
   // Handlers
@@ -71,6 +75,14 @@ export class CustomerServiceAgent extends BaseAgent {
   private generalInquiryHandler: GeneralInquiryHandler;
 
   constructor(config: CustomerServiceConfig) {
+    // Validate config
+    if (!config.db) throw new Error('[CustomerServiceAgent] Database is required');
+    if (!config.kv) throw new Error('[CustomerServiceAgent] KV store is required');
+    if (!config.shopifyApiUrl) throw new Error('[CustomerServiceAgent] Shopify API URL is required');
+    if (!config.shopifyAccessToken) throw new Error('[CustomerServiceAgent] Shopify access token is required');
+    if (!config.perpApiUrl) throw new Error('[CustomerServiceAgent] PERP API URL is required');
+    if (!config.perpApiKey) throw new Error('[CustomerServiceAgent] PERP API key is required');
+    if (!config.gmailCredentials) throw new Error('[CustomerServiceAgent] Gmail credentials are required');
     // Initialize BaseAgent
     super({
       id: 'customer-service-agent',
@@ -122,6 +134,7 @@ export class CustomerServiceAgent extends BaseAgent {
     this.ticketManager = new TicketManager(config.db);
     this.handoffProtocol = new AgentHandoffProtocol(config.db);
     this.analytics = new AnalyticsService(config.db);
+    this.gmail = new GmailIntegration(config.db, config.gmailCredentials);
 
     // Initialize handlers
     this.orderStatusHandler = new OrderStatusHandler(this.shopify, this.perp);
@@ -168,10 +181,15 @@ export class CustomerServiceAgent extends BaseAgent {
         request.metadata?.customerEmail
       );
 
-      // 6. Log analytics
+      // 6. Send response (auto-reply or draft)
+      if (ticket && !escalation) {
+        await this.sendResponse(ticket.ticket_id, enrichedResponse);
+      }
+
+      // 7. Log analytics
       await this.logInteraction(request, enrichedResponse, ticket);
 
-      // 7. Return response
+      // 8. Return response
       return enrichedResponse;
 
     } catch (error) {
@@ -287,8 +305,9 @@ export class CustomerServiceAgent extends BaseAgent {
     if (ticket) {
       await this.ticketManager.escalateTicket(
         ticket.ticket_id,
-        reason.type,
-        reason.details
+        'ai-agent', // escalatedBy
+        'human-agent', // escalatedTo
+        `${reason.type}: ${reason.details}` // reason
       );
     }
 
@@ -421,39 +440,47 @@ export class CustomerServiceAgent extends BaseAgent {
   /**
    * Send response (auto-reply or draft based on config)
    */
-  async sendResponse(
+  private async sendResponse(
     ticketId: string,
-    response: AgentResponse,
-    gmailIntegration: any
+    response: AgentResponse
   ): Promise<void> {
-    const ticket = await this.ticketManager.getTicket(ticketId);
-    
-    if (this.aiResponseMode === 'auto') {
-      // Auto-send
-      await gmailIntegration.sendEmail({
-        to: ticket.customer_email,
-        subject: `Re: ${ticket.subject}`,
-        body: response.content,
-        threadId: ticket.conversation_id,
-      });
+    try {
+      const ticket = await this.ticketManager.getTicket(ticketId);
+      if (!ticket) {
+        console.error(`[CustomerServiceAgent] Ticket not found: ${ticketId}`);
+        return;
+      }
+      
+      if (this.aiResponseMode === 'auto') {
+        // Auto-send
+        await this.gmail.sendEmail({
+          to: ticket.customer_email,
+          subject: `Re: ${ticket.subject}`,
+          body: response.content,
+          threadId: ticket.conversation_id,
+        });
 
-      console.log(`[CustomerServiceAgent] ✅ Auto-sent response for ticket ${ticket.ticket_number}`);
-    } else {
-      // Create draft for approval
-      await gmailIntegration.createDraft({
-        to: ticket.customer_email,
-        subject: `Re: ${ticket.subject}`,
-        body: response.content,
-        threadId: ticket.conversation_id,
-      });
+        console.log(`[CustomerServiceAgent] ✅ Auto-sent response for ticket ${ticket.ticket_number}`);
+      } else {
+        // Create draft for approval
+        await this.gmail.createDraft({
+          to: ticket.customer_email,
+          subject: `Re: ${ticket.subject}`,
+          body: response.content,
+          threadId: ticket.conversation_id,
+        });
 
-      // Add internal note
-      await this.ticketManager.addInternalNote(ticketId, {
-        content: `AI generated draft response (confidence: ${(response.confidence * 100).toFixed(0)}%)`,
-        noteType: 'ai_draft',
-      });
+        // Add internal note
+        await this.ticketManager.addInternalNote(
+          ticketId,
+          'ai-agent', // userId
+          `AI generated draft response (confidence: ${(response.confidence * 100).toFixed(0)}%)`
+        );
 
-      console.log(`[CustomerServiceAgent] ✅ Created draft for ticket ${ticket.ticket_number}`);
+        console.log(`[CustomerServiceAgent] ✅ Created draft for ticket ${ticket.ticket_number}`);
+      }
+    } catch (error) {
+      console.error('[CustomerServiceAgent] Error sending response:', error);
     }
   }
 }

@@ -7,7 +7,7 @@
  * Created: Nov 28, 2025
  */
 
-import type { AgentRequest, AgentResponse } from '@dartmouth/core';
+import type { AgentRequest, AgentResponse } from '../../../worker/src/types/shared';
 
 export class GeneralInquiryHandler {
   constructor() {

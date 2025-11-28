@@ -7,7 +7,7 @@
  * Created: Nov 28, 2025
  */
 
-import type { AgentRequest, AgentResponse } from '@dartmouth/core';
+import type { AgentRequest, AgentResponse } from '../../../worker/src/types/shared';
 import type { PERPIntegration } from '../../../worker/src/services';
 
 export class ProductionStatusHandler {
@@ -33,14 +33,31 @@ export class ProductionStatusHandler {
       }
 
       // 2. Get production order from PERP
-      const productionOrder = await this.perp.getProductionOrder(orderNumber);
+      let productionOrder;
+      try {
+        productionOrder = await this.perp.getProductionOrder(orderNumber);
+      } catch (error) {
+        console.error('[ProductionStatusHandler] PERP API error:', error);
+        return {
+          ...baseResponse,
+          content: "I'm having trouble accessing our production system right now. Let me connect you with our production team who can give you an update.",
+          confidence: 0.3,
+        };
+      }
       
       if (!productionOrder) {
         return this.productionNotFound(orderNumber, baseResponse);
       }
 
       // 3. Get artwork status
-      const artworkStatus = await this.perp.getArtworkStatus(orderNumber);
+      let artworkStatus;
+      try {
+        artworkStatus = await this.perp.getArtworkStatus(orderNumber);
+      } catch (error) {
+        console.error('[ProductionStatusHandler] Artwork API error:', error);
+        // Continue without artwork data
+        artworkStatus = null;
+      }
 
       // 4. Generate response
       return this.generateProductionStatusResponse(productionOrder, artworkStatus, baseResponse);

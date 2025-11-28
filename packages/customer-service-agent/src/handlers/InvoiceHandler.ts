@@ -7,7 +7,7 @@
  * Created: Nov 28, 2025
  */
 
-import type { AgentRequest, AgentResponse } from '@dartmouth/core';
+import type { AgentRequest, AgentResponse } from '../../../worker/src/types/shared';
 import type { PERPIntegration } from '../../../worker/src/services';
 
 export class InvoiceHandler {
@@ -33,7 +33,17 @@ export class InvoiceHandler {
       }
 
       // 2. Get invoice from PERP
-      const invoice = await this.perp.getInvoice(orderNumber);
+      let invoice;
+      try {
+        invoice = await this.perp.getInvoice(orderNumber);
+      } catch (error) {
+        console.error('[InvoiceHandler] PERP API error:', error);
+        return {
+          ...baseResponse,
+          content: "I'm having trouble accessing our invoice system right now. Let me connect you with our accounts team who can email you the invoice directly.",
+          confidence: 0.3,
+        };
+      }
       
       if (!invoice) {
         return this.invoiceNotFound(orderNumber, baseResponse);

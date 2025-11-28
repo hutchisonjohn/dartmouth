@@ -7,7 +7,7 @@
  * Created: Nov 28, 2025
  */
 
-import type { AgentRequest, AgentResponse } from '@dartmouth/core';
+import type { AgentRequest, AgentResponse } from '../../../worker/src/types/shared';
 import type { ShopifyIntegration, PERPIntegration } from '../../../worker/src/services';
 
 export class OrderStatusHandler {
@@ -35,14 +35,31 @@ export class OrderStatusHandler {
       }
 
       // 2. Get order from Shopify
-      const shopifyOrder = await this.shopify.getOrder(orderNumber);
+      let shopifyOrder;
+      try {
+        shopifyOrder = await this.shopify.getOrder(orderNumber);
+      } catch (error) {
+        console.error('[OrderStatusHandler] Shopify API error:', error);
+        return {
+          ...baseResponse,
+          content: "I'm having trouble connecting to our order system right now. Let me connect you with a team member who can look this up for you.",
+          confidence: 0.3,
+        };
+      }
       
       if (!shopifyOrder) {
         return this.orderNotFound(orderNumber, baseResponse);
       }
 
       // 3. Get production status from PERP
-      const productionOrder = await this.perp.getProductionOrder(orderNumber);
+      let productionOrder;
+      try {
+        productionOrder = await this.perp.getProductionOrder(orderNumber);
+      } catch (error) {
+        console.error('[OrderStatusHandler] PERP API error:', error);
+        // Continue without production data
+        productionOrder = null;
+      }
 
       // 4. Generate comprehensive response
       return this.generateOrderStatusResponse(shopifyOrder, productionOrder, baseResponse);
