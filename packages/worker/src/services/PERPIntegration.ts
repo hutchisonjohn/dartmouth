@@ -1,619 +1,635 @@
 /**
  * PERP Integration
  * 
- * Integrates with PERP (Production ERP system) to fetch:
- * - Production status (in queue, in production, complete)
- * - Artwork approval status (pending, approved, rejected)
+ * Integrates with PERP (Production ERP system) via REST API to fetch:
+ * - Customer information
+ * - Order details and production status
+ * - Artwork approval status and files
  * - VIP wallet balance (cash back credits)
- * - Invoice retrieval (PDF generation)
+ * - Invoice retrieval
  * 
- * Method: REST API
+ * Method: REST API (Server-to-Server)
+ * Authentication: API Key (Bearer Token)
  * Caching: 2-minute TTL for real-time data (using KV)
+ * 
+ * API Specification: D:\coding\Customer Service AI Agent\CustomerService-PerpAPI.md
  * 
  * Created: Nov 28, 2025
  * Part of: Customer Service Agent Core
  */
 
-import type { KVNamespace } from '@cloudflare/workers-types';
-
 /**
- * Production status
+ * PERP API Response
  */
-export type ProductionStatus = 'in_queue' | 'in_production' | 'complete' | 'shipped' | 'cancelled';
-
-/**
- * Artwork status
- */
-export type ArtworkStatus = 'pending' | 'approved' | 'rejected' | 'revision_requested';
-
-/**
- * Production order
- */
-export interface ProductionOrder {
-  orderId: string;
-  orderNumber: string;
-  customerId: string;
-  status: ProductionStatus;
-  artworkStatus: ArtworkStatus;
-  queuePosition?: number;
-  completionPercentage: number;
-  estimatedCompletionDate?: string;
-  estimatedShipDate?: string;
-  actualCompletionDate?: string;
-  actualShipDate?: string;
-  productionNotes?: string;
-  artworkNotes?: string;
-  items: Array<{
-    itemId: string;
-    productName: string;
-    quantity: number;
-    status: ProductionStatus;
-    artworkUrl?: string;
-  }>;
-  createdAt: string;
-  updatedAt: string;
+interface PERPAPIResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: string;
+  };
+  timestamp: string;
 }
 
 /**
- * VIP wallet
+ * Customer from PERP
  */
-export interface VIPWallet {
-  customerId: string;
+export interface PERPCustomer {
+  customer_id: string;
+  name: string;
+  email: string;
+  phone: string;
+  company_name?: string;
+  is_vip: boolean;
+  vip_tier?: string;
+  lifetime_value: number;
+  total_orders: number;
+  created_at: string;
+  last_order_date: string;
+  billing_address?: {
+    address1: string;
+    address2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+  };
+}
+
+/**
+ * Order from PERP
+ */
+export interface PERPOrder {
+  order_id: string;
+  order_number: string;
+  customer_id: string;
+  customer_name: string;
+  status: string;
+  status_display: string;
+  order_date: string;
+  estimated_ship_date: string;
+  actual_ship_date?: string;
+  total_amount: number;
+  currency: string;
+  line_items: Array<{
+    line_item_id: string;
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+    production_status: string;
+  }>;
+}
+
+/**
+ * Production Status from PERP
+ */
+export interface PERPProductionStatus {
+  order_id: string;
+  order_number: string;
+  overall_status: string;
+  completion_percentage: number;
+  current_stage: string;
+  stages: Array<{
+    stage_name: string;
+    stage_display: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
+    started_at?: string;
+    completed_at?: string;
+    estimated_completion?: string;
+  }>;
+  estimated_ship_date: string;
+  notes?: string;
+}
+
+/**
+ * Artwork from PERP
+ */
+export interface PERPArtwork {
+  order_id: string;
+  artwork_items: Array<{
+    artwork_id: string;
+    line_item_id: string;
+    product_name: string;
+    status: 'pending' | 'submitted' | 'approved' | 'rejected' | 'revision_requested';
+    submitted_date: string;
+    reviewed_date?: string;
+    approved_date?: string;
+    rejected_date?: string;
+    revision_requested_date?: string;
+    notes?: string;
+    files: {
+      original: {
+        url: string;
+        filename: string;
+        file_size: string;
+        dpi: number;
+        format: string;
+      };
+      preview: {
+        url: string;
+        filename: string;
+        file_size: string;
+        dpi: number;
+        format: string;
+        width: number;
+        height: number;
+      };
+      thumbnail: {
+        url: string;
+        filename: string;
+        file_size: string;
+        dpi: number;
+        format: string;
+        width: number;
+        height: number;
+      };
+    };
+    proof_sheet?: {
+      url: string;
+      filename: string;
+      file_size: string;
+      generated_date: string;
+      includes_mockup: boolean;
+    };
+  }>;
+}
+
+/**
+ * VIP Wallet from PERP
+ */
+export interface PERPVIPWallet {
+  customer_id: string;
   balance: number;
   currency: string;
-  lifetimeEarned: number;
-  lifetimeSpent: number;
-  transactions: VIPTransaction[];
+  last_transaction_date?: string;
+  transactions: Array<{
+    transaction_id: string;
+    type: 'credit' | 'debit';
+    amount: number;
+    description: string;
+    date: string;
+  }>;
 }
 
 /**
- * VIP transaction
+ * Invoice from PERP
  */
-export interface VIPTransaction {
-  id: string;
-  customerId: string;
-  type: 'credit' | 'debit';
-  amount: number;
-  description: string;
-  orderId?: string;
-  createdAt: string;
-}
-
-/**
- * Invoice
- */
-export interface Invoice {
-  invoiceId: string;
-  invoiceNumber: string;
-  orderId: string;
-  customerId: string;
-  totalAmount: number;
-  paidAmount: number;
-  balanceDue: number;
+export interface PERPInvoice {
+  invoice_id: string;
+  invoice_number: string;
+  customer_id: string;
+  order_id: string;
+  invoice_date: string;
+  due_date: string;
+  total_amount: number;
+  amount_paid: number;
+  amount_due: number;
   currency: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
-  dueDate?: string;
-  paidDate?: string;
-  pdfUrl?: string;
-  lineItems: Array<{
+  status: 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled';
+  line_items: Array<{
     description: string;
     quantity: number;
-    unitPrice: number;
-    totalPrice: number;
+    unit_price: number;
+    total: number;
   }>;
-  createdAt: string;
-}
-
-/**
- * Cache entry
- */
-interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
+  pdf_url: string;
 }
 
 /**
  * PERP Integration
  * 
- * Provides access to production, artwork, and VIP wallet data from PERP system.
+ * Provides access to production, artwork, and VIP wallet data from PERP system via REST API.
  */
 export class PERPIntegration {
-  private dbHost: string;
-  private dbPort: number;
-  private dbName: string;
-  private dbUser: string;
-  private dbPassword: string;
-  private cacheTTL: number = 2 * 60 * 1000; // 2 minutes
-
-  // Caches
-  private productionOrderCache: Map<string, CacheEntry<ProductionOrder>> = new Map();
-  private vipWalletCache: Map<string, CacheEntry<VIPWallet>> = new Map();
-  private invoiceCache: Map<string, CacheEntry<Invoice>> = new Map();
+  private apiUrl: string;
+  private apiKey: string;
 
   constructor(config: {
-    host: string;
-    port: number;
-    database: string;
-    user: string;
-    password: string;
+    apiUrl: string;
+    apiKey: string;
   }) {
-    this.dbHost = config.host;
-    this.dbPort = config.port;
-    this.dbName = config.database;
-    this.dbUser = config.user;
-    this.dbPassword = config.password;
-    console.log('[PERPIntegration] Initialized');
+    this.apiUrl = config.apiUrl;
+    this.apiKey = config.apiKey;
+    console.log('[PERPIntegration] Initialized with API');
   }
 
   /**
-   * Get production order status
+   * Search customer by email
    */
-  async getProductionOrder(orderId: string): Promise<ProductionOrder | null> {
-    console.log(`[PERPIntegration] Fetching production order: ${orderId}`);
-
+  async searchCustomerByEmail(email: string): Promise<PERPCustomer | null> {
     try {
-      // Check cache
-      const cached = this.productionOrderCache.get(orderId);
-      if (cached && this.isCacheValid(cached.timestamp)) {
-        console.log(`[PERPIntegration] ✅ Production order found in cache`);
-        return cached.data;
-      }
+      console.log(`[PERPIntegration] Searching customer by email: ${email}`);
 
-      // Query database
-      const query = `
-        SELECT 
-          po.order_id,
-          po.order_number,
-          po.customer_id,
-          po.status,
-          po.artwork_status,
-          po.queue_position,
-          po.completion_percentage,
-          po.estimated_completion_date,
-          po.estimated_ship_date,
-          po.actual_completion_date,
-          po.actual_ship_date,
-          po.production_notes,
-          po.artwork_notes,
-          po.created_at,
-          po.updated_at
-        FROM production_orders po
-        WHERE po.order_id = ?
-      `;
-
-      const result = await this.executeQuery(query, [orderId]);
-
-      if (!result || result.length === 0) {
-        console.log(`[PERPIntegration] ❌ Production order not found: ${orderId}`);
-        return null;
-      }
-
-      const row = result[0];
-
-      // Get production items
-      const itemsQuery = `
-        SELECT 
-          item_id,
-          product_name,
-          quantity,
-          status,
-          artwork_url
-        FROM production_items
-        WHERE order_id = ?
-      `;
-
-      const items = await this.executeQuery(itemsQuery, [orderId]);
-
-      const productionOrder: ProductionOrder = {
-        orderId: row.order_id,
-        orderNumber: row.order_number,
-        customerId: row.customer_id,
-        status: row.status,
-        artworkStatus: row.artwork_status,
-        queuePosition: row.queue_position,
-        completionPercentage: row.completion_percentage,
-        estimatedCompletionDate: row.estimated_completion_date,
-        estimatedShipDate: row.estimated_ship_date,
-        actualCompletionDate: row.actual_completion_date,
-        actualShipDate: row.actual_ship_date,
-        productionNotes: row.production_notes,
-        artworkNotes: row.artwork_notes,
-        items: items.map((item: any) => ({
-          itemId: item.item_id,
-          productName: item.product_name,
-          quantity: item.quantity,
-          status: item.status,
-          artworkUrl: item.artwork_url
-        })),
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
-      };
-
-      // Cache it
-      this.productionOrderCache.set(orderId, {
-        data: productionOrder,
-        timestamp: Date.now()
+      const response = await fetch(`${this.apiUrl}/customers/search?email=${encodeURIComponent(email)}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
       });
 
-      console.log(`[PERPIntegration] ✅ Production order fetched: ${orderId} (${productionOrder.status})`);
-      return productionOrder;
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
+      }
 
+      const result: PERPAPIResponse<PERPCustomer> = await response.json();
+      
+      if (!result.success) {
+        if (result.error?.code === 'CUSTOMER_NOT_FOUND') {
+          return null;
+        }
+        throw new Error(result.error?.message || 'PERP API error');
+      }
+
+      console.log(`[PERPIntegration] ✅ Customer found: ${result.data?.customer_id}`);
+      return result.data || null;
     } catch (error) {
-      console.error(`[PERPIntegration] ❌ Error fetching production order:`, error);
-      return null;
+      console.error('[PERPIntegration] ❌ Error searching customer:', error);
+      throw error;
     }
   }
 
   /**
-   * Get VIP wallet for customer
+   * Get customer details by ID
    */
-  async getVIPWallet(customerId: string): Promise<VIPWallet | null> {
-    console.log(`[PERPIntegration] Fetching VIP wallet: ${customerId}`);
-
+  async getCustomer(customerId: string): Promise<PERPCustomer | null> {
     try {
-      // Check cache
-      const cached = this.vipWalletCache.get(customerId);
-      if (cached && this.isCacheValid(cached.timestamp)) {
-        console.log(`[PERPIntegration] ✅ VIP wallet found in cache`);
-        return cached.data;
-      }
+      console.log(`[PERPIntegration] Fetching customer: ${customerId}`);
 
-      // Query database
-      const query = `
-        SELECT 
-          customer_id,
-          balance,
-          currency,
-          lifetime_earned,
-          lifetime_spent
-        FROM vip_wallets
-        WHERE customer_id = ?
-      `;
-
-      const result = await this.executeQuery(query, [customerId]);
-
-      if (!result || result.length === 0) {
-        console.log(`[PERPIntegration] ❌ VIP wallet not found: ${customerId}`);
-        return null;
-      }
-
-      const row = result[0];
-
-      // Get recent transactions
-      const transactionsQuery = `
-        SELECT 
-          transaction_id,
-          customer_id,
-          type,
-          amount,
-          description,
-          order_id,
-          created_at
-        FROM vip_transactions
-        WHERE customer_id = ?
-        ORDER BY created_at DESC
-        LIMIT 10
-      `;
-
-      const transactions = await this.executeQuery(transactionsQuery, [customerId]);
-
-      const wallet: VIPWallet = {
-        customerId: row.customer_id,
-        balance: parseFloat(row.balance),
-        currency: row.currency,
-        lifetimeEarned: parseFloat(row.lifetime_earned),
-        lifetimeSpent: parseFloat(row.lifetime_spent),
-        transactions: transactions.map((txn: any) => ({
-          id: txn.transaction_id,
-          customerId: txn.customer_id,
-          type: txn.type,
-          amount: parseFloat(txn.amount),
-          description: txn.description,
-          orderId: txn.order_id,
-          createdAt: txn.created_at
-        }))
-      };
-
-      // Cache it
-      this.vipWalletCache.set(customerId, {
-        data: wallet,
-        timestamp: Date.now()
+      const response = await fetch(`${this.apiUrl}/customers/${customerId}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
       });
 
-      console.log(`[PERPIntegration] ✅ VIP wallet fetched: ${customerId} (Balance: $${wallet.balance})`);
-      return wallet;
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
+      }
 
+      const result: PERPAPIResponse<PERPCustomer> = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error?.message || 'PERP API error');
+      }
+
+      console.log(`[PERPIntegration] ✅ Customer fetched: ${result.data?.name}`);
+      return result.data || null;
     } catch (error) {
-      console.error(`[PERPIntegration] ❌ Error fetching VIP wallet:`, error);
-      return null;
+      console.error('[PERPIntegration] ❌ Error fetching customer:', error);
+      throw error;
     }
   }
 
   /**
-   * Get invoice for order
+   * Get VIP wallet balance and transactions
    */
-  async getInvoice(orderId: string): Promise<Invoice | null> {
-    console.log(`[PERPIntegration] Fetching invoice: ${orderId}`);
-
+  async getVIPWallet(customerId: string): Promise<PERPVIPWallet | null> {
     try {
-      // Check cache
-      const cached = this.invoiceCache.get(orderId);
-      if (cached && this.isCacheValid(cached.timestamp)) {
-        console.log(`[PERPIntegration] ✅ Invoice found in cache`);
-        return cached.data;
-      }
+      console.log(`[PERPIntegration] Fetching VIP wallet: ${customerId}`);
 
-      // Query database
-      const query = `
-        SELECT 
-          invoice_id,
-          invoice_number,
-          order_id,
-          customer_id,
-          total_amount,
-          paid_amount,
-          balance_due,
-          currency,
-          status,
-          due_date,
-          paid_date,
-          pdf_url,
-          created_at
-        FROM invoices
-        WHERE order_id = ?
-      `;
-
-      const result = await this.executeQuery(query, [orderId]);
-
-      if (!result || result.length === 0) {
-        console.log(`[PERPIntegration] ❌ Invoice not found: ${orderId}`);
-        return null;
-      }
-
-      const row = result[0];
-
-      // Get line items
-      const lineItemsQuery = `
-        SELECT 
-          description,
-          quantity,
-          unit_price,
-          total_price
-        FROM invoice_line_items
-        WHERE invoice_id = ?
-      `;
-
-      const lineItems = await this.executeQuery(lineItemsQuery, [row.invoice_id]);
-
-      const invoice: Invoice = {
-        invoiceId: row.invoice_id,
-        invoiceNumber: row.invoice_number,
-        orderId: row.order_id,
-        customerId: row.customer_id,
-        totalAmount: parseFloat(row.total_amount),
-        paidAmount: parseFloat(row.paid_amount),
-        balanceDue: parseFloat(row.balance_due),
-        currency: row.currency,
-        status: row.status,
-        dueDate: row.due_date,
-        paidDate: row.paid_date,
-        pdfUrl: row.pdf_url,
-        lineItems: lineItems.map((item: any) => ({
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: parseFloat(item.unit_price),
-          totalPrice: parseFloat(item.total_price)
-        })),
-        createdAt: row.created_at
-      };
-
-      // Cache it
-      this.invoiceCache.set(orderId, {
-        data: invoice,
-        timestamp: Date.now()
+      const response = await fetch(`${this.apiUrl}/customers/${customerId}/vip-wallet`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
       });
 
-      console.log(`[PERPIntegration] ✅ Invoice fetched: ${invoice.invoiceNumber}`);
-      return invoice;
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
+      }
 
+      const result: PERPAPIResponse<PERPVIPWallet> = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error?.message || 'PERP API error');
+      }
+
+      console.log(`[PERPIntegration] ✅ VIP wallet fetched: Balance $${result.data?.balance}`);
+      return result.data || null;
     } catch (error) {
-      console.error(`[PERPIntegration] ❌ Error fetching invoice:`, error);
-      return null;
+      console.error('[PERPIntegration] ❌ Error fetching VIP wallet:', error);
+      throw error;
     }
   }
 
   /**
-   * Get all production orders for customer
+   * Get order details
    */
-  async getCustomerProductionOrders(customerId: string): Promise<ProductionOrder[]> {
-    console.log(`[PERPIntegration] Fetching production orders for customer: ${customerId}`);
-
+  async getOrder(orderId: string): Promise<PERPOrder | null> {
     try {
-      const query = `
-        SELECT order_id
-        FROM production_orders
-        WHERE customer_id = ?
-        ORDER BY created_at DESC
-        LIMIT 20
-      `;
+      console.log(`[PERPIntegration] Fetching order: ${orderId}`);
 
-      const result = await this.executeQuery(query, [customerId]);
-
-      if (!result || result.length === 0) {
-        return [];
-      }
-
-      // Fetch each order (will use cache if available)
-      const orders: ProductionOrder[] = [];
-      for (const row of result) {
-        const order = await this.getProductionOrder(row.order_id);
-        if (order) {
-          orders.push(order);
+      const response = await fetch(`${this.apiUrl}/orders/${orderId}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
         }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
       }
 
-      console.log(`[PERPIntegration] ✅ Fetched ${orders.length} production orders`);
-      return orders;
+      const result: PERPAPIResponse<PERPOrder> = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error?.message || 'PERP API error');
+      }
 
+      console.log(`[PERPIntegration] ✅ Order fetched: ${result.data?.order_number}`);
+      return result.data || null;
     } catch (error) {
-      console.error(`[PERPIntegration] ❌ Error fetching customer production orders:`, error);
-      return [];
+      console.error('[PERPIntegration] ❌ Error fetching order:', error);
+      throw error;
     }
   }
 
   /**
-   * Clear cache
+   * Search order by number
    */
-  clearCache(): void {
-    this.productionOrderCache.clear();
-    this.vipWalletCache.clear();
-    this.invoiceCache.clear();
-    console.log('[PERPIntegration] ✅ Cache cleared');
-  }
+  async searchOrderByNumber(orderNumber: string): Promise<PERPOrder | null> {
+    try {
+      console.log(`[PERPIntegration] Searching order by number: ${orderNumber}`);
 
-  /**
-   * Execute database query
-   * 
-   * NOTE: This is a placeholder. In production, use a proper database client:
-   * - MySQL: mysql2
-   * - PostgreSQL: pg
-   * - Cloudflare D1: D1Database
-   */
-  private async executeQuery(query: string, params: any[]): Promise<any[]> {
-    // TODO: Implement actual database connection
-    // For now, return mock data for development
-
-    console.log(`[PERPIntegration] Executing query: ${query.substring(0, 100)}...`);
-    console.log(`[PERPIntegration] Params:`, params);
-
-    // Mock data for development
-    if (query.includes('FROM production_orders')) {
-      return [{
-        order_id: params[0],
-        order_number: 'PERP-8472',
-        customer_id: 'customer_123',
-        status: 'in_production',
-        artwork_status: 'approved',
-        queue_position: null,
-        completion_percentage: 65,
-        estimated_completion_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-        estimated_ship_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-        actual_completion_date: null,
-        actual_ship_date: null,
-        production_notes: 'On schedule',
-        artwork_notes: 'Artwork approved - no revisions needed',
-        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString()
-      }];
-    }
-
-    if (query.includes('FROM production_items')) {
-      return [{
-        item_id: 'item_1',
-        product_name: 'Custom Hoodies',
-        quantity: 100,
-        status: 'in_production',
-        artwork_url: 'https://example.com/artwork.png'
-      }];
-    }
-
-    if (query.includes('FROM vip_wallets')) {
-      return [{
-        customer_id: params[0],
-        balance: 250.00,
-        currency: 'USD',
-        lifetime_earned: 1500.00,
-        lifetime_spent: 1250.00
-      }];
-    }
-
-    if (query.includes('FROM vip_transactions')) {
-      return [
-        {
-          transaction_id: 'txn_1',
-          customer_id: params[0],
-          type: 'credit',
-          amount: 50.00,
-          description: 'Cash back from order #1234',
-          order_id: 'order_1234',
-          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          transaction_id: 'txn_2',
-          customer_id: params[0],
-          type: 'debit',
-          amount: 25.00,
-          description: 'Applied to order #1235',
-          order_id: 'order_1235',
-          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+      const response = await fetch(`${this.apiUrl}/orders/search?order_number=${encodeURIComponent(orderNumber)}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
         }
-      ];
-    }
+      });
 
-    if (query.includes('FROM invoices')) {
-      return [{
-        invoice_id: 'inv_1',
-        invoice_number: 'INV-2024-001',
-        order_id: params[0],
-        customer_id: 'customer_123',
-        total_amount: 1500.00,
-        paid_amount: 1500.00,
-        balance_due: 0.00,
-        currency: 'USD',
-        status: 'paid',
-        due_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        paid_date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
-        pdf_url: 'https://example.com/invoices/inv-2024-001.pdf',
-        created_at: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString()
-      }];
-    }
-
-    if (query.includes('FROM invoice_line_items')) {
-      return [
-        {
-          description: 'Custom Hoodies (100 units)',
-          quantity: 100,
-          unit_price: 12.00,
-          total_price: 1200.00
-        },
-        {
-          description: 'Setup Fee',
-          quantity: 1,
-          unit_price: 150.00,
-          total_price: 150.00
-        },
-        {
-          description: 'Shipping',
-          quantity: 1,
-          unit_price: 150.00,
-          total_price: 150.00
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
         }
-      ];
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: PERPAPIResponse<PERPOrder> = await response.json();
+      
+      if (!result.success) {
+        if (result.error?.code === 'ORDER_NOT_FOUND') {
+          return null;
+        }
+        throw new Error(result.error?.message || 'PERP API error');
+      }
+
+      console.log(`[PERPIntegration] ✅ Order found: ${result.data?.order_id}`);
+      return result.data || null;
+    } catch (error) {
+      console.error('[PERPIntegration] ❌ Error searching order:', error);
+      throw error;
     }
-
-    return [];
   }
 
   /**
-   * Check if cache is valid
+   * Get customer orders
    */
-  private isCacheValid(timestamp: number): boolean {
-    return Date.now() - timestamp < this.cacheTTL;
+  async getCustomerOrders(customerId: string, limit: number = 10, offset: number = 0): Promise<{ orders: PERPOrder[]; pagination: any }> {
+    try {
+      console.log(`[PERPIntegration] Fetching customer orders: ${customerId}`);
+
+      const response = await fetch(`${this.apiUrl}/customers/${customerId}/orders?limit=${limit}&offset=${offset}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: PERPAPIResponse<{ orders: PERPOrder[]; pagination: any }> = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error?.message || 'PERP API error');
+      }
+
+      console.log(`[PERPIntegration] ✅ Fetched ${result.data?.orders.length} orders`);
+      return result.data || { orders: [], pagination: { total: 0, limit, offset, has_more: false } };
+    } catch (error) {
+      console.error('[PERPIntegration] ❌ Error fetching customer orders:', error);
+      throw error;
+    }
   }
 
   /**
-   * Test database connection
+   * Get production status with stage breakdown
+   */
+  async getProductionStatus(orderId: string): Promise<PERPProductionStatus | null> {
+    try {
+      console.log(`[PERPIntegration] Fetching production status: ${orderId}`);
+
+      const response = await fetch(`${this.apiUrl}/orders/${orderId}/production`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: PERPAPIResponse<PERPProductionStatus> = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error?.message || 'PERP API error');
+      }
+
+      console.log(`[PERPIntegration] ✅ Production status fetched: ${result.data?.completion_percentage}% complete`);
+      return result.data || null;
+    } catch (error) {
+      console.error('[PERPIntegration] ❌ Error fetching production status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get artwork status and files
+   */
+  async getArtwork(orderId: string): Promise<PERPArtwork | null> {
+    try {
+      console.log(`[PERPIntegration] Fetching artwork: ${orderId}`);
+
+      const response = await fetch(`${this.apiUrl}/orders/${orderId}/artwork`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: PERPAPIResponse<PERPArtwork> = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error?.message || 'PERP API error');
+      }
+
+      console.log(`[PERPIntegration] ✅ Artwork fetched: ${result.data?.artwork_items.length} items`);
+      return result.data || null;
+    } catch (error) {
+      console.error('[PERPIntegration] ❌ Error fetching artwork:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get invoice details
+   */
+  async getInvoice(invoiceId: string): Promise<PERPInvoice | null> {
+    try {
+      console.log(`[PERPIntegration] Fetching invoice: ${invoiceId}`);
+
+      const response = await fetch(`${this.apiUrl}/invoices/${invoiceId}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: PERPAPIResponse<PERPInvoice> = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error?.message || 'PERP API error');
+      }
+
+      console.log(`[PERPIntegration] ✅ Invoice fetched: ${result.data?.invoice_number}`);
+      return result.data || null;
+    } catch (error) {
+      console.error('[PERPIntegration] ❌ Error fetching invoice:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search invoice by number
+   */
+  async searchInvoiceByNumber(invoiceNumber: string): Promise<PERPInvoice | null> {
+    try {
+      console.log(`[PERPIntegration] Searching invoice by number: ${invoiceNumber}`);
+
+      const response = await fetch(`${this.apiUrl}/invoices/search?invoice_number=${encodeURIComponent(invoiceNumber)}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: PERPAPIResponse<PERPInvoice> = await response.json();
+      
+      if (!result.success) {
+        if (result.error?.code === 'INVOICE_NOT_FOUND') {
+          return null;
+        }
+        throw new Error(result.error?.message || 'PERP API error');
+      }
+
+      console.log(`[PERPIntegration] ✅ Invoice found: ${result.data?.invoice_id}`);
+      return result.data || null;
+    } catch (error) {
+      console.error('[PERPIntegration] ❌ Error searching invoice:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get customer invoices
+   */
+  async getCustomerInvoices(customerId: string, limit: number = 10, offset: number = 0): Promise<{ invoices: PERPInvoice[]; pagination: any }> {
+    try {
+      console.log(`[PERPIntegration] Fetching customer invoices: ${customerId}`);
+
+      const response = await fetch(`${this.apiUrl}/customers/${customerId}/invoices?limit=${limit}&offset=${offset}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`PERP API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: PERPAPIResponse<{ invoices: PERPInvoice[]; pagination: any }> = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error?.message || 'PERP API error');
+      }
+
+      console.log(`[PERPIntegration] ✅ Fetched ${result.data?.invoices.length} invoices`);
+      return result.data || { invoices: [], pagination: { total: 0, limit, offset, has_more: false } };
+    } catch (error) {
+      console.error('[PERPIntegration] ❌ Error fetching customer invoices:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Test API connection
    */
   async testConnection(): Promise<boolean> {
     try {
-      console.log('[PERPIntegration] Testing database connection...');
-      // TODO: Implement actual connection test
-      console.log('[PERPIntegration] ✅ Database connection successful');
+      console.log('[PERPIntegration] Testing API connection...');
+      
+      // Try to fetch a test customer (will return 404 if not found, but that's ok)
+      const response = await fetch(`${this.apiUrl}/customers/test`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // If we get a 401, the API key is invalid
+      if (response.status === 401) {
+        console.error('[PERPIntegration] ❌ API key is invalid');
+        return false;
+      }
+
+      // Any other response means the API is accessible
+      console.log('[PERPIntegration] ✅ API connection successful');
       return true;
     } catch (error) {
-      console.error('[PERPIntegration] ❌ Database connection failed:', error);
+      console.error('[PERPIntegration] ❌ API connection failed:', error);
       return false;
     }
   }
 }
-
