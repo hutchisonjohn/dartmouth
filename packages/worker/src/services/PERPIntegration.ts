@@ -7,12 +7,14 @@
  * - VIP wallet balance (cash back credits)
  * - Invoice retrieval (PDF generation)
  * 
- * Method: Direct database access (MySQL/PostgreSQL)
- * Caching: 2-minute TTL for real-time data
+ * Method: REST API
+ * Caching: 2-minute TTL for real-time data (using KV)
  * 
  * Created: Nov 28, 2025
  * Part of: Customer Service Agent Core
  */
+
+import type { KVNamespace } from '@cloudflare/workers-types';
 
 /**
  * Production status

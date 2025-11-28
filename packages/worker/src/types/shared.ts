@@ -40,6 +40,28 @@ export interface Env {
   STRIPE_WEBHOOK_SECRET?: string;
   CLERK_SECRET_KEY?: string;
   JWT_SECRET?: string;
+  
+  // Omnichannel Integration
+  SENDGRID_API_KEY?: string;
+  TWILIO_ACCOUNT_SID?: string;
+  TWILIO_AUTH_TOKEN?: string;
+  TWILIO_WHATSAPP_NUMBER?: string;
+  TWILIO_PHONE_NUMBER?: string;
+  META_ACCESS_TOKEN?: string;
+  INSTAGRAM_PAGE_ID?: string;
+  FACEBOOK_PAGE_ID?: string;
+  
+  // Shopify Integration
+  SHOPIFY_DOMAIN?: string;
+  SHOPIFY_ACCESS_TOKEN?: string;
+  
+  // PERP Integration
+  PERP_DB_HOST?: string;
+  PERP_DB_PORT?: string;
+  PERP_DB_NAME?: string;
+  PERP_DB_USER?: string;
+  PERP_DB_PASSWORD?: string;
+  ELEVENLABS_API_KEY?: string;
 }
 
 export interface Message {
