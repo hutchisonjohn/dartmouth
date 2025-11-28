@@ -7,10 +7,15 @@
  * Created: Nov 28, 2025
  */
 
-import type { AgentRequest, AgentResponse } from '../../../worker/src/types/shared';
+import type { Intent, Response } from '../../../worker/src/types/shared';
+import type { Handler, HandlerContext } from '../../../worker/src/components/ResponseRouter';
 import type { PERPIntegration } from '../../../worker/src/services';
 
-export class InvoiceHandler {
+export class InvoiceHandler implements Handler {
+  name = 'InvoiceHandler';
+  version = '1.0.0';
+  priority = 8;
+
   private perp: PERPIntegration;
 
   constructor(perp: PERPIntegration) {
@@ -18,18 +23,34 @@ export class InvoiceHandler {
     console.log('[InvoiceHandler] Initialized');
   }
 
+  canHandle(intent: Intent): boolean {
+    return intent.type === 'invoice' || 
+           intent.type === 'receipt' ||
+           intent.type === 'payment_info';
+  }
+
   /**
-   * Handle invoice request
+   * Handle invoice inquiry
    */
-  async handle(request: AgentRequest, baseResponse: AgentResponse): Promise<AgentResponse> {
-    console.log('[InvoiceHandler] Handling invoice request');
+  async handle(message: string, intent: Intent, context: HandlerContext): Promise<Response> {
+    console.log('[InvoiceHandler] Handling invoice inquiry');
+    const startTime = Date.now();
 
     try {
-      // 1. Extract order number
-      const orderNumber = this.extractOrderNumber(request.message);
+      // 1. Extract order number from message
+      const orderNumber = this.extractOrderNumber(message);
       
       if (!orderNumber) {
-        return this.askForOrderNumber(baseResponse);
+        return {
+          content: "I can help you with your invoice! Could you please provide your order number?",
+          metadata: {
+            handlerName: this.name,
+            handlerVersion: this.version,
+            processingTime: Date.now() - startTime,
+            confidence: 0.7,
+            needsOrderNumber: true
+          }
+        };
       }
 
       // 2. Get invoice from PERP
@@ -39,25 +60,86 @@ export class InvoiceHandler {
       } catch (error) {
         console.error('[InvoiceHandler] PERP API error:', error);
         return {
-          ...baseResponse,
           content: "I'm having trouble accessing our invoice system right now. Let me connect you with our accounts team who can email you the invoice directly.",
-          confidence: 0.3,
+          metadata: {
+            handlerName: this.name,
+            handlerVersion: this.version,
+            processingTime: Date.now() - startTime,
+            confidence: 0.3,
+            error: 'perp_api_error'
+          }
         };
       }
       
       if (!invoice) {
-        return this.invoiceNotFound(orderNumber, baseResponse);
+        return {
+          content: `I couldn't find an invoice for order #${orderNumber}. It might be too recent or there was an issue generating it. Would you like me to connect you with our accounts team?`,
+          metadata: {
+            handlerName: this.name,
+            handlerVersion: this.version,
+            processingTime: Date.now() - startTime,
+            confidence: 0.8,
+            orderNumber,
+            invoiceNotFound: true
+          }
+        };
       }
 
-      // 3. Generate response
-      return this.generateInvoiceResponse(invoice, baseResponse);
+      // 3. Generate invoice response
+      let content = `Here's the invoice information for order #${orderNumber}:\n\n`;
+      
+      content += `**Invoice Status:** ${invoice.status}\n`;
+      content += `**Total Amount:** $${invoice.totalAmount.toFixed(2)}\n`;
+      content += `**Amount Paid:** $${invoice.amountPaid.toFixed(2)}\n`;
+      
+      const balanceDue = invoice.totalAmount - invoice.amountPaid;
+      content += `**Balance Due:** $${balanceDue.toFixed(2)}\n`;
+
+      if (invoice.dueDate) {
+        content += `**Due Date:** ${new Date(invoice.dueDate).toLocaleDateString()}\n`;
+      }
+
+      if (invoice.pdfLink) {
+        content += `\n📄 **Download Invoice:** ${invoice.pdfLink}\n`;
+      }
+
+      // Status-specific messages
+      if (invoice.status === 'overdue') {
+        content += `\n⚠️ **Action Required:** This invoice is overdue. Please make a payment as soon as possible to avoid any service interruptions.`;
+      } else if (invoice.status === 'paid') {
+        content += `\n✅ Thank you for your payment! Your invoice is fully paid.`;
+      } else if (invoice.status === 'pending' && balanceDue > 0) {
+        content += `\n💳 Payment is pending. If you've already paid, it may take a few business days to process.`;
+      }
+
+      content += `\n\nNeed help with payment or have questions? Just let me know!`;
+
+      return {
+        content,
+        metadata: {
+          handlerName: this.name,
+          handlerVersion: this.version,
+          processingTime: Date.now() - startTime,
+          confidence: 0.95,
+          orderNumber,
+          invoiceStatus: invoice.status,
+          totalAmount: invoice.totalAmount,
+          balanceDue,
+          hasPdfLink: !!invoice.pdfLink
+        }
+      };
 
     } catch (error) {
       console.error('[InvoiceHandler] Error:', error);
       return {
-        ...baseResponse,
-        content: "I'm having trouble retrieving your invoice right now. Let me connect you with our accounts team who can email it to you directly.",
-        confidence: 0.3,
+        content: "I'm having trouble retrieving invoice information right now. Let me connect you with our accounts team.",
+        metadata: {
+          handlerName: this.name,
+          handlerVersion: this.version,
+          processingTime: Date.now() - startTime,
+          confidence: 0.3,
+          error: 'unexpected_error'
+        }
       };
     }
   }
@@ -67,11 +149,10 @@ export class InvoiceHandler {
    */
   private extractOrderNumber(message: string): string | null {
     const patterns = [
-      /invoice\s*#?(\d+)/i,
-      /PERP-(\d+)/i,
-      /#(\d+)/,
-      /order\s*#?(\d+)/i,
-      /\b(\d{4,6})\b/,
+      /#(\d{4,})/,
+      /order\s*#?(\d{4,})/i,
+      /invoice\s*#?(\d{4,})/i,
+      /\b(\d{4,})\b/
     ];
 
     for (const pattern of patterns) {
@@ -83,158 +164,4 @@ export class InvoiceHandler {
 
     return null;
   }
-
-  /**
-   * Ask for order number
-   */
-  private askForOrderNumber(baseResponse: AgentResponse): AgentResponse {
-    return {
-      ...baseResponse,
-      content: "I'd be happy to help you with your invoice! Could you please provide your order number? (e.g., #1234 or PERP-1234)",
-      confidence: 0.9,
-    };
-  }
-
-  /**
-   * Invoice not found
-   */
-  private invoiceNotFound(orderNumber: string, baseResponse: AgentResponse): AgentResponse {
-    return {
-      ...baseResponse,
-      content: `I couldn't find an invoice for order ${orderNumber}. This might mean:\n\n• The order hasn't been invoiced yet\n• The order number might be incorrect\n• The invoice is still being generated\n\nWould you like me to check your order status, or connect you with our accounts team?`,
-      confidence: 0.8,
-    };
-  }
-
-  /**
-   * Generate invoice response
-   */
-  private generateInvoiceResponse(invoice: any, baseResponse: AgentResponse): AgentResponse {
-    const parts: string[] = [];
-
-    // 1. Invoice header
-    parts.push(`**Invoice for Order ${invoice.order_number}**`);
-
-    // 2. Invoice details
-    parts.push(this.formatInvoiceDetails(invoice));
-
-    // 3. Payment status
-    const paymentStatus = this.getPaymentStatus(invoice);
-    parts.push(`\n💳 **Payment Status:** ${paymentStatus}`);
-
-    // 4. Amount details
-    parts.push(this.formatAmountDetails(invoice));
-
-    // 5. Download/email options
-    if (invoice.pdf_url) {
-      parts.push(`\n📄 **Download Invoice:** ${invoice.pdf_url}`);
-    } else {
-      parts.push('\n📧 I can email you a copy of this invoice. Would you like me to send it to your email address?');
-    }
-
-    // 6. Helpful closing
-    parts.push('\nIs there anything else you need regarding this invoice?');
-
-    return {
-      ...baseResponse,
-      content: parts.join('\n'),
-      confidence: 0.95,
-      metadata: {
-        ...baseResponse.metadata,
-        invoiceNumber: invoice.invoice_number,
-        orderNumber: invoice.order_number,
-        paymentStatus: invoice.payment_status,
-        totalAmount: invoice.total,
-      },
-    };
-  }
-
-  /**
-   * Format invoice details
-   */
-  private formatInvoiceDetails(invoice: any): string {
-    const parts: string[] = [];
-
-    if (invoice.invoice_number) {
-      parts.push(`Invoice #: ${invoice.invoice_number}`);
-    }
-
-    if (invoice.invoice_date) {
-      const date = new Date(invoice.invoice_date);
-      parts.push(`Date: ${date.toLocaleDateString()}`);
-    }
-
-    if (invoice.due_date) {
-      const dueDate = new Date(invoice.due_date);
-      const now = new Date();
-      const isOverdue = dueDate < now;
-      
-      parts.push(`Due Date: ${dueDate.toLocaleDateString()}${isOverdue ? ' ⚠️ (Overdue)' : ''}`);
-    }
-
-    return parts.length > 0 ? `\n${parts.join('\n')}` : '';
-  }
-
-  /**
-   * Get payment status
-   */
-  private getPaymentStatus(invoice: any): string {
-    switch (invoice.payment_status) {
-      case 'paid':
-        return '✅ Paid in full';
-      
-      case 'partial':
-        return `⏳ Partially paid ($${invoice.amount_paid} of $${invoice.total})`;
-      
-      case 'pending':
-        return '⏳ Payment pending';
-      
-      case 'overdue':
-        return '⚠️ Payment overdue';
-      
-      case 'refunded':
-        return '↩️ Refunded';
-      
-      default:
-        return invoice.payment_status;
-    }
-  }
-
-  /**
-   * Format amount details
-   */
-  private formatAmountDetails(invoice: any): string {
-    const parts: string[] = [];
-
-    parts.push('\n**Amount Breakdown:**');
-
-    if (invoice.subtotal) {
-      parts.push(`Subtotal: $${invoice.subtotal.toFixed(2)}`);
-    }
-
-    if (invoice.tax) {
-      parts.push(`Tax: $${invoice.tax.toFixed(2)}`);
-    }
-
-    if (invoice.shipping) {
-      parts.push(`Shipping: $${invoice.shipping.toFixed(2)}`);
-    }
-
-    if (invoice.discount && invoice.discount > 0) {
-      parts.push(`Discount: -$${invoice.discount.toFixed(2)}`);
-    }
-
-    parts.push(`**Total: $${invoice.total.toFixed(2)}**`);
-
-    if (invoice.amount_paid && invoice.amount_paid > 0) {
-      parts.push(`Amount Paid: $${invoice.amount_paid.toFixed(2)}`);
-      const balance = invoice.total - invoice.amount_paid;
-      if (balance > 0) {
-        parts.push(`**Balance Due: $${balance.toFixed(2)}**`);
-      }
-    }
-
-    return parts.join('\n');
-  }
 }
-

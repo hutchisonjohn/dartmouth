@@ -2,140 +2,80 @@
  * General Inquiry Handler
  * 
  * Handles general customer inquiries that don't fit into specific categories.
- * Uses BaseAgent's RAG system for knowledge base queries.
+ * Uses RAG system for knowledge base queries.
  * 
  * Created: Nov 28, 2025
  */
 
-import type { AgentRequest, AgentResponse } from '../../../worker/src/types/shared';
+import type { Intent, Response } from '../../../worker/src/types/shared';
+import type { Handler, HandlerContext } from '../../../worker/src/components/ResponseRouter';
 
-export class GeneralInquiryHandler {
+export class GeneralInquiryHandler implements Handler {
+  name = 'GeneralInquiryHandler';
+  version = '1.0.0';
+  priority = 1; // Lowest priority - catch-all handler
+
   constructor() {
     console.log('[GeneralInquiryHandler] Initialized');
+  }
+
+  canHandle(intent: Intent): boolean {
+    // Catch-all for general inquiries, questions, help requests
+    return intent.type === 'general' || 
+           intent.type === 'question' ||
+           intent.type === 'help' ||
+           intent.type === 'unknown';
   }
 
   /**
    * Handle general inquiry
    */
-  async handle(request: AgentRequest, baseResponse: AgentResponse): Promise<AgentResponse> {
+  async handle(message: string, intent: Intent, context: HandlerContext): Promise<Response> {
     console.log('[GeneralInquiryHandler] Handling general inquiry');
+    const startTime = Date.now();
 
-    // BaseAgent has already processed the message with RAG, quality checks, etc.
-    // We just need to enhance the response with customer service touches
+    try {
+      // Use RAG context if available
+      let content = '';
+      
+      if (context.ragContext) {
+        // RAG found relevant information
+        content = `Based on our knowledge base:\n\n${context.ragContext}\n\n`;
+        content += `Does this answer your question? If you need more specific help, just let me know!`;
+      } else {
+        // No RAG context - provide general helpful response
+        content = `I'm here to help! I can assist you with:\n\n`;
+        content += `• Order status and tracking\n`;
+        content += `• Production and artwork status\n`;
+        content += `• Invoice and payment information\n`;
+        content += `• General questions about our services\n\n`;
+        content += `What would you like to know more about?`;
+      }
 
-    return this.enhanceResponse(baseResponse, request);
-  }
+      return {
+        content,
+        metadata: {
+          handlerName: this.name,
+          handlerVersion: this.version,
+          processingTime: Date.now() - startTime,
+          confidence: context.ragContext ? 0.75 : 0.6,
+          usedRAG: !!context.ragContext,
+          intentType: intent.type
+        }
+      };
 
-  /**
-   * Enhance response with customer service touches
-   */
-  private enhanceResponse(baseResponse: AgentResponse, request: AgentRequest): AgentResponse {
-    let content = baseResponse.content;
-
-    // 1. Add greeting if first message
-    if (this.isFirstMessage(request)) {
-      content = this.addGreeting(content);
+    } catch (error) {
+      console.error('[GeneralInquiryHandler] Error:', error);
+      return {
+        content: "I'm here to help! Could you tell me a bit more about what you're looking for? I can help with order status, production updates, invoices, and general questions.",
+        metadata: {
+          handlerName: this.name,
+          handlerVersion: this.version,
+          processingTime: Date.now() - startTime,
+          confidence: 0.5,
+          error: 'unexpected_error'
+        }
+      };
     }
-
-    // 2. Add helpful closing
-    content = this.addHelpfulClosing(content, baseResponse.intent?.type);
-
-    // 3. Add empathy if needed
-    if (this.needsEmpathy(request.message)) {
-      content = this.addEmpathy(content);
-    }
-
-    return {
-      ...baseResponse,
-      content,
-      confidence: Math.max(baseResponse.confidence, 0.8), // Boost confidence for general inquiries
-    };
-  }
-
-  /**
-   * Check if this is the first message
-   */
-  private isFirstMessage(request: AgentRequest): boolean {
-    return !request.metadata?.previousMessages || request.metadata.previousMessages.length === 0;
-  }
-
-  /**
-   * Add greeting
-   */
-  private addGreeting(content: string): string {
-    const greetings = [
-      'Hi there! 👋',
-      'Hello!',
-      'Thanks for reaching out!',
-    ];
-
-    const greeting = greetings[Math.floor(Math.random() * greetings.length)];
-    return `${greeting}\n\n${content}`;
-  }
-
-  /**
-   * Add helpful closing
-   */
-  private addHelpfulClosing(content: string, intentType?: string): string {
-    // Don't add closing if already has a question
-    if (content.includes('?') && content.trim().endsWith('?')) {
-      return content;
-    }
-
-    const closings: Record<string, string> = {
-      'product_inquiry': '\n\nWould you like to know anything else about our products?',
-      'pricing': '\n\nWould you like a detailed quote for your specific needs?',
-      'shipping': '\n\nDo you have any other questions about shipping?',
-      'returns': '\n\nIs there anything else I can help you with regarding returns?',
-      'default': '\n\nHow else can I help you today?',
-    };
-
-    const closing = closings[intentType || 'default'] || closings['default'];
-    return `${content}${closing}`;
-  }
-
-  /**
-   * Check if message needs empathy
-   */
-  private needsEmpathy(message: string): boolean {
-    const empathyTriggers = [
-      'problem',
-      'issue',
-      'wrong',
-      'mistake',
-      'error',
-      'disappointed',
-      'frustrated',
-      'unhappy',
-      'confused',
-      'worried',
-    ];
-
-    const lowerMessage = message.toLowerCase();
-    return empathyTriggers.some(trigger => lowerMessage.includes(trigger));
-  }
-
-  /**
-   * Add empathy to response
-   */
-  private addEmpathy(content: string): string {
-    const empathyPhrases = [
-      'I understand this can be frustrating.',
-      'I appreciate your patience with this.',
-      'I can see why this would be concerning.',
-      'Thank you for bringing this to our attention.',
-    ];
-
-    const phrase = empathyPhrases[Math.floor(Math.random() * empathyPhrases.length)];
-    
-    // Add empathy after the first sentence
-    const sentences = content.split('. ');
-    if (sentences.length > 1) {
-      sentences.splice(1, 0, phrase);
-      return sentences.join('. ');
-    }
-
-    return `${phrase} ${content}`;
   }
 }
-
