@@ -566,12 +566,24 @@ export class ProductKnowledgeSystem {
    * Store products in RAG system
    */
   private async storeProductsInRAG(documents: any[]): Promise<void> {
-    // TODO: Implement batch storage in RAG system
-    // For now, this is a placeholder
     console.log(`[ProductKnowledgeSystem] Storing ${documents.length} products in RAG`);
     
-    // In production, we'd call:
-    // await this.ragEngine.storeBatch('product-knowledge', documents);
+    // Store each product as a document in RAG
+    for (const doc of documents) {
+      try {
+        await this.ragEngine.ingestDocument('product-knowledge', {
+          id: doc.id,
+          title: doc.title,
+          content: doc.content,
+          type: 'product',
+          metadata: doc.metadata || {}
+        });
+      } catch (error) {
+        console.error(`[ProductKnowledgeSystem] Error storing product ${doc.id} in RAG:`, error);
+      }
+    }
+    
+    console.log(`[ProductKnowledgeSystem] ✅ Stored ${documents.length} products in RAG`);
   }
 
   /**
