@@ -37,6 +37,12 @@ enabled = true
 # Environment Variables (non-secret)
 [vars]
 ENVIRONMENT = "production"
+GMAIL_REDIRECT_URI = "https://dartmouth-os-worker.your-subdomain.workers.dev/oauth/callback"
+AI_RESPONSE_MODE = "draft"  # "auto" or "draft"
+
+# Scheduled Workers (Cron Jobs)
+[triggers]
+crons = ["*/5 * * * *"]  # Run email poller every 5 minutes
 
 # Secrets (set via wrangler secret put)
 # - STRIPE_SECRET_KEY
@@ -46,4 +52,11 @@ ENVIRONMENT = "production"
 # - OPENAI_API_KEY
 # - ANTHROPIC_API_KEY
 # - GOOGLE_API_KEY
+# - GMAIL_CLIENT_ID
+# - GMAIL_CLIENT_SECRET
+# - GMAIL_REFRESH_TOKEN
+# - SHOPIFY_API_URL
+# - SHOPIFY_ACCESS_TOKEN
+# - PERP_API_URL
+# - PERP_API_KEY
 

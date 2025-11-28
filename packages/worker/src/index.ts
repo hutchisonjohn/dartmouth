@@ -7,6 +7,7 @@ import { DartmouthOS } from '../../dartmouth-core/src/DartmouthOS';
 import { createFAMAgent, createArtworkAnalyzerAgent, createTestAgent } from './createDartmouthAgents';
 // import { McCarthyPAAgent } from '../../mccarthy-pa/src'; // TODO: Enable after package build
 import { router } from './routes';
+import { handleEmailPolling } from './workers/email-poller';
 import type { Env } from './types/shared';
 import type { Env as DartmouthEnv } from '../../dartmouth-core/src/types';
 
@@ -143,5 +144,20 @@ export default {
       );
     }
   },
+
+  /**
+   * Cloudflare Worker scheduled handler
+   * Runs on cron schedule defined in wrangler.toml
+   */
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    console.log('[Scheduled] Email polling job triggered at:', new Date(event.scheduledTime).toISOString());
+    
+    try {
+      // Run email polling in background
+      ctx.waitUntil(handleEmailPolling(env));
+    } catch (error) {
+      console.error('[Scheduled] Error in email polling job:', error);
+    }
+  }
 }
 

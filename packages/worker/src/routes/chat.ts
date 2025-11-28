@@ -7,6 +7,7 @@
 
 import { BaseAgent } from '../BaseAgent';
 import { McCarthyArtworkAgent } from '../../../mccarthy-artwork/src/McCarthyArtworkAgent';
+import { CustomerServiceAgent } from '../../../customer-service-agent/src/CustomerServiceAgent';
 import { DatabaseManager } from '../services/DatabaseManager';
 import type { Env } from '../types/shared';
 
@@ -176,6 +177,21 @@ export async function handleChat(
     let agent: BaseAgent;
     if (agentId === 'mccarthy-artwork' || agentId === 'artwork-analyzer') {
       agent = new McCarthyArtworkAgent(config);
+    } else if (agentId === 'customer-service') {
+      agent = new CustomerServiceAgent({
+        ...config,
+        shopifyApiUrl: env.SHOPIFY_API_URL!,
+        shopifyAccessToken: env.SHOPIFY_ACCESS_TOKEN!,
+        perpApiUrl: env.PERP_API_URL!,
+        perpApiKey: env.PERP_API_KEY!,
+        gmailCredentials: {
+          clientId: env.GMAIL_CLIENT_ID!,
+          clientSecret: env.GMAIL_CLIENT_SECRET!,
+          redirectUri: env.GMAIL_REDIRECT_URI!,
+          refreshToken: env.GMAIL_REFRESH_TOKEN!
+        },
+        aiResponseMode: (env.AI_RESPONSE_MODE || 'draft') as 'auto' | 'draft'
+      });
     } else {
       agent = new BaseAgent(config);
     }
