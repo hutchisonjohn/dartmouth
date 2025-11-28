@@ -9,6 +9,7 @@
  */
 
 import type { Response } from '../types/shared';
+import type { D1Database } from '@cloudflare/workers-types';
 
 /**
  * Handoff request from one agent to another
@@ -80,7 +81,12 @@ export interface HandoffResult {
  * Manages seamless transitions between agents while preserving context.
  */
 export class AgentHandoffProtocol {
-  private handoffHistory: Map<string, HandoffRequest[]> = new Map();
+  private db: D1Database;
+
+  constructor(db: D1Database) {
+    this.db = db;
+    console.log('[AgentHandoffProtocol] Initialized with D1 database');
+  }
 
   /**
    * Initiate a handoff from one agent to another
@@ -99,8 +105,8 @@ export class AgentHandoffProtocol {
       // STEP 2: Prepare context for target agent
       const preparedContext = this.prepareContextForHandoff(request);
 
-      // STEP 3: Store handoff in history
-      this.recordHandoff(request.conversationContext.sessionId, request);
+      // STEP 3: Store handoff in database
+      await this.storeHandoffInDatabase(request, handoffId);
 
       // STEP 4: Generate handoff message
       const message = this.generateHandoffMessage(request);
@@ -160,8 +166,29 @@ export class AgentHandoffProtocol {
   /**
    * Get handoff history for a session
    */
-  getHandoffHistory(sessionId: string): HandoffRequest[] {
-    return this.handoffHistory.get(sessionId) || [];
+  async getHandoffHistory(sessionId: string): Promise<HandoffRequest[]> {
+    try {
+      const result = await this.db.prepare(`
+        SELECT * FROM agent_handoffs
+        WHERE context LIKE ?
+        ORDER BY timestamp DESC
+        LIMIT 50
+      `).bind(`%"sessionId":"${sessionId}"%`).all();
+      
+      return result.results.map((row: any) => ({
+        fromAgentId: row.from_agent_id,
+        fromAgentName: 'Agent', // Not stored, would need agent registry lookup
+        toAgentId: row.to_agent_id,
+        toAgentName: 'Agent',
+        reason: row.reason,
+        conversationContext: JSON.parse(row.context),
+        urgency: 'normal' as const,
+        metadata: {}
+      }));
+    } catch (error) {
+      console.error(`[AgentHandoffProtocol] ❌ Error fetching handoff history:`, error);
+      return [];
+    }
   }
 
   /**
