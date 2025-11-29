@@ -136,9 +136,9 @@ export class TicketManager {
       await this.db.prepare(`
         INSERT INTO tickets (
           ticket_id, ticket_number, customer_id, customer_email, customer_name,
-          subject, description, status, priority, category, channel, sla_due_at,
+          subject, description, status, priority, category, channel, sentiment, sla_due_at,
           created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         ticketId,
         ticketNumber,
@@ -151,6 +151,7 @@ export class TicketManager {
         priority,
         category,
         message.channelType,
+        message.metadata?.sentiment || 'neutral',
         slaDueAt,
         now,
         now
@@ -197,6 +198,11 @@ export class TicketManager {
       const sets: string[] = [];
       const values: any[] = [];
 
+      // Business rule: If status is being set to 'open', unassign the ticket
+      if (updates.status === 'open') {
+        updates.assigned_to = null;
+      }
+
       Object.entries(updates).forEach(([key, value]) => {
         if (value !== undefined && key !== 'ticket_id') {
           sets.push(`${key} = ?`);
@@ -224,11 +230,13 @@ export class TicketManager {
 
   /**
    * Assign ticket to staff
+   * Business rule: Assigned tickets must be in-progress status
    */
   async assignTicket(ticketId: string, assignedTo: string, assignedBy: string): Promise<boolean> {
     try {
+      // When assigning a ticket, automatically set status to in-progress
       await this.db.prepare(`
-        UPDATE tickets SET assigned_to = ?, updated_at = ? WHERE ticket_id = ?
+        UPDATE tickets SET assigned_to = ?, status = 'in-progress', updated_at = ? WHERE ticket_id = ?
       `).bind(assignedTo, new Date().toISOString(), ticketId).run();
 
       await this.db.prepare(`
@@ -514,7 +522,7 @@ export class TicketManager {
     from: { email: string; name: string | null };
     subject: string;
     bodyText: string;
-  }): Promise<Ticket> {
+  }): Promise<Ticket & { isNew: boolean }> {
     console.log(`[TicketManager] Creating ticket from email: ${email.subject}`);
 
     // 1. Check if ticket already exists for this thread
@@ -523,7 +531,23 @@ export class TicketManager {
       console.log(`[TicketManager] Ticket already exists for thread: ${existingTicket.ticket_number}`);
       // Link email to existing ticket
       await this.linkEmailToTicket(email.id, existingTicket.ticket_id);
-      return existingTicket;
+      return { ...existingTicket, isNew: false };
+    }
+
+    // 2. Check for duplicate content from same customer (within last 24 hours)
+    const duplicateTicket = await this.findDuplicateTicket(email.from.email, email.subject, email.bodyText);
+    if (duplicateTicket) {
+      console.log(`[TicketManager] Duplicate ticket detected: ${duplicateTicket.ticket_number} (same content from same customer)`);
+      // Link email to existing ticket and add as follow-up message
+      await this.linkEmailToTicket(email.id, duplicateTicket.ticket_id);
+      await this.addMessage(duplicateTicket.ticket_id, {
+        sender_type: 'customer',
+        sender_id: email.from.email,
+        sender_name: email.from.name || email.from.email,
+        content: `[Follow-up] ${email.bodyText}`
+      });
+      console.log(`[TicketManager] Added as follow-up message to existing ticket`);
+      return { ...duplicateTicket, isNew: false };
     }
 
     // 2. Auto-detect priority
@@ -569,7 +593,60 @@ export class TicketManager {
     }
 
     console.log(`[TicketManager] ✅ Ticket created: ${ticket.ticket_number}`);
-    return ticket;
+    return { ...ticket, isNew: true };
+  }
+
+  /**
+   * Find duplicate ticket by content similarity
+   * Checks for tickets from same customer with same/similar subject within last 24 hours
+   */
+  private async findDuplicateTicket(customerEmail: string, subject: string, bodyText: string): Promise<Ticket | null> {
+    try {
+      // Get recent open tickets from this customer (last 24 hours)
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      
+      const { results } = await this.db
+        .prepare(
+          `SELECT * FROM tickets 
+           WHERE customer_email = ? 
+           AND status IN ('open', 'in_progress', 'pending')
+           AND created_at > ?
+           ORDER BY created_at DESC
+           LIMIT 10`
+        )
+        .bind(customerEmail, twentyFourHoursAgo)
+        .all();
+
+      if (!results || results.length === 0) {
+        return null;
+      }
+
+      // Check for exact subject match or very similar content
+      const normalizedSubject = subject.toLowerCase().trim();
+      const normalizedBody = bodyText.toLowerCase().trim().substring(0, 200); // First 200 chars
+
+      for (const ticket of results as Ticket[]) {
+        const ticketSubject = (ticket.subject || '').toLowerCase().trim();
+        const ticketDescription = (ticket.description || '').toLowerCase().trim().substring(0, 200);
+
+        // Exact subject match
+        if (ticketSubject === normalizedSubject) {
+          console.log(`[TicketManager] Found duplicate: exact subject match`);
+          return ticket;
+        }
+
+        // Very similar content (first 200 chars match)
+        if (normalizedBody.length > 50 && ticketDescription === normalizedBody) {
+          console.log(`[TicketManager] Found duplicate: content match`);
+          return ticket;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('[TicketManager] Error finding duplicate ticket:', error);
+      return null;
+    }
   }
 
   /**
@@ -581,7 +658,8 @@ export class TicketManager {
         .prepare(
           `
         SELECT t.* FROM tickets t
-        INNER JOIN emails e ON e.ticket_id = t.ticket_id
+        INNER JOIN ticket_email_links tel ON tel.ticket_id = t.ticket_id
+        INNER JOIN emails e ON e.id = tel.email_id
         WHERE e.gmail_thread_id = ?
         LIMIT 1
       `
@@ -603,12 +681,13 @@ export class TicketManager {
   private async linkEmailToTicket(emailId: string, ticketId: string): Promise<void> {
     try {
       await this.db
-        .prepare(`UPDATE emails SET ticket_id = ? WHERE id = ?`)
+        .prepare(`INSERT OR IGNORE INTO ticket_email_links (ticket_id, email_id) VALUES (?, ?)`)
         .bind(ticketId, emailId)
         .run();
       console.log(`[TicketManager] Linked email ${emailId} to ticket ${ticketId}`);
     } catch (error) {
       console.error('[TicketManager] Error linking email to ticket:', error);
+      throw error;
     }
   }
 

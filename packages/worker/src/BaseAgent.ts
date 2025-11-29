@@ -691,11 +691,19 @@ export class BaseAgent {
     }
 
     // NEVER use LLM fallback for these specific intents - they have dedicated handlers
-    const noLLMIntents = ['calculation', 'greeting', 'farewell', 'frustration', 'information', 'howto'];
+    // NOTE: Removed 'frustration' - customer service needs contextual LLM responses for frustrated customers
+    const noLLMIntents = ['calculation', 'greeting', 'farewell', 'information', 'howto'];
     if (noLLMIntents.includes(intent.type)) {
       console.log(`[BaseAgent] ❌ LLM fallback: NO (intent ${intent.type} has dedicated handler)`);
       console.log('========================================');
       return false;
+    }
+    
+    // For frustration in customer service, ALWAYS use LLM for contextual responses
+    if (intent.type === 'frustration') {
+      console.log(`[BaseAgent] ✅ LLM fallback: YES (frustration needs contextual response)`);
+      console.log('========================================');
+      return true;
     }
 
     // Use LLM for fallback/unknown intents ONLY

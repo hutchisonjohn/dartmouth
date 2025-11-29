@@ -40,6 +40,7 @@ export function createAPIRouter() {
 
   app.get('/api/tickets', authenticate, ticketsController.listTickets);
   app.get('/api/tickets/:id', authenticate, ticketsController.getTicket);
+  app.get('/api/tickets/:id/messages', authenticate, ticketsController.getTicketMessages);
   app.put('/api/tickets/:id/assign', authenticate, requireManagerOrAdmin, ticketsController.assignTicket);
   app.put('/api/tickets/:id/status', authenticate, ticketsController.updateTicketStatus);
   app.post('/api/tickets/:id/reply', authenticate, ticketsController.replyToTicket);

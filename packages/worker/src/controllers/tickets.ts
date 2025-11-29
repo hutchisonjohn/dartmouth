@@ -104,6 +104,40 @@ export async function getTicket(c: Context<{ Bindings: Env }>) {
 }
 
 /**
+ * Get ticket messages only
+ */
+export async function getTicketMessages(c: Context<{ Bindings: Env }>) {
+  try {
+    const user = c.get('user') as AuthUser;
+    const ticketId = c.req.param('id');
+
+    // Check if ticket exists
+    const ticket = await c.env.DB.prepare(`
+      SELECT ticket_id, assigned_to FROM tickets WHERE ticket_id = ?
+    `).bind(ticketId).first();
+
+    if (!ticket) {
+      return c.json({ error: 'Ticket not found' }, 404);
+    }
+
+    // Check access
+    if (user.role === 'agent' && ticket.assigned_to !== user.id) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    // Get messages
+    const { results: messages } = await c.env.DB.prepare(`
+      SELECT * FROM ticket_messages WHERE ticket_id = ? ORDER BY created_at ASC
+    `).bind(ticketId).all();
+
+    return c.json({ messages });
+  } catch (error) {
+    console.error('[Tickets] Get messages error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+}
+
+/**
  * Assign ticket
  */
 export async function assignTicket(c: Context<{ Bindings: Env }>) {
@@ -180,10 +214,19 @@ export async function replyToTicket(c: Context<{ Bindings: Env }>) {
     const messageId = crypto.randomUUID();
     const now = new Date().toISOString();
 
+    // Get staff member's name from database
+    const staffInfo = await c.env.DB.prepare(`
+      SELECT first_name, last_name FROM staff_users WHERE id = ?
+    `).bind(user.id).first();
+
+    const staffName = staffInfo 
+      ? `${staffInfo.first_name} ${staffInfo.last_name}` 
+      : user.email;
+
     await c.env.DB.prepare(`
       INSERT INTO ticket_messages (id, ticket_id, sender_type, sender_id, sender_name, content, created_at)
       VALUES (?, ?, 'agent', ?, ?, ?, ?)
-    `).bind(messageId, ticketId, user.id, user.email, content, now).run();
+    `).bind(messageId, ticketId, user.id, staffName, content, now).run();
 
     // Update ticket
     await c.env.DB.prepare(`

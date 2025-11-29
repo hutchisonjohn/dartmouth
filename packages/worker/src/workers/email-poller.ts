@@ -58,7 +58,7 @@ export async function handleEmailPolling(env: Env): Promise<void> {
         // 3b. Create or update ticket
         const ticket = await ticketManager.createTicketFromEmail(email);
         
-        if (ticket.created_at === ticket.updated_at) {
+        if (ticket.isNew) {
           ticketsCreated++;
           console.log(`[EmailPoller] ✅ Created ticket #${ticket.ticket_number} for email`);
         } else {
@@ -75,7 +75,7 @@ export async function handleEmailPolling(env: Env): Promise<void> {
         }
 
         // 3d. Process ticket with AI agent (if new ticket)
-        if (ticketsCreated > 0) {
+        if (ticket.isNew) {
           await processTicketWithAI(ticket, env);
         }
 
@@ -148,8 +148,11 @@ async function processTicketWithAI(ticket: any, env: Env): Promise<void> {
 
     // 2. Get ticket email content
     const ticketEmail = await env.DB.prepare(
-      `SELECT * FROM emails WHERE ticket_id = ? ORDER BY received_at DESC LIMIT 1`
-    ).bind(ticket.id).first();
+      `SELECT e.* FROM emails e
+       INNER JOIN ticket_email_links tel ON e.id = tel.email_id
+       WHERE tel.ticket_id = ?
+       ORDER BY e.received_at DESC LIMIT 1`
+    ).bind(ticket.ticket_id).first();
 
     if (!ticketEmail) {
       console.log(`[EmailPoller] No email found for ticket #${ticket.ticket_number}`);
@@ -158,20 +161,46 @@ async function processTicketWithAI(ticket: any, env: Env): Promise<void> {
 
     // 3. Process with AI
     const message = `${ticketEmail.subject}\n\n${ticketEmail.body_text}`;
-    const response = await agent.processMessage(message, ticket.conversation_id);
+    const response = await agent.processMessage(message, ticket.ticket_id);
 
     console.log(`[EmailPoller] ✅ AI response generated (confidence: ${response.metadata.confidence})`);
 
-    // 4. Check if should escalate
-    if (response.metadata.confidence < 0.6 || response.metadata.escalate) {
-      console.log(`[EmailPoller] ⚠️ Escalating ticket #${ticket.ticket_number} to human`);
+    // 4. Check if should escalate (IMPROVED LOGIC)
+    const shouldEscalate = 
+      response.metadata.confidence < 0.6 || 
+      response.metadata.escalate ||
+      // Escalate angry + urgent/high priority
+      (ticket.sentiment === 'angry' && ['urgent', 'high'].includes(ticket.priority)) ||
+      // Escalate critical priority always
+      ticket.priority === 'critical' ||
+      // Escalate VIP + negative sentiment
+      (ticket.vip === 1 && ['angry', 'negative'].includes(ticket.sentiment)) ||
+      // Escalate if customer explicitly demands manager/supervisor
+      (ticketEmail.body_text?.toLowerCase().includes('manager') || 
+       ticketEmail.body_text?.toLowerCase().includes('supervisor') ||
+       ticketEmail.body_text?.toLowerCase().includes('incompetent') ||
+       ticketEmail.body_text?.toLowerCase().includes('useless'));
+
+    if (shouldEscalate) {
+      const escalationReason = 
+        ticket.sentiment === 'angry' && ['urgent', 'high'].includes(ticket.priority) 
+          ? 'Angry customer with high priority issue - requires immediate human attention'
+        : ticket.priority === 'critical'
+          ? 'Critical priority issue - requires immediate escalation'
+        : ticket.vip === 1 && ['angry', 'negative'].includes(ticket.sentiment)
+          ? 'VIP customer with negative sentiment - requires priority handling'
+        : ticketEmail.body_text?.toLowerCase().includes('manager')
+          ? 'Customer explicitly requested manager/supervisor'
+        : response.metadata.escalationReason || 'Low confidence or complex issue';
+
+      console.log(`[EmailPoller] ⚠️ Escalating ticket #${ticket.ticket_number} to human: ${escalationReason}`);
       
       const ticketManager = new TicketManager(env.DB);
       await ticketManager.escalateTicket(
-        ticket.id,
+        ticket.ticket_id,
         'ai-agent',
         'human-agent',
-        response.metadata.escalationReason || 'Low confidence'
+        escalationReason
       );
       
       return;
@@ -194,7 +223,7 @@ async function processTicketWithAI(ticket: any, env: Env): Promise<void> {
       
       // Add to ticket messages
       const ticketManager = new TicketManager(env.DB);
-      await ticketManager.addMessage(ticket.id, {
+      await ticketManager.addMessage(ticket.ticket_id, {
         sender_type: 'ai',
         sender_name: 'Customer Service AI',
         content: response.content,
@@ -219,7 +248,7 @@ async function processTicketWithAI(ticket: any, env: Env): Promise<void> {
       // Add internal note
       const ticketManager = new TicketManager(env.DB);
       await ticketManager.addInternalNote(
-        ticket.id,
+        ticket.ticket_id,
         'ai-agent',
         `AI generated draft response (confidence: ${(response.metadata.confidence * 100).toFixed(0)}%). Please review and send.`
       );

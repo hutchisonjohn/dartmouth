@@ -50,6 +50,8 @@ export const ticketsApi = {
   list: (params?: { status?: string; priority?: string; assignedTo?: string; limit?: number; offset?: number }) =>
     api.get('/api/tickets', { params }),
   get: (id: string) => api.get(`/api/tickets/${id}`),
+  getById: (ticketId: string) => api.get(`/api/tickets/${ticketId}`),
+  getMessages: (ticketId: string) => api.get(`/api/tickets/${ticketId}/messages`),
   assign: (id: string, assignedTo: string) =>
     api.put(`/api/tickets/${id}/assign`, { assignedTo }),
   updateStatus: (id: string, status: string) =>
