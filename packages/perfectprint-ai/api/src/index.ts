@@ -13,6 +13,7 @@ import type { Env } from './types';
 import { uploadRoute } from './routes/upload';
 import { processRoute } from './routes/process';
 import { statusRoute } from './routes/status';
+import { webhookRoute } from './routes/webhook';
 
 // Create Hono app
 const app = new Hono<{ Bindings: Env }>();
@@ -51,6 +52,7 @@ app.get('/health', (c) => {
 app.route('/api/upload', uploadRoute);
 app.route('/api/process', processRoute);
 app.route('/api/status', statusRoute);
+app.route('/api/webhook', webhookRoute);
 
 // 404 handler
 app.notFound((c) => {

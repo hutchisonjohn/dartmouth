@@ -16,9 +16,10 @@ torchvision>=0.16.1
 # Vectorization - VTracer
 vtracer>=0.6.10
 
-# Upscaling - Real-ESRGAN (AI upscaling for fixing pixelation)
-realesrgan==0.3.0
-basicsr>=1.4.2
+# Upscaling - Using Lanczos resampling (professional-grade, Python 3.14 compatible)
+# Real-ESRGAN requires Python < 3.14 (numba dependency)
+# Lanczos provides excellent quality for print-on-demand
+# realesrgan==0.3.0  # Uncomment when Python 3.13 support improves
 
 # Utilities
 requests==2.31.0

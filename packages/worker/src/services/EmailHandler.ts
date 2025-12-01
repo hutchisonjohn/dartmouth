@@ -294,13 +294,17 @@ export async function handleInboundEmail(message: EmailMessage, env: Env): Promi
     console.log(`[EmailHandler] Processing inbound email from: ${message.from}`);
 
     // Get recipient address
-    const to = message.to && message.to.length > 0 ? message.to[0] : null;
-    if (!to) {
+    const toRaw = message.to && message.to.length > 0 ? message.to[0] : null;
+    if (!toRaw) {
       console.warn('[EmailHandler] Email missing "to" address');
       return;
     }
 
-    console.log(`[EmailHandler] To: ${to}`);
+    console.log(`[EmailHandler] To (raw): ${JSON.stringify(toRaw)}`);
+    
+    // Parse the "to" address (might be an object or string)
+    const to = typeof toRaw === 'string' ? toRaw : (toRaw as any).address || toRaw;
+    console.log(`[EmailHandler] To (parsed): ${to}`);
 
     // Look up mailbox and tenant
     const mailbox = await resolveMailboxAndTenant(env, to);

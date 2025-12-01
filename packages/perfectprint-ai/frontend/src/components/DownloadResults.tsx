@@ -74,7 +74,7 @@ export default function DownloadResults({ job }: DownloadResultsProps) {
             Processing Metrics
           </h3>
           <div className="grid gap-4 sm:grid-cols-3">
-            {job.metrics.backgroundRemovalTime && (
+            {job.metrics?.backgroundRemovalTime && (
               <div>
                 <p className="text-xs text-gray-500">Background Removal</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">
@@ -82,7 +82,7 @@ export default function DownloadResults({ job }: DownloadResultsProps) {
                 </p>
               </div>
             )}
-            {job.metrics.upscaleTime && (
+            {job.metrics?.upscaleTime && (
               <div>
                 <p className="text-xs text-gray-500">Upscaling</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">
@@ -90,7 +90,7 @@ export default function DownloadResults({ job }: DownloadResultsProps) {
                 </p>
               </div>
             )}
-            {job.metrics.vectorizationTime && (
+            {job.metrics?.vectorizationTime && (
               <div>
                 <p className="text-xs text-gray-500">Vectorization</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">
@@ -101,7 +101,7 @@ export default function DownloadResults({ job }: DownloadResultsProps) {
             <div>
               <p className="text-xs text-gray-500">Total Time</p>
               <p className="mt-1 text-lg font-semibold text-gray-900">
-                {job.metrics.totalTime.toFixed(2)}s
+                {job.metrics?.totalTime?.toFixed(2) || 'N/A'}s
               </p>
             </div>
           </div>
