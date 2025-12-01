@@ -1,0 +1,437 @@
+
+My Proposed Plan... but read al and give me your specific opinion and recommendations.
+
+
+PHASE 1 – Database & Schema
+
+Goal: Support multi-tenant domains, staff, signatures, templates, and threading.
+
+Tasks:
+
+Create / migrate D1 schema
+
+Add / update tables:
+
+tenants
+
+add default_signature_html
+
+domains
+
+include: spf_configured, dkim_configured, dkim_selector, dkim_public_key
+
+mailboxes
+
+users
+
+include: signature_override_html
+
+conversations
+
+emails
+
+add user_id (nullable), bounce_reason
+
+email_templates
+
+supports type = 'full' | 'snippet', scope = 'shared' | 'personal'
+
+optional: attachments, tenant_email_quota
+
+Write migration SQL
+
+If you already have tables:
+
+Use ALTER TABLE where possible.
+
+For bigger changes, consider create-temp-table → copy → rename.
+
+Store migration SQL in versioned files so it can be replayed in different envs.
+
+Add basic seed data for local dev
+
+One tenant
+
+One domain (your test domain, e.g. support.your-saas.dev)
+
+One mailbox (e.g. support@your-test-domain)
+
+One user (your own account)
+
+A couple of email_templates (one full, one snippet) for testing.
+
+PHASE 2 – Inbound Email (Cloudflare Email Worker)
+
+Goal: Receive emails via Cloudflare Email Routing, create conversations, and store messages.
+
+Tasks:
+
+Set up Cloudflare Email Routing
+
+Configure MX records for your test domain.
+
+Route inbound mail to the Email Worker.
+
+Implement email-worker.ts
+
+Use the version in email_worker.md.
+
+Key behaviours:
+
+Parse to address → find mailbox + tenant.
+
+Parse raw MIME to:
+
+Extract headers
+
+Get bodyText/bodyHtml (minimal parsing is fine).
+
+Extract:
+
+Message-ID
+
+In-Reply-To
+
+References
+
+Subject
+
+From
+
+Call findOrCreateConversation:
+
+Use in_reply_to / references to link to an existing conversation.
+
+If none found → create new conversations row.
+
+Insert emails row with:
+
+direction = 'inbound'
+
+user_id = NULL
+
+received_at = now
+
+Update conversations.last_message_at.
+
+Test inbound flow
+
+Send an email to the routed address.
+
+Verify:
+
+Conversation row created.
+
+Email row created with correct fields.
+
+Reply to that email from the customer side:
+
+Check it links to same conversation (threading via In-Reply-To / References).
+
+PHASE 3 – Outbound Email (MailChannels + Threading)
+
+Goal: Send emails via MailChannels, with proper threading & per-staff attribution.
+
+Tasks:
+
+Implement mailchannelsService.ts
+
+Use the version in mailchannels_service.md.
+
+It should:
+
+Find latest email for the conversation → get message_id + references.
+
+Compute:
+
+In-Reply-To (latest message_id)
+
+References (append latest message_id).
+
+Generate a new Message-ID like <uuid@mail.your-saas.com>.
+
+POST JSON to MailChannels.
+
+Insert outbound emails row with:
+
+direction = 'outbound'
+
+user_id (from SendEmailOptions)
+
+sent_at
+
+status / bounce_reason.
+
+Update conversations.last_message_at.
+
+Create Hono route for replies
+
+e.g. POST /api/conversations/:id/reply
+
+Input JSON (from frontend):
+
+tenantId
+
+mailboxId
+
+userId
+
+toEmail
+
+fromEmail (mailbox address, e.g. support@tenantdomain.com)
+
+fromName (optional display name)
+
+subject
+
+bodyHtml (final composed HTML including signature)
+
+optional bodyText
+
+Call sendEmailThroughMailChannels(env, ...).
+
+Add basic quota check (optional but smart)
+
+Before sending:
+
+Check tenant_email_quota row if exists.
+
+Block/queue email if used_today >= daily_limit.
+
+Test outbound flow
+
+From your dashboard, send a reply.
+
+Verify:
+
+Email arrives at customer.
+
+Message threads correctly in the customer inbox.
+
+Row created in emails with direction = 'outbound' and correct user_id.
+
+PHASE 4 – Staff, Signatures, Templates
+
+Goal: Each tenant’s staff sends from the tenant’s domain with consistent signatures and easy canned responses.
+
+A. Users & Auth Connection
+
+Hook users into your auth system
+
+When a staff member logs in:
+
+Identify userId, tenantId.
+
+Make these available in API handlers (e.g. via JWT, session, etc.).
+
+Ensure each user is linked to a tenant
+
+Enforce tenantId in frontend state (Zustand/TanStack Query) for per-tenant data fetches.
+
+B. Signatures
+
+Tenant-level default signature
+
+Provide an admin UI (even minimal) to edit tenant.default_signature_html.
+
+Allow simple placeholders:
+
+{{agent_name}}
+
+{{agent_role}}
+
+{{tenant_name}}
+
+Optional per-user override
+
+Admin or user can edit users.signature_override_html.
+
+If NULL, use tenant default. If not, use override.
+
+Signature rendering logic (backend or frontend)
+
+Implement a small helper:
+
+function renderTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_, key) => vars[key] ?? "");
+}
+
+
+Resolve signature when sending:
+
+Load tenant.default_signature_html.
+
+Load user.signature_override_html.
+
+Choose template sigTpl = user.signature_override_html ?? tenant.default_signature_html.
+
+Render:
+
+const signatureHtml = sigTpl
+  ? renderTemplate(sigTpl, {
+      agent_name: user.name,
+      agent_role: user.role ?? "",
+      tenant_name: tenant.name,
+    })
+  : "";
+
+
+Final bodyHtml sent to mailchannelsService =
+replyBodyHtml + "<br><br>" + signatureHtml.
+
+C. Templates & Canned Responses
+
+Backend: email_templates CRUD endpoints
+
+GET /api/templates?type=full|snippet&scope=...
+
+POST /api/templates (create)
+
+PUT /api/templates/:id (update)
+
+DELETE /api/templates/:id (delete)
+
+Enforce:
+
+scope='shared' → tenant-wide
+
+scope='personal' → filter by owner_user_id
+
+Frontend: Templates UI
+
+In the reply/compose UI:
+
+Dropdown for full templates:
+
+On selection, apply template:
+
+Subject: from subject_template
+
+Body: from body_html_template (preprocessed).
+
+Dropdown for snippets:
+
+Insert body_html_template at cursor position in reply editor.
+
+Template variable substitution
+
+Use same renderTemplate helper.
+
+Variables might include:
+
+{{customer_name}}
+
+{{order_number}}
+
+{{ticket_id}}
+
+For now:
+
+Frontend or backend passes a simple object of variables when applying template.
+
+Wiring into send flow
+
+When user clicks “Send”:
+
+Editor already contains:
+
+Template text (if used)
+
+Canned snippets (if used)
+
+Their typed reply
+
+Backend appends signature.
+
+Call sendEmailThroughMailChannels().
+
+PHASE 5 – UI Integration & Multi-Tenant Domain Sending
+
+Goal: Ensure each tenant sends from their own configured domain safely.
+
+Mailbox + Domain selection
+
+In tenant admin UI:
+
+Allow admin to:
+
+Add a domain
+
+Mark DNS status manually (for now):
+
+mx_configured = 1
+
+spf_configured = 1
+
+dkim_configured = 1
+
+Add mailboxes for that domain (e.g. support@, sales@).
+
+Enforce safe From addresses
+
+In send API:
+
+Resolve the mailbox by mailboxId.
+
+Use mailbox.email_address as fromEmail.
+
+Optional: only allow sending if:
+
+domains.spf_configured = 1 AND domains.dkim_configured = 1.
+
+Associate conversation with mailbox
+
+conversations.mailbox_id already set by inbound worker.
+
+For outbound replies, use that mailbox.
+
+PHASE 6 – Testing Matrix
+
+Test Scenarios:
+
+Tenant A → Customer → Tenant A round-trip
+
+New inbound from customer.
+
+Agent replies via dashboard using template + signature.
+
+Customer replies again.
+
+Check threading in customer client.
+
+Check conversation view in dashboard.
+
+Multiple staff in same tenant
+
+Staff 1 replies → signature uses Staff 1 info.
+
+Staff 2 replies → signature uses Staff 2 info.
+
+Conversation timeline shows who sent which message (user_id field).
+
+Templates & snippets
+
+Use a full template: confirm subject + body prefill correctly.
+
+Use snippets: confirm they insert at cursor in editor.
+
+Confirm variable replacement works.
+
+Domain misconfiguration guard (if implemented)
+
+Try to send from a domain with spf_configured = 0 or dkim_configured = 0.
+
+Ensure backend refuses or warns.
+
+2️⃣ Updated .md Files
+
+All three docs are updated with the new requirements:
+
+D1 Schema – with users, signatures, templates, domain sending flags, user_id on emails
+👉 d1_schema.md
+
+Cloudflare Email Worker – inbound handler writing into the updated emails table
+👉 email_worker.md
+
+MailChannels Service – outbound sending, threading, and storing user_id
+👉 mailchannels_service.md

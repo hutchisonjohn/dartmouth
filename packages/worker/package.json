@@ -1,0 +1,39 @@
+{
+  "name": "@agent-army/worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for Agent Army",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:check": "npm run lint && npm run test",
+    "deploy:full": "npm run deploy:check && npm run deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "tsc --noEmit",
+    "db:create": "wrangler d1 create agent-army-db",
+    "db:migrate:local": "wrangler d1 execute agent-army-db --local --file=./migrations/0001_initial_schema.sql",
+    "db:migrate:remote": "wrangler d1 execute agent-army-db --remote --file=./migrations/0001_initial_schema.sql",
+    "db:query:local": "wrangler d1 execute agent-army-db --local --command",
+    "db:query:remote": "wrangler d1 execute agent-army-db --remote --command",
+    "kv:create:config": "wrangler kv:namespace create APP_CONFIG",
+    "kv:create:cache": "wrangler kv:namespace create CACHE",
+    "r2:create": "wrangler r2 bucket create agent-army-files",
+    "logs": "wrangler tail",
+    "logs:pretty": "wrangler tail --format=pretty"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "hono": "^3.11.7",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "@types/node": "^20.10.0",
+    "@vitest/ui": "^1.6.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.1",
+    "wrangler": "^4.47.0"
+  }
+}

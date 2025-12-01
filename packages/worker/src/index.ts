@@ -1,0 +1,264 @@
+/**
+ * Dartmouth OS Worker - Main Entry Point
+ * Cloudflare Worker powered by Dartmouth OS V2.0
+ */
+
+import { DartmouthOS } from '../../dartmouth-core/src/DartmouthOS';
+import { createFAMAgent, createArtworkAnalyzerAgent, createTestAgent } from './createDartmouthAgents';
+// import { McCarthyPAAgent } from '../../mccarthy-pa/src'; // TODO: Enable after package build
+import { router } from './routes';
+import { createAPIRouter } from './routes/api';
+import { handleEmailPolling } from './workers/email-poller';
+import { sendScheduledMessages } from './workers/scheduled-message-sender';
+import { handleInboundEmail, type EmailMessage } from './services/EmailHandler';
+import type { Env } from './types/shared';
+import type { Env as DartmouthEnv } from '../../dartmouth-core/src/types';
+
+// Global Dartmouth OS instance (initialized on first request)
+let dartmouth: DartmouthOS | null = null;
+
+/**
+ * Initialize Dartmouth OS and register agents
+ */
+async function initializeDartmouth(env: Env): Promise<DartmouthOS> {
+  if (dartmouth) {
+    return dartmouth;
+  }
+
+  console.log('[Dartmouth] Initializing Dartmouth OS V2.0...');
+
+  // Create Dartmouth OS instance
+  const dartmouthEnv: DartmouthEnv = {
+    DB: env.DB,
+    R2: env.FILES,
+    KV: env.CACHE,
+    OPENAI_API_KEY: env.OPENAI_API_KEY || '',
+    ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY || '',
+    ELEVENLABS_API_KEY: env.ELEVENLABS_API_KEY,
+    TWILIO_ACCOUNT_SID: env.TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN: env.TWILIO_AUTH_TOKEN,
+    SENDGRID_API_KEY: env.SENDGRID_API_KEY,
+    ENVIRONMENT: (env.ENVIRONMENT as 'development' | 'staging' | 'production') || 'development',
+    JWT_SECRET: env.JWT_SECRET || 'dev-secret',
+  };
+
+  dartmouth = new DartmouthOS(dartmouthEnv, {
+    environment: dartmouthEnv.ENVIRONMENT,
+    enableHealthMonitoring: true,
+    healthCheckInterval: 60000,
+  });
+
+  await dartmouth.initialize();
+
+  console.log('[Dartmouth] Dartmouth OS initialized successfully');
+
+  // Register agents
+  console.log('[Dartmouth] Registering agents...');
+
+  // Create base agent config
+  const baseConfig = {
+    agentId: 'fam',
+    tenantId: 'default',
+    agentConfig: {
+      llmProvider: (env.LLM_PROVIDER as 'openai' | 'anthropic' | 'google') || 'openai',
+      llmModel: env.LLM_MODEL || 'gpt-4o-mini',
+      systemPrompt: '', // Will be set by agent
+      temperature: 0.7,
+      maxTokens: 1000,
+    },
+    env: {
+      DB: env.DB,
+      APP_CONFIG: env.APP_CONFIG,
+      CACHE: env.CACHE,
+      FILES: env.FILES,
+      WORKERS_AI: env.WORKERS_AI,
+      OPENAI_API_KEY: env.OPENAI_API_KEY,
+      ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY,
+      GOOGLE_API_KEY: env.GOOGLE_API_KEY,
+    },
+  };
+
+  // Register FAM
+  const famAgent = createFAMAgent(baseConfig);
+  dartmouth.registerAgent(famAgent);
+  console.log('[Dartmouth] ✅ FAM registered');
+
+  // Register Artwork Analyzer
+  const artworkAgent = createArtworkAnalyzerAgent({
+    ...baseConfig,
+    agentId: 'mccarthy-artwork',
+  });
+  dartmouth.registerAgent(artworkAgent);
+  console.log('[Dartmouth] ✅ McCarthy Artwork Analyzer registered');
+
+  // Register Test Agent
+  const testAgent = createTestAgent({
+    ...baseConfig,
+    agentId: 'test-agent',
+  });
+  dartmouth.registerAgent(testAgent);
+  console.log('[Dartmouth] ✅ Test Agent registered');
+
+  // Register PA Agent (TODO: Enable after package build)
+  // const paAgent = new McCarthyPAAgent({
+  //   ...baseConfig,
+  //   agentId: 'mccarthy-pa',
+  // });
+  // dartmouth.registerAgent(paAgent);
+  // console.log('[Dartmouth] ✅ McCarthy PA registered');
+
+  console.log('[Dartmouth] All agents registered successfully');
+
+  return dartmouth;
+}
+
+/**
+ * Cloudflare Worker fetch handler
+ */
+// Create API router instance
+const apiRouter = createAPIRouter();
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    try {
+      const url = new URL(request.url);
+      
+      // Route Email System V2 test routes FIRST (before Dartmouth OS)
+      if (url.pathname.startsWith('/api/v2/test/') || 
+          url.pathname.startsWith('/api/v2/conversations')) {
+        return await apiRouter.fetch(request, env);
+      }
+      
+      // Route Dartmouth OS V2 requests
+      if (url.pathname.startsWith('/api/v2/')) {
+        const dartmouthOS = await initializeDartmouth(env);
+        return await dartmouthOS.handleRequest(request);
+      }
+      
+      // Manual email polling trigger (for testing)
+      if (url.pathname === '/trigger-email-poll') {
+        try {
+          const logs: string[] = [];
+          const originalConsoleLog = console.log;
+          const originalConsoleError = console.error;
+          
+          // Capture console logs
+          console.log = (...args: any[]) => {
+            logs.push(args.join(' '));
+            originalConsoleLog(...args);
+          };
+          console.error = (...args: any[]) => {
+            logs.push('ERROR: ' + args.join(' '));
+            originalConsoleError(...args);
+          };
+          
+          await handleEmailPolling(env);
+          
+          // Restore console
+          console.log = originalConsoleLog;
+          console.error = originalConsoleError;
+          
+          return new Response(JSON.stringify({ success: true, message: 'Email polling triggered', logs }), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } catch (error: any) {
+          return new Response(JSON.stringify({ success: false, error: error.message, stack: error.stack }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+      
+      // Manual scheduled message sender trigger (for testing)
+      if (url.pathname === '/trigger-send-scheduled') {
+        try {
+          const logs: string[] = [];
+          const originalConsoleLog = console.log;
+          const originalConsoleError = console.error;
+          
+          // Capture console logs
+          console.log = (...args: any[]) => {
+            logs.push(args.join(' '));
+            originalConsoleLog(...args);
+          };
+          console.error = (...args: any[]) => {
+            logs.push('ERROR: ' + args.join(' '));
+            originalConsoleError(...args);
+          };
+          
+          await sendScheduledMessages(env);
+          
+          // Restore console
+          console.log = originalConsoleLog;
+          console.error = originalConsoleError;
+          
+          return new Response(JSON.stringify({ success: true, message: 'Scheduled message sender triggered', logs }), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } catch (error: any) {
+          return new Response(JSON.stringify({ success: false, error: error.message, stack: error.stack }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+      
+      // Route Customer Service API requests
+      if (url.pathname.startsWith('/api/')) {
+        return await apiRouter.fetch(request, env);
+      }
+
+      // Otherwise, use legacy routing (for backward compatibility)
+      return await router(request, env);
+    } catch (error) {
+      console.error('Worker error:', error);
+      
+      return new Response(
+        JSON.stringify({
+          error: 'Internal Server Error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString(),
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+  },
+
+  /**
+   * Cloudflare Worker scheduled handler
+   * Runs on cron schedule defined in wrangler.toml
+   */
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    console.log('[Scheduled] Jobs triggered at:', new Date(event.scheduledTime).toISOString());
+    
+    try {
+      // Run email polling in background
+      ctx.waitUntil(handleEmailPolling(env));
+      
+      // Run scheduled message sender in background
+      ctx.waitUntil(sendScheduledMessages(env));
+    } catch (error) {
+      console.error('[Scheduled] Error in scheduled jobs:', error);
+    }
+  },
+
+  /**
+   * Cloudflare Email Worker handler
+   * Receives inbound emails via Cloudflare Email Routing
+   */
+  async email(message: EmailMessage, env: Env, ctx: ExecutionContext): Promise<void> {
+    console.log('[Email] Received inbound email');
+    
+    try {
+      await handleInboundEmail(message, env);
+      console.log('[Email] ✅ Email processed successfully');
+    } catch (error) {
+      console.error('[Email] Error processing inbound email:', error);
+      // Don't throw - Cloudflare will retry and we don't want infinite retries
+    }
+  }
+}
+

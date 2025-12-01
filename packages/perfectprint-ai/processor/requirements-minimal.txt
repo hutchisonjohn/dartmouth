@@ -1,0 +1,22 @@
+# Minimal requirements for MVP testing (Background Removal only)
+# This avoids Rust compilation issues with VTracer
+
+# FastAPI Server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Image Processing
+pillow>=10.4.0
+numpy>=1.26.2
+
+# Background Removal - BRIA-RMBG-2.0 (THE STAR OF THE SHOW!)
+transformers>=4.35.2
+torch>=2.1.1
+torchvision>=0.16.1
+
+# Utilities
+requests==2.31.0
+aiofiles==23.2.1
+python-dotenv==1.0.0
+

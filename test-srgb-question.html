@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test sRGB Question</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #response { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border: 1px solid #ccc; 
+            background: #f5f5f5;
+            white-space: pre-wrap;
+        }
+        button { padding: 10px 20px; font-size: 16px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Test: "how do I convert to sRGB?"</h1>
+    
+    <button onclick="testQuestion()">Send Question</button>
+    
+    <div id="response"></div>
+
+    <script>
+        async function testQuestion() {
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = 'Sending request...';
+            
+            try {
+                const response = await fetch('https://dartmouth-os-worker.dartmouth.workers.dev/api/v2/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        agentId: 'mccarthy-artwork',
+                        message: '[Artwork Context: {"fileName":"test.png","dimensions":"2811x2539","dpi":"300","fileSize":"10.37 MB","fileType":"PNG","quality":"Good","hasAlpha":"Yes","bitDepth":"8-bit","iccProfile":"None","aspectRatio":"1.11:1"}] how do I convert to sRGB?',
+                        sessionId: 'test-srgb-' + Date.now(),
+                        userId: 'test-user'
+                    })
+                });
+
+                const data = await response.json();
+                
+                responseDiv.innerHTML = `
+<span class="${response.ok ? 'success' : 'error'}">Status: ${response.status} ${response.statusText}</span>
+
+<strong>Response:</strong>
+${JSON.stringify(data, null, 2)}
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,94 @@
+COMMIT MESSAGE FOR NEXT PUSH:
+================================
+
+feat: Implement scheduled messages, escalation system, and email sending
+
+MAJOR FEATURES:
+- ✅ Scheduled Messages: Full scheduling system with date/time picker, edit, remove
+- ✅ Escalation System: Tag/flag system with resolution, warnings, admin menu
+- ✅ Email Sending: Gmail API integration for replies and scheduled messages
+- ✅ Snooze Fixes: Proper queue positioning, counts, and remove functionality
+
+EMAIL SYSTEM:
+- Implemented email sending via Gmail API
+- Added RFC 2822 Message-ID tracking for threading
+- Fixed emails table foreign key reference
+- Added email linking to tickets after creation
+- Created scheduled message sender cron job
+- ⚠️ KNOWN ISSUE: Email threading doesn't work on recipient's side (needs SMTP)
+
+ESCALATION SYSTEM:
+- Changed escalation from status to tag/flag
+- Added warning icons on status badge and counts
+- Implemented escalation resolution with "Resolve" button
+- Added "⚠️ Escalated" admin menu (hidden when zero)
+- Fixed escalations table foreign key
+- Added distinct background color for escalated tickets
+
+SCHEDULED MESSAGES:
+- Created scheduled_messages table
+- Implemented scheduler modal with date/time pickers
+- Added timezone handling (Brisbane → UTC)
+- Display in conversation with yellow background
+- Edit and remove functionality
+- Cron job sends messages automatically
+- Shows correct staff member name
+
+SNOOZE SYSTEM:
+- Fixed snoozed ticket counts in "My Tickets"
+- Tickets appear at bottom of queue with purple background
+- Added "Remove Snooze" button in modal
+- Fixed database column names
+
+UI/UX IMPROVEMENTS:
+- Removed all page reloads (use refetch for smooth updates)
+- Fixed staff notes collapsing issue
+- Added column sorting (click headers)
+- Changed keyboard shortcut from Ctrl+I to Ctrl+Y
+- Fixed timestamp parsing with UTC
+- Updated date format to DD/MM/YYYY
+
+DATABASE:
+- Migration 0006: Update escalated tickets to in-progress
+- Migration 0007: Fix escalations foreign key
+- Migration 0008: Add scheduled_messages table
+- Migration 0009: Fix emails foreign key
+- Migration 0010: Add message_id column to emails
+
+TESTING:
+- Tested email sending with Gmail and Proton Mail
+- Verified scheduled messages work correctly
+- Confirmed escalation system functions properly
+- Validated snooze system improvements
+
+KNOWN ISSUES:
+- Email threading: Emails send successfully but don't thread on recipient's side
+  - Tested with Gmail and Proton Mail - same issue
+  - Threading works in sender's Sent folder
+  - Root cause: Gmail API limitation
+  - Solution: Need to implement SMTP for sending
+
+FILES MODIFIED:
+- packages/worker/src/controllers/tickets.ts
+- packages/worker/src/routes/api.ts
+- packages/worker/src/services/GmailIntegration.ts
+- packages/worker/src/workers/email-poller.ts
+- packages/worker/src/workers/scheduled-message-sender.ts (NEW)
+- packages/worker/src/index.ts
+- packages/worker/migrations/*.sql (5 new migrations)
+- packages/customer-service-dashboard/src/pages/TicketDetailPage.tsx
+- packages/customer-service-dashboard/src/components/ScheduleReplyModal.tsx (NEW)
+- packages/customer-service-dashboard/src/components/EditScheduledMessageModal.tsx (NEW)
+- packages/customer-service-dashboard/src/components/SnoozeModal.tsx
+- packages/customer-service-dashboard/src/lib/api.ts
+- CUSTOMER_SERVICE_STATUS.md
+- SESSION_SUMMARY_NOV_30_2025.md (NEW)
+
+NEXT PRIORITIES:
+1. Implement SMTP for email sending (fix threading issue)
+2. Add AI Agent as staff member
+3. Fix staff notes display layout
+4. Bulk ticket reassignment
+5. Email signatures
+
+Progress: 90% complete (up from 87%)

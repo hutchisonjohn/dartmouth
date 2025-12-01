@@ -1,0 +1,62 @@
+name = "dartmouth-os-worker"
+main = "src/index.ts"
+compatibility_date = "2025-11-16"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "dartmouth-os-db"
+database_id = "7cf1c2ab-a284-49bb-8484-ade563391cb2"
+
+# KV Namespaces
+[[kv_namespaces]]
+binding = "APP_CONFIG"
+id = "b70d8a2961bd4394a13f9c0f6002bef7"
+preview_id = "4e0fd620f6f443e687dacc43e483d553"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "4dde59b47cc34c9495aba50d7312df1d"
+preview_id = "ddbe6a75fde34a9daac1f58b217bfc61"
+
+# R2 Buckets (disabled for initial deployment - enable R2 in Cloudflare Dashboard first)
+# [[r2_buckets]]
+# binding = "FILES"
+# bucket_name = "dartmouth-os-files"
+# preview_bucket_name = "dartmouth-os-files-preview"
+
+# Workers AI
+[ai]
+binding = "WORKERS_AI"
+
+# Observability
+[observability]
+enabled = true
+
+# Environment Variables (non-secret)
+[vars]
+ENVIRONMENT = "production"
+GMAIL_REDIRECT_URI = "https://dartmouth-os-worker.your-subdomain.workers.dev/oauth/callback"
+AI_RESPONSE_MODE = "draft"  # "auto" or "draft"
+
+# Scheduled Workers (Cron Jobs)
+[triggers]
+crons = ["*/5 * * * *"]  # Run email poller every 5 minutes
+
+# Secrets (set via wrangler secret put)
+# - STRIPE_SECRET_KEY
+# - STRIPE_WEBHOOK_SECRET
+# - CLERK_SECRET_KEY
+# - JWT_SECRET
+# - OPENAI_API_KEY
+# - ANTHROPIC_API_KEY
+# - GOOGLE_API_KEY
+# - GMAIL_CLIENT_ID
+# - GMAIL_CLIENT_SECRET
+# - GMAIL_REFRESH_TOKEN
+# - SHOPIFY_API_URL
+# - SHOPIFY_ACCESS_TOKEN
+# - PERP_API_URL
+# - PERP_API_KEY
+

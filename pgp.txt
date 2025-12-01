@@ -1,0 +1,93 @@
+Return-Path: <john@dtf.com.au>
+X-Original-To: mccarthycsagent@proton.me
+Delivered-To: mccarthycsagent@proton.me
+Authentication-Results: mail.protonmail.ch; dkim=pass (Good 2048 bit
+    rsa-sha256 signature) header.d=dtf.com.au header.a=rsa-sha256
+Authentication-Results: mail.protonmail.ch; dmarc=pass (p=none dis=none)
+ header.from=dtf.com.au
+Authentication-Results: mail.protonmail.ch; spf=pass smtp.mailfrom=dtf.com.au
+Authentication-Results: mail.protonmail.ch; arc=none smtp.remote-ip=209.85.161.49
+Authentication-Results: mail.protonmail.ch; dkim=pass (2048-bit key) header.d=dtf.com.au
+ header.i=@dtf.com.au header.b="SLULkqjv"
+Received: from mail-oo1-f49.google.com (mail-oo1-f49.google.com [209.85.161.49]) (using
+ TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+  key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256) (No
+ client certificate requested) by mailin029.protonmail.ch (Postfix) with ESMTPS id
+ 4dKKry0p2bz9vNPm for <mccarthycsagent@proton.me>; Sun, 30 Nov 2025 21:28:17 +0000 (UTC)
+Received: by mail-oo1-f49.google.com with SMTP id 006d021491bc7-656d9230cf2so1851281eaf.1
+        for <mccarthycsagent@proton.me>; Sun, 30 Nov 2025 13:28:17 -0800 (PST)
+Received: from 726965954328 named unknown by gmailapi.google.com with HTTPREST; Sun, 30
+ Nov 2025 16:28:15 -0500
+Received: from 726965954328 named unknown by gmailapi.google.com with HTTPREST; Sun, 30
+ Nov 2025 16:28:15 -0500
+Dkim-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=dtf.com.au; s=google; t=1764538096; x=1765142896; darn=proton.me;
+        h=to:subject:message-id:date:references:in-reply-to:mime-version:from
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=di0IjKCW/e4o8FwtrSeG+GxQV7gv1PPDkvmQpLoVilY=;
+        b=SLULkqjvAxzlkTRlZEo8iIKvAKbyd8qQUFVEq2pW7PAdTccTjNg44053TwDDkpSv3f
+         Og1pOzL+JvziF7HtWGKFZrqOpFGRBo/yoVz3VCwa3UsTMpTfwIERrxQKjtmse6mnn3DM
+         pw83NbJ7RhPib+ozF7cSY2QARbfBDxW/Xtw90Zm2JZnpBUDnT49FOvt1zBHUEsNa7yBa
+         H6omRa4r883VvBuESe7+U91VNm3GYK1ow2jk1dZ6Cgx3ECglsKemyUFahGAu4JB4LEeq
+         9i/2pUdapTfulRbH1rSQhHwSr30753WJSS9Py9AED3BAT6F6yp5wt+HqPJt2RAWzHWMY
+         2zzw==
+X-Google-Dkim-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1764538096; x=1765142896;
+        h=to:subject:message-id:date:references:in-reply-to:mime-version:from
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=di0IjKCW/e4o8FwtrSeG+GxQV7gv1PPDkvmQpLoVilY=;
+        b=EvgoC/wMh80q8eCr+koF/TuZs5Flv5IRlfUhDUvBEMUUU4IDiCtIG1NDyzYlnvsSec
+         v+4EkoUdFrHvpXEvrxM6GrYn69mLX9NllAAnavHNG18L/bwC+7QpvUlnvUC/MdRit2Zg
+         68f5wZZ/gjXOpep9+udJbDbwO/XjM35E42IrNW0SnKOL5/96R9ar70kbntkAhHEHBla3
+         bxcbhZakqzJpNgYSBbauslM6t8Q9xc4UtMFy0kFb6leVgrizmMO1Y1Ibg9Kz242XvWjG
+         DhIaNSX5n7Xey9nJOezxDTPuyrMYYIuHNbKuYefWyf7nz7KQtRk99/r6oy0q68fW+cGk
+         w9kw==
+X-Gm-Message-State: AOJu0YxOw1qBID6U3dt0eFRxAvMHt9DdrjzNyYbXh6BoqfkL5cV68Dmi
+ MaVNAQvN3tJx3JO9rvjDdqJgFJa/7hycoK7SoX6Kp+CoxJq9fvPoFcndMw7qMjauaMqBYpX8z37
+ 4k6U7tckw/qjkpz0IEBIm59zAwXEXFaF+oUfVTx8cElNr9fvg7jbv
+X-Gm-Gg: ASbGncsZbccwL0r8XkMXuAm8rzYyLZQqC7ZcWyXktDedAdtIkmZFFJexbrFWYrS+YXm
+ P9sl/6E6UISeQ5MTOG+2f8JE84loM2/NPjPRJa0WxKta6yP76nTE1dLgLgxl571DFXlwXseRSkP
+ Z+hEo2d5PJH4makQ8NWU2FAtUcf8toCzSXgyid2sMOm83qkRAWOrSsDjM5TyaEGWOyCkzDPjlgK
+ qXEazRzXSyU9N10hVzEzTBwdg9qv5Dl6wddRkTiRlUxnF3xQWEtbrd9yh+j0Ix8X4/16hs45Pbw pFeze6n5
+X-Google-Smtp-Source: AGHT+IGMiY8aTlKFagAYrs67kcmQi9JUU/eK5wXaHe9taKBGh19HtrXsNl0RTdGfo2OFDS5IiGYAc/giQK0YQkc4hYk=
+X-Received: by 2002:a05:6808:c2d3:b0:450:b947:1d8a with SMTP id
+ 5614622812f47-451159c8641mr15703052b6e.7.1764538096440; Sun, 30 Nov 2025 13:28:16 -0800
+ (PST)
+From: john@dtf.com.au
+Mime-Version: 1.0
+In-Reply-To: <PJWbnBdg_Xu9vB0tyKXGGJYIGt-NiD6AG-BDUtB6W1ofBjNO5NSAPP4J2Vk2xTBCyuZyWkW6wptLCz8tg0kNmnqGlxGn38SxCgb0BU3P_-k=@proton.me>
+References: <PJWbnBdg_Xu9vB0tyKXGGJYIGt-NiD6AG-BDUtB6W1ofBjNO5NSAPP4J2Vk2xTBCyuZyWkW6wptLCz8tg0kNmnqGlxGn38SxCgb0BU3P_-k=@proton.me>
+Date: Sun, 30 Nov 2025 16:28:15 -0500
+X-Gm-Features: AWmQ_bkE6va7xWRtGrc_3bRIOdxKksq6wV_BtAURWsaxpC6dlSU0pYhBBg97REU
+Message-Id: <CACiDqh_Hz1hP4Hyv0NXGrXr_T+gy05PDQ1sjinL9ffXFzAY7sg@mail.gmail.com>
+Subject: Re: first email from proton account
+To: mccarthycsagent@proton.me
+Content-Type: text/plain
+X-Pm-Spam: 0yezJI6cihyJeYR3pi42biOpJJvbmsCIeINmhnVGd3b5JoiIjGEVRQVVMsICVmIs1NjX
+ 3l3JbIpj7SBlI0TiQ0yOiiSwNUJFPQ9FRkUEVNUSUOU9SIojwSJCLyU6IMuLTiiwNXR2lnVnY2Xul8
+ iZminsOUJFP6ICRyepJFnbWuV9ZY1WliojIHa0NNrYWp2ZXbVmfuVHdWZfRVfcHyjAMNETwiAzMCLt
+ JlsYWwzNXc9ltlR2bCb6I1hImzWwacIHtwITLjMwUEyOT0nBLIwiipFWbFbz8JfcHvHJcYIi6w4CMD
+ M5QcwNDxDAMOMDxwUjNzNsM1hImfWxaYF20vdWZncfl9kbWiWwZOJitslWY2Y0F0yLS1DIMMkDxw5i
+ MCdsI1hImfWxaYF20vdWZncflFtbm6SIZIRkFVFkRFTiQJtLCsWlYXN2hnVGd3b5JByX3i2IbOAju4
+ EDNTM4QEwMD5TYOMYTywJCL3XwN0iYWujAOMADyyUzMDO1gAxOT3TIOOQT4wJCL3XwN1fYWzmFYZIS
+ 6w4CMDMzII4NT5DUOMED55cjMDNsgBfInp3dcdNGovR3X3XoBNoaXnW5aIojwwAjLTMwEM3Mz0zkMM
+ gj5ycjNzMscJ1Inul9bY1WliojI2d0FhsY20XNaLNXllRmbicw19zdV02ldYg2is0XfmIh1xfaWy3B
+ MXB3yiI2bjOuAA0MD3TQOMADwzgTMTM1YczMDiSwfcJ3p6ICZjI5YNiMmzmYNMlDmiZmMTM3AU4NDk
+ DZMMJi9fQ==
+X-Pm-Origin: external
+X-Pm-Transfer-Encryption: TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+X-Pm-Content-Encryption: on-delivery
+X-Pm-Spamscore: 0
+X-Pm-Spam-Action: inbox
+
+-----BEGIN PGP MESSAGE-----
+Version: ProtonMail
+
+wV4DiTxmccO0mogSAQdAm4J/fmjtGwnNMjCPHDVMiWzmlfgSGB8l3eZ9bLHX
+sFswuaLmAWECH1HP2NjqIz96/zZQ2gRZxffMVDBGWZ9IMazmX/Q84W5Th8EO
+UOXArhdj0mIBySlLh8+n3KRHCj6hMo+cIhXuLC+yU9QwjuyhwIU273yawsBC
+Sj6SPqIv6sYT0M3KjJI7t3jPmJSsI6Bc89XlzIMrluqSv7tkeMg1mhPEivXf
+5Vy7attrHzKeOMxqKoUPLQ==
+=g3A3
+-----END PGP MESSAGE-----

@@ -1,0 +1,30 @@
+{
+  "name": "@dartmouth/mccarthy-artwork",
+  "version": "1.0.0",
+  "description": "McCarthy Artwork Analyzer - Specialized AI agent for artwork analysis and print preparation",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "artwork",
+    "dpi",
+    "printing",
+    "dtf",
+    "uv-dtf"
+  ],
+  "author": "Dartmouth AI",
+  "license": "MIT",
+  "dependencies": {
+    "@dartmouth/worker": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4"
+  }
+}

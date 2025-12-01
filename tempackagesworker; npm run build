@@ -1,0 +1,5 @@
+[33m5c8e8a9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m Backup: Automated backup at 2025-11-23_1254
+[33m834c308[m[33m ([m[1;31morigin/master[m[33m)[m MAJOR REFACTOR: Build SMART agent - store artwork in memory, let LLM handle calculations, remove rigid patterns
+[33m63fd458[m Add fallback to extract artwork context from current message in CalculationHandler
+[33mb368741[m Simplify intent detection: Match any DPI number + size question pattern
+[33m8e3b540[m Add debug logging and 'and' support for DPI extraction in CalculationHandler
