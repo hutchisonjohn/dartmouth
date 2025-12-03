@@ -11,6 +11,12 @@ interface SnoozeModalProps {
 
 const snoozeOptions = [
   {
+    id: '30-mins',
+    title: '30 Minutes',
+    description: 'Quick snooze - resume in 30 mins',
+    value: '30m'
+  },
+  {
     id: 'later-today',
     title: 'Later Today',
     description: 'Resume in 3 hours',

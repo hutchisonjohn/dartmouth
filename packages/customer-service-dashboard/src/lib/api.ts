@@ -124,4 +124,11 @@ export const settingsApi = {
     api.put(`/api/settings/${key}`, { value }),
 }
 
+// Analytics API
+export const analyticsApi = {
+  getAIAgentStats: (timeRange: string = '7d') =>
+    api.get('/api/analytics/ai-agent', { params: { timeRange } }),
+  getLearningExamples: (limit: number = 10) =>
+    api.get('/api/analytics/ai-agent/learning-examples', { params: { limit } }),
+}
 

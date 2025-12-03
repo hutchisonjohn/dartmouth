@@ -390,6 +390,7 @@ export async function snoozeTicket(c: Context<{ Bindings: Env }>) {
     `).bind(snoozedUntil, now, ticketId).run();
 
     // Add an internal note about the snooze
+    // Use SNOOZE_TIME: marker so frontend can format in user's timezone
     const noteId = crypto.randomUUID();
     await c.env.DB.prepare(`
       INSERT INTO internal_notes (id, ticket_id, staff_id, note_type, content, created_at, updated_at)
@@ -398,7 +399,7 @@ export async function snoozeTicket(c: Context<{ Bindings: Env }>) {
       noteId,
       ticketId,
       user.id,
-      `💤 Ticket snoozed until ${new Date(snoozedUntil).toLocaleString()}. Reason: ${reason || 'No reason provided'}`
+      `💤 Ticket snoozed until SNOOZE_TIME:${snoozedUntil}. Reason: ${reason || 'No reason provided'}`
     ).run();
 
     return c.json({ message: 'Ticket snoozed', snoozedUntil });
@@ -579,11 +580,12 @@ export async function scheduleReply(c: Context<{ Bindings: Env }>) {
     `).bind(messageId, ticketId, user.id, content, scheduledFor).run();
 
     // Add an internal note to track the scheduled reply
+    // Store the ISO timestamp so the frontend can format it in the user's timezone
     const noteId = crypto.randomUUID();
     await c.env.DB.prepare(`
       INSERT INTO internal_notes (id, ticket_id, staff_id, note_type, content, created_at, updated_at)
       VALUES (?, ?, ?, 'general', ?, datetime('now'), datetime('now'))
-    `).bind(noteId, ticketId, user.id, `📅 Scheduled reply for ${new Date(scheduledFor).toLocaleString()}`).run();
+    `).bind(noteId, ticketId, user.id, `📅 Scheduled reply for SCHEDULE_TIME:${scheduledFor}`).run();
 
     return c.json({ 
       message: 'Reply scheduled successfully',

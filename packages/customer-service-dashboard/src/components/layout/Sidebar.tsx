@@ -28,6 +28,7 @@ export default function Sidebar({
   const location = useLocation()
   const [isTicketsExpanded, setIsTicketsExpanded] = useState(true)
   const [isAssignedExpanded, setIsAssignedExpanded] = useState(false)
+  const [isAnalyticsExpanded, setIsAnalyticsExpanded] = useState(true)
 
   const isActive = (path: string) => location.pathname === path
 
@@ -74,6 +75,16 @@ export default function Sidebar({
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </button>
+
+          <button
+            onClick={onToggle}
+            className="p-2 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors"
+            title="Analytics - Click to expand"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </button>
 
@@ -344,6 +355,44 @@ export default function Sidebar({
               <span>All Mentions</span>
             </Link>
           </nav>
+        </div>
+
+        {/* Analytics Section */}
+        <div className="mb-6">
+          <button 
+            onClick={() => setIsAnalyticsExpanded(!isAnalyticsExpanded)}
+            className="w-full flex items-center justify-between mb-2 hover:bg-gray-50 rounded-lg p-2 transition-colors"
+          >
+            <h3 className="text-sm font-semibold text-indigo-600 flex items-center">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Analytics
+            </h3>
+            {isAnalyticsExpanded ? (
+              <ChevronUp className="w-4 h-4 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            )}
+          </button>
+
+          {isAnalyticsExpanded && (
+            <nav className="space-y-1">
+              <Link
+                to="/analytics/ai-agent"
+                className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                  location.pathname === '/analytics/ai-agent'
+                    ? 'bg-indigo-50 text-indigo-700 font-medium'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>AI Agent</span>
+              </Link>
+            </nav>
+          )}
         </div>
 
         {/* Settings Section */}

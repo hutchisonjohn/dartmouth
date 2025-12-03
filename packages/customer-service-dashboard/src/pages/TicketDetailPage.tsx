@@ -257,6 +257,9 @@ export default function TicketDetailPage() {
     
     // Calculate snooze time based on duration
     switch (duration) {
+      case '30m':
+        snoozeUntil = new Date(now.getTime() + 30 * 60 * 1000)
+        break
       case '3h':
         snoozeUntil = new Date(now.getTime() + 3 * 60 * 60 * 1000)
         break
@@ -465,6 +468,7 @@ export default function TicketDetailPage() {
       setShowEditScheduledModal(false)
       setMessageToEdit(null)
       refetch()
+      refetchScheduledMessages()
     } catch (error: any) {
       console.error('[handleEditScheduledMessageConfirm] Error:', error)
       alert(`Failed to update message: ${error.response?.data?.error || error.message || 'Unknown error'}`)
@@ -1140,8 +1144,11 @@ export default function TicketDetailPage() {
                             </div>
                           </div>
                           <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                            {note.content?.includes('MERGE_TIMESTAMP:') 
-                              ? note.content.replace(/MERGE_TIMESTAMP:([^\n]+)\n?/g, (_: string, timestamp: string) => {
+                            {(() => {
+                              let content = note.content || '';
+                              // Handle MERGE_TIMESTAMP
+                              if (content.includes('MERGE_TIMESTAMP:')) {
+                                content = content.replace(/MERGE_TIMESTAMP:([^\n]+)\n?/g, (_: string, timestamp: string) => {
                                   try {
                                     const date = new Date(timestamp.trim());
                                     return date.toLocaleString('en-US', { 
@@ -1155,9 +1162,46 @@ export default function TicketDetailPage() {
                                   } catch {
                                     return '';
                                   }
-                                })
-                              : note.content
-                            }
+                                });
+                              }
+                              // Handle SCHEDULE_TIME
+                              if (content.includes('SCHEDULE_TIME:')) {
+                                content = content.replace(/SCHEDULE_TIME:([^\s]+)/g, (_: string, timestamp: string) => {
+                                  try {
+                                    const date = new Date(timestamp.trim());
+                                    return date.toLocaleString('en-US', { 
+                                      month: 'numeric', 
+                                      day: 'numeric', 
+                                      year: 'numeric', 
+                                      hour: 'numeric', 
+                                      minute: '2-digit', 
+                                      hour12: true 
+                                    });
+                                  } catch {
+                                    return timestamp;
+                                  }
+                                });
+                              }
+                              // Handle SNOOZE_TIME
+                              if (content.includes('SNOOZE_TIME:')) {
+                                content = content.replace(/SNOOZE_TIME:([^\s.]+)/g, (_: string, timestamp: string) => {
+                                  try {
+                                    const date = new Date(timestamp.trim());
+                                    return date.toLocaleString('en-US', { 
+                                      month: 'numeric', 
+                                      day: 'numeric', 
+                                      year: 'numeric', 
+                                      hour: 'numeric', 
+                                      minute: '2-digit', 
+                                      hour12: true 
+                                    });
+                                  } catch {
+                                    return timestamp;
+                                  }
+                                });
+                              }
+                              return content;
+                            })()}
                           </p>
                         </div>
                       ))}

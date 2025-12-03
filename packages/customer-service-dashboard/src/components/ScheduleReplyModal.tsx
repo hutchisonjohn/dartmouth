@@ -11,18 +11,28 @@ export default function ScheduleReplyModal({ isOpen, onClose, onConfirm }: Sched
   const [scheduledHour, setScheduledHour] = useState<string>('09')
   const [scheduledMinute, setScheduledMinute] = useState<string>('00')
 
-  // Get tomorrow's date in YYYY-MM-DD format
-  const getTomorrowDate = () => {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    return tomorrow.toISOString().split('T')[0]
+  // Get today's date in YYYY-MM-DD format (in local timezone)
+  const getTodayDate = () => {
+    const today = new Date()
+    // Use local date parts to avoid timezone issues
+    const year = today.getFullYear()
+    const month = (today.getMonth() + 1).toString().padStart(2, '0')
+    const day = today.getDate().toString().padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
-  // Set default to tomorrow at 9 AM when opening
+  // Get current hour (rounded up to next hour)
+  const getNextHour = () => {
+    const now = new Date()
+    const nextHour = now.getHours() + 1
+    return nextHour >= 24 ? '09' : nextHour.toString().padStart(2, '0')
+  }
+
+  // Set default to today at next hour when opening
   useEffect(() => {
     if (isOpen) {
-      setScheduledDate(getTomorrowDate())
-      setScheduledHour('09')
+      setScheduledDate(getTodayDate())
+      setScheduledHour(getNextHour())
       setScheduledMinute('00')
     }
   }, [isOpen])
@@ -44,8 +54,8 @@ export default function ScheduleReplyModal({ isOpen, onClose, onConfirm }: Sched
     onClose()
   }
 
-  // Get today's date in YYYY-MM-DD format for min attribute
-  const today = new Date().toISOString().split('T')[0]
+  // Get today's date in YYYY-MM-DD format for min attribute (local timezone)
+  const todayForMin = getTodayDate()
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -86,7 +96,7 @@ export default function ScheduleReplyModal({ isOpen, onClose, onConfirm }: Sched
                 type="date"
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)}
-                min={today}
+                min={todayForMin}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>

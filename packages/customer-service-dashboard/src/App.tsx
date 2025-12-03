@@ -6,6 +6,7 @@ import TicketsPage from './pages/TicketsPage'
 import TicketDetailPage from './pages/TicketDetailPage'
 import MentionsPage from './pages/MentionsPage'
 import SettingsPage from './pages/SettingsPage'
+import AIAgentAnalyticsPage from './pages/AIAgentAnalyticsPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore()
@@ -29,6 +30,7 @@ function App() {
           <Route path="tickets" element={<TicketsPage />} />
           <Route path="tickets/:id" element={<TicketDetailPage />} />
           <Route path="mentions" element={<MentionsPage />} />
+          <Route path="analytics/ai-agent" element={<AIAgentAnalyticsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>

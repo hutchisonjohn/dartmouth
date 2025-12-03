@@ -18,6 +18,7 @@ import * as settingsController from '../controllers/settings';
 import * as staffController from '../controllers/staff';
 import * as emailsV2Controller from '../controllers/emails-v2';
 import * as emailTestController from '../controllers/email-test';
+import * as analyticsController from '../controllers/analytics';
 
 /**
  * Create API router
@@ -96,6 +97,13 @@ export function createAPIRouter() {
   app.get('/api/staff', authenticate, staffController.listStaff);
   app.get('/api/staff/:id', authenticate, staffController.getStaff);
   app.put('/api/staff/:id/presence', authenticate, staffController.updatePresence);
+
+  // ========================================================================
+  // ANALYTICS ROUTES
+  // ========================================================================
+
+  app.get('/api/analytics/ai-agent', authenticate, analyticsController.getAIAgentStats);
+  app.get('/api/analytics/ai-agent/learning-examples', authenticate, analyticsController.getLearningExamples);
 
   // ========================================================================
   // EMAIL SYSTEM V2 ROUTES (Conversations + MailChannels)
