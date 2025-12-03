@@ -14,8 +14,9 @@
 3. [Live Chat System Status](#3-live-chat-system-status)
 4. [AI Agent Configuration](#4-ai-agent-configuration)
 5. [Known Issues & Testing Queue](#5-known-issues--testing-queue)
-6. [Database Schema](#6-database-schema)
-7. [Next Actions](#7-next-actions)
+6. [Multi-Tenant Regional Settings (PLANNED)](#6-multi-tenant-regional-settings-planned)
+7. [Database Schema](#7-database-schema)
+8. [Next Actions](#8-next-actions)
 
 ---
 
@@ -34,6 +35,7 @@
 | **Live Chat System** | ✅ Core Complete | 75% | Widget, dashboard, AI integration done |
 | **AI Agent Configuration** | ✅ Complete | 100% | RAG Knowledge + System Message |
 | **Staff Management** | ✅ Complete | 100% | Availability, profiles, business hours |
+| **Multi-Tenant Settings** | 🔜 Planned | 0% | Regional settings for SaaS deployment |
 
 ---
 
@@ -256,7 +258,88 @@ Tabbed interface:
 
 ---
 
-## 6. DATABASE SCHEMA
+## 6. MULTI-TENANT REGIONAL SETTINGS (PLANNED)
+
+**Status:** 🔜 To Be Implemented  
+**Priority:** Critical for SaaS Deployment
+
+### Why Needed
+- Dartmouth OS is a **SaaS product for any country**
+- Currently regional settings (timezone, language, measurement) are **hardcoded**
+- Need to configure per-tenant AND per-agent without code changes
+
+### Architecture
+
+```
+Dartmouth OS Settings (TENANT DEFAULTS)
+├── Timezone: Australia/Brisbane (default)
+├── Language: Australian English (default)
+├── Measurement: Metric (default)
+├── Currency: AUD (default)
+├── Date Format: DD/MM/YYYY (default)
+└── Time Format: 12-hour (default)
+    │
+    ├── Agent A (inherits tenant defaults)
+    ├── Agent B (OVERRIDES for US market)
+    │   ├── Timezone: America/New_York
+    │   ├── Language: American English
+    │   └── Currency: USD
+    └── Agent C (inherits tenant defaults)
+```
+
+### Tenant-Level Settings
+| Setting | Default | Options |
+|---------|---------|---------|
+| Timezone | Australia/Brisbane | All IANA timezones |
+| Language/Spelling | en-AU | en-AU, en-GB, en-US, en-CA |
+| Measurement System | Metric | Metric, Imperial |
+| Currency | AUD | AUD, USD, GBP, EUR, NZD, CAD |
+| Date Format | DD/MM/YYYY | DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD |
+| Time Format | 12-hour | 12-hour, 24-hour |
+| Business Name | (required) | Text |
+| Business Email | (required) | Email |
+| Business Phone | (optional) | Phone |
+| Business Website | (optional) | URL |
+
+### Agent-Level Overrides
+- Each agent can override ANY tenant setting
+- NULL = inherit from tenant
+- Enables different agents for different regions
+
+### Implementation Tasks
+| Task | Status |
+|------|--------|
+| Create `tenant_settings` table | Pending |
+| Add override columns to agents | Pending |
+| Create "Dartmouth OS Settings" UI page | Pending |
+| Update KnowledgeService to load settings | Pending |
+| Add "Regional Overrides" to Agent config | Pending |
+
+---
+
+## 7. DATABASE SCHEMA
+
+### Planned Tables (Multi-Tenant)
+
+```sql
+-- Tenant Settings (one row per tenant)
+CREATE TABLE tenant_settings (
+  tenant_id TEXT PRIMARY KEY,
+  business_name TEXT NOT NULL,
+  business_email TEXT,
+  business_phone TEXT,
+  business_address TEXT,
+  business_website TEXT,
+  timezone TEXT DEFAULT 'Australia/Brisbane',
+  language TEXT DEFAULT 'en-AU',
+  measurement_system TEXT DEFAULT 'metric',
+  currency TEXT DEFAULT 'AUD',
+  date_format TEXT DEFAULT 'DD/MM/YYYY',
+  time_format TEXT DEFAULT '12h',
+  created_at TEXT,
+  updated_at TEXT
+);
+```
 
 ### New Tables (Dec 4)
 
@@ -305,22 +388,28 @@ CREATE TABLE ai_system_message_config (
 
 ---
 
-## 7. NEXT ACTIONS
+## 8. NEXT ACTIONS
 
-### Immediate
+### Immediate (Critical for SaaS)
 1. ✅ Update project status document
 2. ✅ Full local backup
 3. ✅ Commit to GitHub
+4. 🔜 **Implement Multi-Tenant Regional Settings**
+   - Create `tenant_settings` database table
+   - Create "Dartmouth OS Settings" UI page
+   - Update KnowledgeService to load tenant settings
+   - Add agent-level regional overrides
 
 ### This Week
 - Fix My Tickets filter
 - Complete testing queue
 - Build chat post-review survey
 - Add staff performance analytics
+- Vector embeddings for RAG (semantic search)
 
 ### This Month
 - Complete all Live Chat pending features
-- Implement AI Learning pipeline (Dynamic Prompt Enhancement)
+- Pattern extraction from staff edits
 - Shopify Integration for order lookups
 
 ---

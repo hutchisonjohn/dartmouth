@@ -1,7 +1,7 @@
 # 🏛️ MCCARTHY AI DARTMOUTH OS - COMPLETE BLUEPRINT
 
-**Version:** 2.0  
-**Date:** December 2, 2025  
+**Version:** 2.1  
+**Date:** December 4, 2025  
 **Status:** Active Development  
 **Document Type:** Comprehensive System Blueprint
 
@@ -21,8 +21,9 @@
 10. [Technical Capabilities](#10-technical-capabilities)
 11. [Security & Compliance](#11-security--compliance)
 12. [Deployment & Infrastructure](#12-deployment--infrastructure)
-13. [Business Model](#13-business-model)
-14. [Roadmap & Timeline](#14-roadmap--timeline)
+13. [Multi-Tenant Configuration](#13-multi-tenant-configuration) ← **NEW**
+14. [Business Model](#14-business-model)
+15. [Roadmap & Timeline](#15-roadmap--timeline)
 
 ---
 
@@ -1383,7 +1384,166 @@ npx wrangler secret put JWT_SECRET
 
 ---
 
-## 13. BUSINESS MODEL
+## 13. MULTI-TENANT CONFIGURATION
+
+### Overview
+
+Dartmouth OS is designed as a **multi-tenant SaaS platform** that can be deployed for any country or region. Regional settings are configurable at two levels:
+
+1. **Tenant Level (Dartmouth OS Settings)** - Default settings for all agents
+2. **Agent Level (Overrides)** - Per-agent customization for different markets
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    TENANT SETTINGS (DEFAULTS)                    │
+│                                                                  │
+│  Business: Direct To Film Australia                              │
+│  Timezone: Australia/Brisbane                                    │
+│  Language: Australian English (en-AU)                            │
+│  Measurement: Metric (cm, kg, km)                                │
+│  Currency: AUD ($)                                               │
+│  Date Format: DD/MM/YYYY                                         │
+│  Time Format: 12-hour                                            │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         │                 │                 │
+         ▼                 ▼                 ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ CS Agent AU     │ │ CS Agent US     │ │ Sales Agent     │
+│                 │ │                 │ │                 │
+│ (inherits all   │ │ OVERRIDES:      │ │ (inherits all   │
+│  tenant         │ │ • Timezone: EST │ │  tenant         │
+│  defaults)      │ │ • Lang: en-US   │ │  defaults)      │
+│                 │ │ • Imperial      │ │                 │
+│                 │ │ • Currency: USD │ │                 │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+```
+
+### Tenant-Level Settings
+
+| Setting | Default | Options | Description |
+|---------|---------|---------|-------------|
+| **Timezone** | Australia/Brisbane | All IANA timezones | Used for scheduling, timestamps |
+| **Language** | en-AU | en-AU, en-GB, en-US, en-CA | Spelling & terminology |
+| **Measurement** | Metric | Metric, Imperial | Units in responses |
+| **Currency** | AUD | AUD, USD, GBP, EUR, NZD, CAD | Price formatting |
+| **Date Format** | DD/MM/YYYY | DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD | Date display |
+| **Time Format** | 12-hour | 12-hour, 24-hour | Time display |
+| **Business Name** | (required) | Text | Company name |
+| **Business Email** | (required) | Email | Contact email |
+| **Business Phone** | (optional) | Phone | Contact phone |
+| **Business Website** | (optional) | URL | Company website |
+
+### Agent-Level Overrides
+
+Each agent can override any tenant setting:
+- If agent setting is **NULL** → inherits from tenant
+- If agent setting is **SET** → uses agent value
+
+This enables:
+- Different agents for different regions (US, UK, AU)
+- Different agents for different brands
+- Localized responses without code changes
+
+### Language Settings Detail
+
+| Code | Name | Spelling Examples |
+|------|------|-------------------|
+| en-AU | Australian English | colour, metre, organisation, favour |
+| en-GB | British English | colour, metre, organisation, favour |
+| en-US | American English | color, meter, organization, favor |
+| en-CA | Canadian English | colour, metre, organization, favour |
+
+### Database Schema
+
+```sql
+-- Tenant Settings Table
+CREATE TABLE tenant_settings (
+  tenant_id TEXT PRIMARY KEY,
+  business_name TEXT NOT NULL,
+  business_email TEXT,
+  business_phone TEXT,
+  business_address TEXT,
+  business_website TEXT,
+  timezone TEXT DEFAULT 'Australia/Brisbane',
+  language TEXT DEFAULT 'en-AU',
+  measurement_system TEXT DEFAULT 'metric',
+  currency TEXT DEFAULT 'AUD',
+  date_format TEXT DEFAULT 'DD/MM/YYYY',
+  time_format TEXT DEFAULT '12h',
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Agent Override Columns
+ALTER TABLE agents ADD COLUMN timezone TEXT; -- NULL = inherit
+ALTER TABLE agents ADD COLUMN language TEXT; -- NULL = inherit
+ALTER TABLE agents ADD COLUMN measurement_system TEXT; -- NULL = inherit
+ALTER TABLE agents ADD COLUMN currency TEXT; -- NULL = inherit
+ALTER TABLE agents ADD COLUMN date_format TEXT; -- NULL = inherit
+ALTER TABLE agents ADD COLUMN time_format TEXT; -- NULL = inherit
+```
+
+### UI Location
+
+```
+Settings (sidebar)
+├── Dartmouth OS Settings ← Tenant-level configuration
+│   ├── Business Information
+│   │   ├── Business Name
+│   │   ├── Business Email
+│   │   ├── Business Phone
+│   │   └── Business Website
+│   │
+│   └── Regional Settings
+│       ├── Timezone
+│       ├── Language/Spelling
+│       ├── Measurement System
+│       ├── Currency
+│       ├── Date Format
+│       └── Time Format
+│
+└── AI Agent
+    └── Regional Overrides ← Per-agent customization
+        ├── Timezone (or inherit)
+        ├── Language (or inherit)
+        ├── Measurement (or inherit)
+        └── Currency (or inherit)
+```
+
+### Integration with KnowledgeService
+
+The KnowledgeService loads tenant/agent settings and injects them into AI prompts:
+
+```
+# Regional Settings (injected into system prompt)
+- Timezone: Australia/Brisbane
+- Language: Australian English
+  • Use: colour, metre, organisation, favour
+  • Avoid: color, meter, organization, favor
+- Measurement: Metric (cm, kg, km)
+- Currency: AUD ($)
+- Date Format: DD/MM/YYYY (e.g., 04/12/2025)
+- Time Format: 12-hour (e.g., 2:30 PM)
+```
+
+### Implementation Status
+
+| Component | Status |
+|-----------|--------|
+| Database Schema | 🔜 Planned |
+| Tenant Settings API | 🔜 Planned |
+| Dartmouth OS Settings UI | 🔜 Planned |
+| Agent Overrides API | 🔜 Planned |
+| Agent Overrides UI | 🔜 Planned |
+| KnowledgeService Integration | 🔜 Planned |
+
+---
+
+## 14. BUSINESS MODEL
 
 ### Target Market
 
@@ -1430,16 +1590,18 @@ npx wrangler secret put JWT_SECRET
 
 ---
 
-## 14. ROADMAP & TIMELINE
+## 15. ROADMAP & TIMELINE
 
 ### Q4 2025 (Current)
 
 **December:**
 - ✅ Email System V2 complete
 - ✅ Customer Service Dashboard complete
+- ✅ Live Chat System (Widget + Dashboard)
+- ✅ AI Agent Configuration (RAG + System Message)
+- ✅ KnowledgeService (AI Learning Pipeline)
+- ⏳ Multi-Tenant Regional Settings
 - ⏳ McCarthy Artwork Agent testing
-- ⏳ Customer Service Agent integration (Phase 1)
-- ⏳ Dartmouth OS Core (Phase 3)
 
 ### Q1 2026
 

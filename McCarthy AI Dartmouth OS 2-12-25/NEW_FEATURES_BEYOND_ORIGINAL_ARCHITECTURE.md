@@ -1,6 +1,7 @@
 # 🚀 NEW FEATURES BEYOND ORIGINAL ARCHITECTURE
 
 **Document Created:** December 4, 2025  
+**Last Updated:** December 4, 2025 (Late Night)  
 **Purpose:** Document all significant features added during development that were NOT in the original blueprint or build plan
 
 ---
@@ -20,7 +21,112 @@ During the development of McCarthy AI Dartmouth OS, numerous features were added
 
 ## 🔥 MAJOR NEW FEATURES
 
-### 1. KNOWLEDGE SERVICE (AI Learning Enhancement)
+### 1. MULTI-TENANT REGIONAL SETTINGS SYSTEM (PLANNED)
+
+**Status:** 🔜 To Be Implemented
+
+**What It Does:** Provides configurable regional settings at both tenant (Dartmouth OS) level and agent level, enabling true multi-tenant SaaS deployment for any country.
+
+**Architecture:**
+```
+Dartmouth OS Settings (TENANT DEFAULTS)
+├── Timezone: Australia/Brisbane (default)
+├── Language: Australian English (default)
+├── Measurement: Metric (default)
+├── Currency: AUD (default)
+├── Date Format: DD/MM/YYYY (default)
+└── Time Format: 12-hour (default)
+    │
+    ├── Agent A (inherits tenant defaults)
+    │
+    ├── Agent B (OVERRIDES for US market)
+    │   ├── Timezone: America/New_York
+    │   ├── Language: American English
+    │   ├── Measurement: Imperial
+    │   └── Currency: USD
+    │
+    └── Agent C (inherits tenant defaults)
+```
+
+**Tenant-Level Settings (Dartmouth OS Settings):**
+| Setting | Default | Options |
+|---------|---------|---------|
+| **Timezone** | Australia/Brisbane | All IANA timezones |
+| **Language/Spelling** | Australian English (en-AU) | en-AU, en-GB, en-US, en-CA |
+| **Measurement System** | Metric | Metric, Imperial |
+| **Currency** | AUD | AUD, USD, GBP, EUR, NZD, CAD, etc. |
+| **Date Format** | DD/MM/YYYY | DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD |
+| **Time Format** | 12-hour | 12-hour, 24-hour |
+| **Business Name** | (required) | Text |
+| **Business Email** | (required) | Email |
+| **Business Phone** | (optional) | Phone |
+| **Business Address** | (optional) | Text |
+| **Business Website** | (optional) | URL |
+
+**Agent-Level Overrides:**
+- Each agent can override ANY tenant setting
+- If agent setting is NULL → inherits from tenant
+- Enables different agents for different regions/markets
+
+**Database Tables:**
+```sql
+-- Tenant Settings (one row per tenant)
+CREATE TABLE tenant_settings (
+  tenant_id TEXT PRIMARY KEY,
+  business_name TEXT NOT NULL,
+  business_email TEXT,
+  business_phone TEXT,
+  business_address TEXT,
+  business_website TEXT,
+  timezone TEXT DEFAULT 'Australia/Brisbane',
+  language TEXT DEFAULT 'en-AU',
+  measurement_system TEXT DEFAULT 'metric',
+  currency TEXT DEFAULT 'AUD',
+  date_format TEXT DEFAULT 'DD/MM/YYYY',
+  time_format TEXT DEFAULT '12h',
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Agent Overrides (nullable = inherit from tenant)
+ALTER TABLE agents ADD COLUMN timezone TEXT;
+ALTER TABLE agents ADD COLUMN language TEXT;
+ALTER TABLE agents ADD COLUMN measurement_system TEXT;
+ALTER TABLE agents ADD COLUMN currency TEXT;
+ALTER TABLE agents ADD COLUMN date_format TEXT;
+ALTER TABLE agents ADD COLUMN time_format TEXT;
+```
+
+**UI Location:**
+```
+Settings (sidebar)
+├── Dartmouth OS Settings ← NEW
+│   ├── Business Information
+│   ├── Regional Settings
+│   └── Date/Time Formats
+│
+└── AI Agent
+    └── Regional Overrides ← NEW (per agent)
+```
+
+**KnowledgeService Integration:**
+- Loads tenant settings from database
+- Injects regional context into AI prompts dynamically
+- Example prompt injection:
+```
+# Regional Settings
+- Timezone: Australia/Brisbane
+- Language: Australian English (use colour, metre, organisation)
+- Measurement: Metric (cm, kg, km)
+- Currency: AUD ($)
+- Date Format: DD/MM/YYYY
+```
+
+**Impact:** Enables true SaaS deployment for any country without code changes.
+
+---
+
+### 2. KNOWLEDGE SERVICE (AI Learning Enhancement)
 
 **What It Does:** Connects the AI to all stored knowledge sources in real-time.
 
@@ -409,10 +515,10 @@ During the development of McCarthy AI Dartmouth OS, numerous features were added
 
 | Category | Count |
 |----------|-------|
-| **Major New Features** | 17 |
-| **New Database Tables** | 8 |
-| **New Database Columns** | 15+ |
-| **New Frontend Pages** | 12+ |
+| **Major New Features** | 18 |
+| **New Database Tables** | 9 (including tenant_settings) |
+| **New Database Columns** | 20+ |
+| **New Frontend Pages** | 13+ |
 | **New Backend Controllers** | 5+ |
 | **New Services** | 3+ |
 | **New Packages** | 1 (chat-widget) |
@@ -423,16 +529,19 @@ During the development of McCarthy AI Dartmouth OS, numerous features were added
 
 These are documented for future implementation:
 
-| Feature | Priority | Notes |
-|---------|----------|-------|
-| Vector Embeddings | High | Semantic search for RAG |
-| Pattern Extraction | Medium | Learn from staff edits |
-| Queue Auto-Assign | Medium | Round-robin for chat |
-| AI Resolution Detection | Low | Auto-close on "thank you" |
-| Post-Chat Survey | Medium | Thumbs up/down in widget |
-| Chat Analytics | Medium | Add to Analytics Dashboard |
-| Shopify Integration | High | Order lookups |
-| WhatsApp Integration | Medium | Multi-channel support |
+| Feature | Priority | Status | Notes |
+|---------|----------|--------|-------|
+| **Multi-Tenant Regional Settings** | 🔴 Critical | To Build | Tenant + Agent level settings for SaaS |
+| Vector Embeddings | High | Pending | Semantic search for RAG |
+| Pattern Extraction | Medium | Pending | Learn from staff edits |
+| Queue Auto-Assign | Medium | Pending | Round-robin for chat |
+| AI Resolution Detection | Low | Pending | Auto-close on "thank you" |
+| Post-Chat Survey | Medium | Pending | Thumbs up/down in widget |
+| Chat Analytics | Medium | Pending | Add chat metrics to Analytics Dashboard |
+| Shopify Integration | High | Pending | Order lookups |
+| WhatsApp Integration | Medium | Pending | Multi-channel support |
+| Instagram DM Integration | Medium | Pending | Multi-channel support |
+| Facebook Messenger Integration | Medium | Pending | Multi-channel support |
 
 ---
 
