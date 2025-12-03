@@ -354,6 +354,98 @@ export async function resetSystemMessageConfig(c: Context<{ Bindings: Env }>) {
   }
 }
 
+// ============================================================================
+// AGENT REGIONAL OVERRIDES
+// ============================================================================
+
+interface AgentRegionalOverrides {
+  agent_id: string;
+  timezone: string | null;
+  language: string | null;
+  measurement_system: string | null;
+  currency: string | null;
+  currency_symbol: string | null;
+  date_format: string | null;
+  time_format: string | null;
+}
+
+/**
+ * Get agent regional overrides
+ * GET /api/ai-agent/regional-overrides
+ */
+export async function getRegionalOverrides(c: Context<{ Bindings: Env }>) {
+  try {
+    const agentId = 'ai-agent-001'; // TODO: Get from query param or auth context
+    
+    const result = await c.env.DB.prepare(`
+      SELECT agent_id, timezone, language, measurement_system, 
+             currency, currency_symbol, date_format, time_format
+      FROM agents 
+      WHERE agent_id = ?
+    `).bind(agentId).first();
+
+    if (result) {
+      return c.json(result);
+    }
+
+    // Return empty overrides if agent doesn't exist
+    return c.json({
+      agent_id: agentId,
+      timezone: null,
+      language: null,
+      measurement_system: null,
+      currency: null,
+      currency_symbol: null,
+      date_format: null,
+      time_format: null
+    });
+  } catch (error: any) {
+    console.error('[AIAgent] Get regional overrides error:', error);
+    return c.json({ error: 'Failed to get regional overrides' }, 500);
+  }
+}
+
+/**
+ * Update agent regional overrides
+ * PUT /api/ai-agent/regional-overrides
+ */
+export async function updateRegionalOverrides(c: Context<{ Bindings: Env }>) {
+  try {
+    const body = await c.req.json() as AgentRegionalOverrides;
+    const agentId = body.agent_id || 'ai-agent-001';
+    
+    // Update agent overrides
+    await c.env.DB.prepare(`
+      UPDATE agents SET
+        timezone = ?,
+        language = ?,
+        measurement_system = ?,
+        currency = ?,
+        currency_symbol = ?,
+        date_format = ?,
+        time_format = ?,
+        updated_at = datetime('now')
+      WHERE agent_id = ?
+    `).bind(
+      body.timezone || null,
+      body.language || null,
+      body.measurement_system || null,
+      body.currency || null,
+      body.currency_symbol || null,
+      body.date_format || null,
+      body.time_format || null,
+      agentId
+    ).run();
+
+    console.log(`[AIAgent] Updated regional overrides for agent: ${agentId}`);
+    
+    return c.json({ success: true, message: 'Regional overrides updated' });
+  } catch (error: any) {
+    console.error('[AIAgent] Update regional overrides error:', error);
+    return c.json({ error: 'Failed to update regional overrides: ' + error.message }, 500);
+  }
+}
+
 /**
  * Get the full compiled system prompt for the AI Agent
  * This combines the system message config with RAG knowledge context

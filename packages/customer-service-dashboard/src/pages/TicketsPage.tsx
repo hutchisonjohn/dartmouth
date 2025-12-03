@@ -5,7 +5,6 @@ import { ticketsApi } from '../lib/api'
 import { formatDistanceToNow } from 'date-fns'
 import { Search, X, GitMerge } from 'lucide-react'
 import ReassignModal from '../components/ReassignModal'
-import { useAuthStore } from '../store/authStore'
 // import PlatformSelect from '../components/PlatformSelect'
 
 const statusColors = {

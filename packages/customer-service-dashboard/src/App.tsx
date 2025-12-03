@@ -16,6 +16,8 @@ import ChatEmbedCodePage from './pages/ChatEmbedCodePage'
 import AIAgentWidgetPage from './pages/AIAgentWidgetPage'
 import AIAgentKnowledgePage from './pages/AIAgentKnowledgePage'
 import AIAgentSystemMessagePage from './pages/AIAgentSystemMessagePage'
+import DartmouthOSSettingsPage from './pages/DartmouthOSSettingsPage'
+import AgentRegionalOverridesPage from './pages/AgentRegionalOverridesPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore()
@@ -48,6 +50,9 @@ function App() {
           <Route path="ai-agent/widget" element={<AIAgentWidgetPage />} />
           <Route path="ai-agent/knowledge" element={<AIAgentKnowledgePage />} />
           <Route path="ai-agent/system-message" element={<AIAgentSystemMessagePage />} />
+          <Route path="ai-agent/regional-overrides" element={<AgentRegionalOverridesPage />} />
+          {/* Dartmouth OS Settings */}
+          <Route path="settings/dartmouth-os" element={<DartmouthOSSettingsPage />} />
           <Route path="staff" element={<StaffPage />} />
           <Route path="staff/performance" element={<StaffPerformancePage />} />
           <Route path="chat" element={<ChatDashboardPage />} />

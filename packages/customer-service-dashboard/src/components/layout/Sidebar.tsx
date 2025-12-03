@@ -354,7 +354,7 @@ export default function Sidebar({
             isExpanded={isSettingsExpanded}
             onToggle={() => setIsSettingsExpanded(!isSettingsExpanded)}
           >
-            <SubNavLink to="/settings/general">General</SubNavLink>
+            <SubNavLink to="/settings/dartmouth-os">Dartmouth OS</SubNavLink>
             <SubNavLink to="/settings/auth">Auth & Security</SubNavLink>
             <SubNavLink to="/settings/shopify">Shopify</SubNavLink>
             <SubNavLink to="/settings/perp">PERP Integration</SubNavLink>
@@ -381,6 +381,7 @@ export default function Sidebar({
                   <SubNavLink to="/ai-agent/widget">Widget & Embed</SubNavLink>
                   <SubNavLink to="/ai-agent/knowledge">RAG Knowledge</SubNavLink>
                   <SubNavLink to="/ai-agent/system-message">System Message</SubNavLink>
+                  <SubNavLink to="/ai-agent/regional-overrides">Regional Overrides</SubNavLink>
                 </div>
               )}
             </div>

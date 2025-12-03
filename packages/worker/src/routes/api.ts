@@ -22,6 +22,7 @@ import * as analyticsController from '../controllers/analytics';
 import * as chatController from '../controllers/chat';
 import * as chatMessagesController from '../controllers/chat-messages';
 import * as aiAgentController from '../controllers/ai-agent';
+import * as tenantSettingsController from '../controllers/tenant-settings';
 
 /**
  * Create API router
@@ -158,6 +159,18 @@ export function createAPIRouter() {
   app.get('/api/ai-agent/system-message', authenticate, aiAgentController.getSystemMessageConfig);
   app.put('/api/ai-agent/system-message', authenticate, requireAdmin, aiAgentController.updateSystemMessageConfig);
   app.post('/api/ai-agent/system-message/reset', authenticate, requireAdmin, aiAgentController.resetSystemMessageConfig);
+
+  // Agent Regional Overrides
+  app.get('/api/ai-agent/regional-overrides', authenticate, aiAgentController.getRegionalOverrides);
+  app.put('/api/ai-agent/regional-overrides', authenticate, requireAdmin, aiAgentController.updateRegionalOverrides);
+
+  // ========================================================================
+  // TENANT SETTINGS ROUTES (Dartmouth OS Settings)
+  // ========================================================================
+
+  app.get('/api/tenant/settings', authenticate, tenantSettingsController.getTenantSettings);
+  app.put('/api/tenant/settings', authenticate, requireAdmin, tenantSettingsController.updateTenantSettings);
+  app.get('/api/tenant/settings/options', authenticate, tenantSettingsController.getTenantSettingsOptions);
 
   // ========================================================================
   // EMAIL SYSTEM V2 ROUTES (Conversations + MailChannels)

@@ -2,14 +2,55 @@
  * Knowledge Service
  * 
  * Provides AI agents with knowledge from:
- * 1. System Message Configuration (role, personality, do's/don'ts)
- * 2. RAG Documents (policies, FAQs, product info)
- * 3. Learning Examples (high-quality past responses)
+ * 1. Tenant Settings (regional preferences, business info)
+ * 2. System Message Configuration (role, personality, do's/don'ts)
+ * 3. RAG Documents (policies, FAQs, product info)
+ * 4. Learning Examples (high-quality past responses)
  * 
  * This is the bridge between stored knowledge and AI prompts.
  */
 
-import type { D1Database } from '../types/shared';
+import type { D1Database } from '@cloudflare/workers-types';
+
+export interface TenantSettings {
+  tenant_id: string;
+  business_name: string;
+  business_email: string | null;
+  business_phone: string | null;
+  business_address: string | null;
+  business_website: string | null;
+  timezone: string;
+  language: string;
+  measurement_system: string;
+  currency: string;
+  currency_symbol: string;
+  date_format: string;
+  time_format: string;
+}
+
+// Language-specific settings for AI responses
+const LANGUAGE_SETTINGS: Record<string, { spellings: string[]; greetings: string[]; terminology: Record<string, string> }> = {
+  'en-AU': {
+    spellings: ['colour', 'metre', 'organisation', 'favour', 'centre', 'analyse', 'catalogue', 'programme'],
+    greetings: ["G'day", 'Cheers', 'No worries', 'Mate', 'Thanks heaps'],
+    terminology: { shipping: 'postage', inquiry: 'enquiry', while: 'whilst' }
+  },
+  'en-GB': {
+    spellings: ['colour', 'metre', 'organisation', 'favour', 'centre', 'analyse', 'catalogue', 'programme'],
+    greetings: ['Hello', 'Cheers', 'Kind regards', 'Best wishes'],
+    terminology: { shipping: 'postage', inquiry: 'enquiry' }
+  },
+  'en-US': {
+    spellings: ['color', 'meter', 'organization', 'favor', 'center', 'analyze', 'catalog', 'program'],
+    greetings: ['Hi', 'Hello', 'Thanks', 'Best regards'],
+    terminology: {}
+  },
+  'en-CA': {
+    spellings: ['colour', 'metre', 'organization', 'favour', 'centre', 'analyze', 'catalogue', 'program'],
+    greetings: ['Hello', 'Thanks', 'Cheers', 'Best regards'],
+    terminology: {}
+  }
+};
 
 export interface SystemMessageConfig {
   role: string;
@@ -43,6 +84,7 @@ export interface KnowledgeContext {
   learningExamples: LearningExample[];
   ragContext: string;
   ragDocuments: RAGDocument[];
+  tenantSettings: TenantSettings | null;
 }
 
 const DEFAULT_SYSTEM_MESSAGE: SystemMessageConfig = {
@@ -78,9 +120,83 @@ export class KnowledgeService {
   private db: D1Database;
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private tenantId: string;
 
-  constructor(db: D1Database) {
+  constructor(db: D1Database, tenantId: string = 'test-tenant-dtf') {
     this.db = db;
+    this.tenantId = tenantId;
+  }
+
+  /**
+   * Get tenant settings (regional preferences, business info)
+   */
+  async getTenantSettings(): Promise<TenantSettings | null> {
+    const cacheKey = `tenant_settings_${this.tenantId}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      console.log('[KnowledgeService] Using cached tenant settings');
+      return cached.data;
+    }
+
+    try {
+      const result = await this.db.prepare(`
+        SELECT * FROM tenant_settings WHERE tenant_id = ?
+      `).bind(this.tenantId).first();
+
+      if (result) {
+        const settings = result as TenantSettings;
+        this.cache.set(cacheKey, { data: settings, timestamp: Date.now() });
+        console.log('[KnowledgeService] Loaded tenant settings from DB');
+        return settings;
+      }
+    } catch (error) {
+      console.error('[KnowledgeService] Error loading tenant settings:', error);
+    }
+
+    console.log('[KnowledgeService] No tenant settings found');
+    return null;
+  }
+
+  /**
+   * Build regional context string for AI prompts
+   */
+  buildRegionalContext(settings: TenantSettings): string {
+    const langSettings = LANGUAGE_SETTINGS[settings.language] || LANGUAGE_SETTINGS['en-AU'];
+    
+    const measurementExamples = settings.measurement_system === 'metric'
+      ? 'cm, kg, km, °C'
+      : 'in, lb, mi, °F';
+    
+    // Format date example based on settings
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    let dateExample: string;
+    switch (settings.date_format) {
+      case 'DD/MM/YYYY': dateExample = `${day}/${month}/${year}`; break;
+      case 'MM/DD/YYYY': dateExample = `${month}/${day}/${year}`; break;
+      case 'YYYY-MM-DD': dateExample = `${year}-${month}-${day}`; break;
+      default: dateExample = `${day}/${month}/${year}`;
+    }
+    
+    const timeExample = settings.time_format === '12h' ? '2:30 PM' : '14:30';
+
+    return `
+# Regional Settings (IMPORTANT - Follow these strictly)
+- **Business:** ${settings.business_name}
+- **Timezone:** ${settings.timezone}
+- **Language:** ${settings.language}
+  - Use these spellings: ${langSettings.spellings.join(', ')}
+  - Greetings to use: ${langSettings.greetings.join(', ')}
+${Object.keys(langSettings.terminology).length > 0 ? `  - Terminology: ${Object.entries(langSettings.terminology).map(([k, v]) => `${k} → ${v}`).join(', ')}` : ''}
+- **Measurements:** ${settings.measurement_system === 'metric' ? 'Metric' : 'Imperial'} (${measurementExamples})
+- **Currency:** ${settings.currency} (${settings.currency_symbol})
+- **Date Format:** ${settings.date_format} (e.g., ${dateExample})
+- **Time Format:** ${settings.time_format === '12h' ? '12-hour' : '24-hour'} (e.g., ${timeExample})
+
+CRITICAL: Always use the correct spelling and terminology for the configured language. Never mix American and British/Australian English.
+`;
   }
 
   /**
@@ -278,7 +394,8 @@ ${truncatedContent}
     const startTime = Date.now();
 
     // Fetch all knowledge sources in parallel
-    const [systemPrompt, learningExamples, ragDocuments] = await Promise.all([
+    const [tenantSettings, systemPrompt, learningExamples, ragDocuments] = await Promise.all([
+      this.getTenantSettings(),
       this.buildSystemPrompt(),
       this.getLearningExamples(5),
       this.searchRAGDocuments(customerMessage, 3)
@@ -286,17 +403,26 @@ ${truncatedContent}
 
     const ragContext = this.formatRAGContext(ragDocuments);
     const examplesFormatted = this.formatLearningExamples(learningExamples);
+    
+    // Build regional context if tenant settings exist
+    const regionalContext = tenantSettings ? this.buildRegionalContext(tenantSettings) : '';
 
     console.log(`[KnowledgeService] Knowledge context built in ${Date.now() - startTime}ms`);
+    console.log(`[KnowledgeService] - Tenant settings: ${tenantSettings ? 'loaded' : 'not found'}`);
     console.log(`[KnowledgeService] - System prompt: ${systemPrompt.length} chars`);
     console.log(`[KnowledgeService] - Learning examples: ${learningExamples.length}`);
     console.log(`[KnowledgeService] - RAG documents: ${ragDocuments.length}`);
+    if (tenantSettings) {
+      console.log(`[KnowledgeService] - Language: ${tenantSettings.language}, Timezone: ${tenantSettings.timezone}`);
+    }
 
     return {
-      systemMessage: systemPrompt + examplesFormatted + ragContext,
+      // Regional context comes first so it sets the tone
+      systemMessage: regionalContext + systemPrompt + examplesFormatted + ragContext,
       learningExamples,
       ragContext,
-      ragDocuments
+      ragDocuments,
+      tenantSettings
     };
   }
 
