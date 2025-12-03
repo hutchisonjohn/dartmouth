@@ -3,445 +3,216 @@
 **Date:** December 3, 2025  
 **Version:** 2.2  
 **Overall Completion:** 92%  
-**Status:** Active Development - Phase 1 Complete, Live Chat Next
+**Status:** Active Development - Phase 1 Complete, Polish & Live Chat Next
 
 ---
 
 ## 📋 TABLE OF CONTENTS
 
 1. [Executive Status Summary](#1-executive-status-summary)
-2. [Completed Features](#2-completed-features)
-3. [In Progress](#3-in-progress)
-4. [Not Started](#4-not-started)
-5. [Next Actions](#6-next-actions)
-6. [Timeline & Milestones](#7-timeline--milestones)
+2. [Completed Features (Dec 3)](#2-completed-features-dec-3)
+3. [Active TODO List](#3-active-todo-list)
+4. [AI Learning System Status](#4-ai-learning-system-status)
+5. [Next Actions](#5-next-actions)
 
 ---
 
 ## 1. EXECUTIVE STATUS SUMMARY
 
-### Overall Health: 🟢 EXCELLENT
+### Overall Health: 🟢 GOOD
 
 | Category | Status | Completion | Notes |
 |----------|--------|------------|-------|
-| **Dartmouth OS Core** | 🟢 Complete | 85% | All core layers working |
 | **Email System V2** | ✅ Complete | 100% | Production-ready |
-| **Customer Service Dashboard** | ✅ Complete | 100% | Full AI integration |
-| **AI Agent Integration** | ✅ Complete | 100% | RLHF learning working |
-| **Ticket Management** | ✅ Complete | 100% | Search, merge, delete |
-| **McCarthy Artwork Agent** | 🟡 Testing | 100% (built) | 85% tested |
-| **Customer Service Agent** | ✅ Integrated | 100% | Generating drafts |
-| **Sales Agent** | ❌ Not Started | 5% | Spec only |
-| **PA Agent** | 🟡 External Dev | 20% | Week 2 of 8 |
-| **Live Chat System** | ❌ Not Started | 0% | Next priority |
-
-### Key Metrics
-
-- **Lines of Code:** ~50,000+
-- **API Endpoints:** 45+ implemented
-- **Database Tables:** 30+
-- **Agents Deployed:** 2 (McCarthy Artwork, Customer Service)
-- **AI Automation Rate:** 80%+ (with human approval)
+| **Customer Service Dashboard** | ✅ Complete | 100% | All features working |
+| **AI Agent Integration** | ✅ Complete | 100% | Drafts, approve, edit, reject, feedback |
+| **RLHF Data Collection** | ✅ Complete | 100% | Quality scores, learning examples |
+| **AI Agent Analytics** | ✅ Complete | 100% | Dashboard with stats & charts |
+| **Ticket Management** | ✅ Complete | 100% | Delete, merge, search, snooze |
+| **AI Learning Pipeline** | 🟡 Data Only | 50% | Data collected, not yet training |
 
 ---
 
-## 2. COMPLETED FEATURES (December 3, 2025)
+## 2. COMPLETED FEATURES (Dec 3)
 
-### ✅ AI Agent Integration - FULLY COMPLETE
+### ✅ AI Agent Integration (100%)
+- ✅ AI Agent generates draft responses for all new tickets
+- ✅ AIAgentProcessor service orchestrates AI workflow
+- ✅ AI Draft Response panel in ticket detail view
+- ✅ Approve & Send (sends AI response as-is)
+- ✅ Edit & Send (modify before sending)
+- ✅ Reject (dismiss AI draft)
+- ✅ Confidence score display
+- ✅ Intent detection display
 
-**Status:** 🟢 PRODUCTION-READY
-
-#### Features Completed (Dec 2-3, 2025)
-- ✅ AI Agent added as staff member (`ai-agent-001`)
-- ✅ AIAgentProcessor service built and working
-- ✅ AI Draft Response panel in dashboard
-- ✅ Approve & Send functionality
-- ✅ Edit & Send functionality
-- ✅ Reject with reason functionality
-- ✅ Confidence score display (0-100%)
-- ✅ AI reasoning display
-- ✅ Suggested actions display
-- ✅ Escalation warnings
-- ✅ Processing time display
-
-#### RLHF Learning System - COMPLETE
-- ✅ Feedback modal after approve/edit (stars, thumbs, notes)
-- ✅ Quality score capture (1-5 stars)
-- ✅ Was helpful capture (yes/no)
-- ✅ Improvement notes capture
-- ✅ Edit distance calculation
-- ✅ Learning examples table (high-quality responses saved)
+### ✅ RLHF Feedback System (100%)
+- ✅ Quality score (1-5 stars) after approve/edit
+- ✅ Was it helpful? (thumbs up/down)
+- ✅ Improvement notes (text feedback)
 - ✅ Feedback stored in `ai_draft_responses` table
-- ✅ High-quality responses (4-5 stars) auto-added to learning examples
+- ✅ High-quality responses (4-5 stars) saved to `ai_learning_examples`
 
-#### Key Files
-- `packages/worker/src/services/AIAgentProcessor.ts` - AI processing orchestration
-- `packages/worker/src/services/EmailHandler.ts` - Inbound email → AI processing
-- `packages/customer-service-dashboard/src/components/AIDraftResponsePanel.tsx` - Draft UI
-- `packages/customer-service-dashboard/src/components/AIDraftFeedbackModal.tsx` - RLHF feedback
+### ✅ AI Agent Analytics Dashboard (100%)
+- ✅ Navigation: Analytics > AI Agent in sidebar
+- ✅ Stats cards: Total drafts, Avg quality, Helpful rate, Approval rate
+- ✅ Quality score distribution chart (1-5 stars)
+- ✅ Response actions breakdown (approved/edited/rejected %)
+- ✅ Performance by intent table
+- ✅ Learning examples section
+- ✅ Time range filter (24h, 7d, 30d, all time)
 
----
+### ✅ Ticket Management Enhancements (100%)
+- ✅ Ticket deletion (soft delete, admin only)
+- ✅ Ticket merging (multi-select, chronological messages)
+- ✅ Ticket search (by number, customer, email, description)
+- ✅ Comma-separated ticket number search (e.g., "112, 119, 122")
+- ✅ Auto-archive exact duplicate tickets
+- ✅ 30-minute snooze option (for testing)
+- ✅ Auto-unsnooze when snooze expires (cron job)
 
-### ✅ Email System V2 - FULLY COMPLETE
+### ✅ Email & Scheduling Fixes (100%)
+- ✅ Paragraph spacing preserved in inbound emails
+- ✅ Paragraph spacing preserved in AI responses
+- ✅ Paragraph spacing preserved in outbound emails
+- ✅ Schedule reply defaults to TODAY (not tomorrow)
+- ✅ Schedule reply time defaults to next hour
+- ✅ Scheduled message edit refreshes UI immediately
+- ✅ Staff notes show correct local timezone for snooze/schedule times
 
-**Status:** 🟢 PRODUCTION-READY
-
-#### Features Completed
-- ✅ Cloudflare Email Routing (inbound)
-- ✅ MIME parsing (multipart, base64, quoted-printable)
-- ✅ Email threading (In-Reply-To, References headers)
-- ✅ Conversation tracking
-- ✅ Automatic ticket creation
-- ✅ Resend integration (outbound)
-- ✅ Scheduled message sending (cron job every 5 minutes)
-- ✅ **Paragraph spacing preserved** (HTML-to-text conversion fixed)
-- ✅ **textToHtml conversion** (proper `<p>` tags for outbound)
-- ✅ Smart HTML vs plain text detection
-
-#### Paragraph Spacing Fix (Dec 3, 2025)
-- ✅ `htmlToText()` function improved - detects HTML structure
-- ✅ Compares plain text newlines vs HTML structure elements
-- ✅ Uses HTML when it has better formatting (br, p, div tags)
-- ✅ `textToHtml()` function - converts text to proper HTML paragraphs
-- ✅ Outbound emails now have proper paragraph formatting
-
----
-
-### ✅ Customer Service Dashboard - FULLY COMPLETE
-
-**Status:** 🟢 PRODUCTION-READY
-
-#### Features Completed
-
-**Ticket List View:**
-- ✅ Ticket list with filters (platform, status, priority, sentiment, assignment, time)
-- ✅ Sticky header
-- ✅ Responsive table
-- ✅ **Search functionality** (ticket #, customer name, email, description)
-- ✅ **Comma-separated ticket number search** (e.g., "112, 119, 122")
-- ✅ **Multi-select checkboxes** for bulk operations
-- ✅ **Ticket merge feature** (merge multiple tickets into one)
-- ✅ Proper column widths (ticket # not truncated)
-- ✅ Color-coded badges (priority, status, sentiment)
-
-**Ticket Detail View:**
-- ✅ Full conversation history
-- ✅ Customer information panel
-- ✅ Reply functionality
-- ✅ Schedule reply
-- ✅ Internal notes
-- ✅ **AI Draft Response panel**
-- ✅ **RLHF Feedback modal**
-- ✅ **Merge banner** (shows merged ticket info)
-- ✅ **Delete ticket** (soft delete with confirmation)
-- ✅ Scheduled message indicator
-- ✅ Message bubbles with proper formatting
-- ✅ **Staff name display** (first name only, not email)
-
-**Ticket Management:**
-- ✅ Auto-detect priority (5 levels)
-- ✅ Auto-detect sentiment (4 levels)
-- ✅ Auto-detect category (10+ categories)
-- ✅ Assign to staff
-- ✅ Update status/priority
-- ✅ Snooze tickets
-- ✅ **Snooze expiry checker** (auto-unsnooze when time elapsed)
-- ✅ Resolve/close tickets
-- ✅ **Soft delete tickets** (admin only)
-- ✅ **Merge tickets** (combine related tickets)
-- ✅ **Duplicate ticket detection** (auto-archive exact duplicates)
+### ✅ UI/UX Fixes (100%)
+- ✅ Ticket number display not truncated
+- ✅ Checkbox alignment in ticket list
+- ✅ Merge banner shows merged ticket details
+- ✅ Staff name shows first name (not email) in messages
 
 ---
 
-### ✅ Ticket Manager - FULLY COMPLETE
+## 3. ACTIVE TODO LIST
 
-**Status:** 🟢 PRODUCTION-READY
+### 🔴 Group A: AI Learning (HIGH PRIORITY)
+| Task | Est. Time | Status | Notes |
+|------|-----------|--------|-------|
+| Build Dynamic Prompt Enhancement | 2-3 hours | ❌ Not Started | Inject learning examples into AI system prompt |
+| Build learning pipeline (pattern extraction) | 4-6 hours | ❌ Not Started | Extract patterns from feedback |
+| Improve Customer Service Agent system prompt | 2-3 hours | ❌ Not Started | Add more business context |
 
-#### Features Completed
-- ✅ Create tickets from normalized messages
-- ✅ Auto-detect priority, sentiment, category
-- ✅ Add messages to tickets
-- ✅ Add internal notes
-- ✅ Assign/reassign tickets
-- ✅ Escalate tickets
-- ✅ Snooze tickets
-- ✅ **Snooze expiry auto-check** (cron job)
-- ✅ Resolve/close tickets
-- ✅ **Soft delete tickets**
-- ✅ **Merge tickets**
-- ✅ **Duplicate detection** (exact match auto-archive)
-- ✅ SLA calculation
+**Recommendation:** Start with Dynamic Prompt Enhancement - quickest way to make AI learn from feedback.
 
----
+### 🟡 Group B: Bulk Operations
+| Task | Est. Time | Status | Notes |
+|------|-----------|--------|-------|
+| Add bulk ticket assignment | 2-3 hours | ❌ Not Started | Select multiple, assign to staff |
 
-### ✅ Database Migrations Applied
-
-| Migration | Description | Status |
-|-----------|-------------|--------|
-| 0001-0016 | Core tables | ✅ Applied |
-| 0017 | `deleted_at`, `deleted_by` columns | ✅ Applied |
-| 0018 | `merged_from` column | ✅ Applied |
-| 0019 | `merged_at`, `merged_by` columns | ✅ Applied |
-
----
-
-## 3. IN PROGRESS
-
-### 🟡 McCarthy Artwork Agent Testing
-
-**Status:** Week 1 of 1  
-**Completion:** 85%
-
-**Remaining Work:**
-- Run 42 tests from `RETEST_FAILED_AND_UNTESTED.md`
-- Document results
-- Fix any remaining issues
-
-**Timeline:** 1-2 days
+### 🟢 Group C: Live Chat System (HIGH PRIORITY)
+| Task | Est. Time | Status | Notes |
+|------|-----------|--------|-------|
+| Build Staff Availability System | 3-4 hours | ❌ Not Started | Online/offline/away status |
+| Build Business Hours Settings | 2-3 hours | ❌ Not Started | Timezone, hours, auto-offline |
+| Build AI Escalation to Available Staff | 3-4 hours | ❌ Not Started | Smart routing |
+| Create knowledge base documents for RAG | 4-6 hours | ❌ Not Started | Docs for AI to reference |
+| Build Chat Widget Script | 4-6 hours | ❌ Not Started | Embed code for store |
+| Build Chat Widget UI | 6-8 hours | ❌ Not Started | Customer-facing bubble + window |
+| Build Real-time Messaging | 6-8 hours | ❌ Not Started | WebSocket for instant communication |
+| Build Callback Feature | 3-4 hours | ❌ Not Started | Form popup when offline |
+| Build Chat Dashboard | 6-8 hours | ❌ Not Started | Staff interface for live chats |
+| Integrate AI Agent with live chat | 4-6 hours | ❌ Not Started | McCarthy AI handles chats |
 
 ---
 
-### 🟡 PA Agent (External Developer)
+## 4. AI LEARNING SYSTEM STATUS
 
-**Status:** Week 2 of 8  
-**Completion:** 20%
+### Current State: Data Collection ✅ | Training ❌
 
-**Current Phase:** Voice integration (Layer 7)
+**What's Working:**
+1. ✅ Feedback is captured (quality scores, helpful, notes)
+2. ✅ Learning examples are stored (high-quality responses)
+3. ✅ Analytics dashboard shows the data
+4. ❌ AI is NOT yet using this data to improve
 
-**Timeline:** 6 weeks remaining
+**How to Enable AI Learning (Recommended Approach):**
 
----
+#### Option A: Dynamic Prompt Enhancement (2-3 hours)
+The fastest way to make AI learn from feedback:
 
-## 4. NOT STARTED
+1. When AI generates a response, fetch top 5-10 learning examples from DB
+2. Inject them into the system prompt as "few-shot examples"
+3. AI immediately uses your best responses as guidance
 
-### ❌ Live Chat System - NEXT PRIORITY
+```
+System Prompt Addition:
+"When responding, follow these high-quality examples from your team:
 
-**Status:** Phase 2 - Starting Soon
+Example 1 (Intent: general_inquiry, Quality: 5/5):
+Customer: "Thanks for the great service!"
+Response: "G'day! Thanks so much for your kind words..."
+```
 
-**Components to Build:**
+**Files to modify:**
+- `packages/worker/src/services/AIAgentProcessor.ts`
+- `packages/customer-service-agent/src/CustomerServiceAgent.ts`
 
-| Component | Est. Time | Priority |
-|-----------|-----------|----------|
-| Staff Availability System | 3-4 hours | HIGH |
-| Business Hours Settings | 2-3 hours | HIGH |
-| AI Escalation to Available Staff | 3-4 hours | HIGH |
-| Chat Widget Script (embed code) | 4-5 hours | HIGH |
-| Chat Widget UI (bubble + window) | 6-8 hours | HIGH |
-| Real-time Messaging (WebSocket) | 8-10 hours | HIGH |
-| Callback Feature (offline form) | 3-4 hours | MEDIUM |
-| Chat Dashboard (staff interface) | 8-10 hours | HIGH |
-| AI Agent Integration (live chat) | 4-5 hours | HIGH |
-| Knowledge Base Documents for RAG | 4-6 hours | MEDIUM |
+#### Option B: Track Common Edits (4-6 hours)
+Learn what staff commonly change:
+- Compare original AI draft vs edited version
+- Identify patterns (too formal, too long, missing info)
+- Auto-adjust tone, length, style
 
-**Total Estimate:** 45-60 hours (2-3 weeks)
-
----
-
-### ❌ Remaining Polish Items
-
-| Item | Est. Time | Status |
-|------|-----------|--------|
-| Improve Customer Service Agent prompt | 2-3 hours | Not Started |
-| Build RLHF Analytics Dashboard | 6-8 hours | Not Started |
-| Build learning pipeline (pattern extraction) | 4-6 hours | Not Started |
-| Add bulk ticket assignment | 2-3 hours | Not Started |
-| Update architecture docs | 2-3 hours | Not Started |
-
----
-
-### ❌ Layer 4: Integration & Communication
-
-**Missing Components:**
-- ❌ Shopify Integration (0%)
-- ❌ PERP Integration (0%)
-- ❌ Webhook System (0%)
-
-**Timeline:** Phase 3 (2 weeks)
-
----
-
-### ❌ Sales Agent
-
-**Status:** Phase 4 (after integrations)
-
-**Timeline:** 1 week after Shopify/PERP
-
----
-
-### ❌ Admin Dashboard
-
-**Status:** Phase 5
-
-**Missing Components:**
-- ❌ User management UI
-- ❌ Integration management UI
-- ❌ Agent configuration UI
-
-**Timeline:** 2-3 weeks
+#### Option C: Fine-Tuning (Future)
+More complex, requires 100+ examples:
+- Export learning examples as training data
+- Use OpenAI's fine-tuning API
+- Better for long-term optimization
 
 ---
 
 ## 5. NEXT ACTIONS
 
-### Immediate Priority: Live Chat System
+### Immediate Priority
+1. **AI Learning Pipeline** - Make AI actually use the feedback data
+2. **Commit & Backup** - Save all Dec 3 work
 
-**Recommended Order:**
+### This Week
+- Build Dynamic Prompt Enhancement (Option A)
+- Improve Customer Service Agent system prompt
+- Start Live Chat foundation (Staff Availability, Business Hours)
 
-1. **Staff Availability System** (3-4 hours)
-   - Online/offline/away status
-   - Database table for status
-   - API endpoints
-
-2. **Business Hours Settings** (2-3 hours)
-   - Configure timezone
-   - Set business hours
-   - Auto-offline outside hours
-
-3. **Chat Widget Script** (4-5 hours)
-   - Embed code generator
-   - Script loader
-   - Configuration options
-
-4. **Chat Widget UI** (6-8 hours)
-   - Chat bubble
-   - Chat window
-   - Message input
-   - Typing indicators
-
-5. **Real-time Messaging** (8-10 hours)
-   - WebSocket connection
-   - Message delivery
-   - Presence updates
-
-6. **Chat Dashboard** (8-10 hours)
-   - Staff interface
-   - Active chats list
-   - Chat history
-
-7. **AI Agent Integration** (4-5 hours)
-   - Same AI as email
-   - Instant responses
-   - Escalation to human
-
-8. **Callback Feature** (3-4 hours)
-   - Offline form
-   - Name, Email, Phone, Order ID, Reason
-   - Creates ticket
+### This Month
+- Complete Live Chat System
+- Build bulk ticket assignment
+- Shopify Integration (for order lookups)
 
 ---
 
-## 6. TIMELINE & MILESTONES
-
-### December 2025
-
-**Week 1 (Dec 2-8) - COMPLETED:**
-- ✅ AI Agent Integration complete
-- ✅ RLHF learning system working
-- ✅ Paragraph spacing fixed
-- ✅ Ticket search functionality
-- ✅ Ticket merge functionality
-- ✅ Ticket soft delete
-- ✅ Snooze expiry checker
-- ✅ Duplicate ticket auto-archive
-
-**Week 2 (Dec 9-15):**
-- 🎯 Live Chat - Staff Availability
-- 🎯 Live Chat - Business Hours
-- 🎯 Live Chat - Widget Script
-- 🎯 Live Chat - Widget UI
-
-**Week 3-4 (Dec 16-31):**
-- 🎯 Live Chat - WebSocket messaging
-- 🎯 Live Chat - Dashboard
-- 🎯 Live Chat - AI integration
-- 🎯 Live Chat - Callback feature
-
----
-
-### January 2026
-
-**Week 1-2:**
-- RLHF Analytics Dashboard
-- Learning pipeline
-- Shopify Integration
-
-**Week 3-4:**
-- PERP Integration
-- Sales Agent
-- Admin Dashboard (start)
-
----
-
-## 📊 KEY METRICS
-
-### AI Performance (Dec 3, 2025)
+## 📊 KEY METRICS (Dec 3)
 
 | Metric | Value |
 |--------|-------|
-| **AI Draft Generation Rate** | 100% (all new tickets) |
-| **Average Confidence Score** | 80% |
-| **Processing Time** | 1-3 seconds |
-| **LLM Used** | OpenAI GPT-4o |
-
-### RLHF Data Captured
-
-| Metric | Value |
-|--------|-------|
-| **Feedback submissions** | Active |
-| **Quality scores** | 1-5 stars |
-| **Helpful ratings** | Yes/No |
-| **Learning examples** | Auto-created for 4-5 star |
+| **AI Drafts Generated** | 15+ |
+| **Average Quality Score** | 5.0/5 |
+| **Helpful Rate** | 100% |
+| **Approval Rate** | ~40% |
+| **Edit Rate** | ~60% |
+| **Reject Rate** | 0% |
+| **Learning Examples Stored** | 10+ |
 
 ---
 
 ## 📚 DOCUMENTATION
 
-### Current Documents
-- ✅ `DARTMOUTH_OS_BLUEPRINT_2025.md` - System architecture
-- ✅ `MASTER_API_ARCHITECTURE.md` - API documentation
-- ✅ `PROJECT_STATUS_DEC_3_2025.md` - This document
+### Updated Documents
+- ✅ `PROJECT_STATUS_DEC_3_2025.md` (This document)
+- ✅ `DARTMOUTH_OS_BLUEPRINT_2025.md`
+- ✅ `MASTER_API_ARCHITECTURE.md`
 
-### Key Database Tables
-
-| Table | Purpose |
-|-------|---------|
-| `tickets` | Ticket data |
-| `ticket_messages` | Conversation messages |
-| `ai_draft_responses` | AI drafts + feedback |
-| `ai_learning_examples` | High-quality responses |
-| `internal_notes` | Staff notes |
-| `staff_users` | Staff members |
-| `scheduled_messages` | Scheduled sends |
-
----
-
-## 🔧 COMMANDS REFERENCE
-
-### View RLHF Data
-
-```powershell
-# View AI drafts with feedback
-npx wrangler d1 execute agent-army-db --remote --command "SELECT id, ticket_id, intent, confidence_score, quality_score, was_helpful, status FROM ai_draft_responses ORDER BY created_at DESC LIMIT 20"
-
-# View learning examples
-npx wrangler d1 execute agent-army-db --remote --command "SELECT id, intent, quality_score, created_at FROM ai_learning_examples ORDER BY created_at DESC LIMIT 20"
-
-# View feedback stats
-npx wrangler d1 execute agent-army-db --remote --command "SELECT COUNT(*) as total, AVG(quality_score) as avg_quality, SUM(CASE WHEN was_helpful = 1 THEN 1 ELSE 0 END) as helpful FROM ai_draft_responses WHERE quality_score IS NOT NULL"
-```
-
-### Deploy Commands
-
-```powershell
-# Deploy worker
-cd D:\coding\DARTMOUTH_OS_PROJECT\packages\worker
-npm run deploy
-
-# Deploy dashboard
-cd D:\coding\DARTMOUTH_OS_PROJECT\packages\customer-service-dashboard
-npm run build
-npx wrangler pages deploy dist --project-name=customer-service-dashboard
-```
+### Key Files Modified (Dec 3)
+- `packages/customer-service-dashboard/src/pages/AIAgentAnalyticsPage.tsx` (NEW)
+- `packages/customer-service-dashboard/src/components/layout/Sidebar.tsx` (Analytics nav)
+- `packages/customer-service-dashboard/src/components/SnoozeModal.tsx` (30-min option)
+- `packages/customer-service-dashboard/src/components/ScheduleReplyModal.tsx` (Today default)
+- `packages/customer-service-dashboard/src/pages/TicketDetailPage.tsx` (Multiple fixes)
+- `packages/worker/src/controllers/analytics.ts` (NEW)
+- `packages/worker/src/controllers/tickets.ts` (Timezone fixes)
+- `packages/worker/src/routes/api.ts` (Analytics routes)
 
 ---
 
@@ -453,4 +224,3 @@ npx wrangler pages deploy dist --project-name=customer-service-dashboard
 ---
 
 **📊 MCCARTHY AI DARTMOUTH OS - PROJECT STATUS AS OF DECEMBER 3, 2025**
-

@@ -84,7 +84,7 @@ export default function AIAgentAnalyticsPage() {
     queryKey: ['ai-agent-analytics', timeRange],
     queryFn: async () => {
       const response = await analyticsApi.getAIAgentStats(timeRange)
-      return response.data
+      return response.data.data  // axios wraps response, API returns { data: { ... } }
     },
   })
 
@@ -93,7 +93,7 @@ export default function AIAgentAnalyticsPage() {
     queryKey: ['ai-learning-examples'],
     queryFn: async () => {
       const response = await analyticsApi.getLearningExamples(10)
-      return response.data
+      return response.data.data  // axios wraps response, API returns { data: { ... } }
     },
   })
 
