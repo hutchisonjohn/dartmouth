@@ -13,6 +13,9 @@ import StaffPage from './pages/StaffPage'
 import StaffPerformancePage from './pages/StaffPerformancePage'
 import ChatDashboardPage from './pages/ChatDashboardPage'
 import ChatEmbedCodePage from './pages/ChatEmbedCodePage'
+import AIAgentWidgetPage from './pages/AIAgentWidgetPage'
+import AIAgentKnowledgePage from './pages/AIAgentKnowledgePage'
+import AIAgentSystemMessagePage from './pages/AIAgentSystemMessagePage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore()
@@ -41,6 +44,10 @@ function App() {
           <Route path="settings/business-hours" element={<BusinessHoursPage />} />
           <Route path="settings/chat-widget" element={<ChatWidgetSettingsPage />} />
           <Route path="settings/chat-embed" element={<ChatEmbedCodePage />} />
+          {/* AI Agent routes */}
+          <Route path="ai-agent/widget" element={<AIAgentWidgetPage />} />
+          <Route path="ai-agent/knowledge" element={<AIAgentKnowledgePage />} />
+          <Route path="ai-agent/system-message" element={<AIAgentSystemMessagePage />} />
           <Route path="staff" element={<StaffPage />} />
           <Route path="staff/performance" element={<StaffPerformancePage />} />
           <Route path="chat" element={<ChatDashboardPage />} />

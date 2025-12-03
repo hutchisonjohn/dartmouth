@@ -21,6 +21,7 @@ import * as emailTestController from '../controllers/email-test';
 import * as analyticsController from '../controllers/analytics';
 import * as chatController from '../controllers/chat';
 import * as chatMessagesController from '../controllers/chat-messages';
+import * as aiAgentController from '../controllers/ai-agent';
 
 /**
  * Create API router
@@ -142,6 +143,21 @@ export function createAPIRouter() {
 
   app.get('/api/analytics/ai-agent', authenticate, analyticsController.getAIAgentStats);
   app.get('/api/analytics/ai-agent/learning-examples', authenticate, analyticsController.getLearningExamples);
+
+  // ========================================================================
+  // AI AGENT CONFIGURATION ROUTES
+  // ========================================================================
+
+  // RAG Knowledge Documents
+  app.get('/api/ai-agent/knowledge', authenticate, aiAgentController.listKnowledgeDocuments);
+  app.post('/api/ai-agent/knowledge/upload', authenticate, requireAdmin, aiAgentController.uploadKnowledgeDocument);
+  app.delete('/api/ai-agent/knowledge/:id', authenticate, requireAdmin, aiAgentController.deleteKnowledgeDocument);
+  app.post('/api/ai-agent/knowledge/reprocess', authenticate, requireAdmin, aiAgentController.reprocessKnowledgeDocuments);
+
+  // System Message Configuration
+  app.get('/api/ai-agent/system-message', authenticate, aiAgentController.getSystemMessageConfig);
+  app.put('/api/ai-agent/system-message', authenticate, requireAdmin, aiAgentController.updateSystemMessageConfig);
+  app.post('/api/ai-agent/system-message/reset', authenticate, requireAdmin, aiAgentController.resetSystemMessageConfig);
 
   // ========================================================================
   // EMAIL SYSTEM V2 ROUTES (Conversations + MailChannels)

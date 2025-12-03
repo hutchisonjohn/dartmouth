@@ -164,6 +164,37 @@ export const chatApi = {
     close_time: string | null;
   }>) => api.put('/api/chat/business-hours', { hours }),
   getStatus: () => api.get('/api/chat/status'),
+  getEmbedCode: () => api.get('/api/chat/embed-code'),
+}
+
+// AI Agent RAG Knowledge API
+export const ragApi = {
+  listDocuments: () => api.get('/api/ai-agent/knowledge'),
+  uploadDocument: (file: File, category: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category);
+    return api.post('/api/ai-agent/knowledge/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  deleteDocument: (id: string) => api.delete(`/api/ai-agent/knowledge/${id}`),
+  reprocessDocuments: () => api.post('/api/ai-agent/knowledge/reprocess'),
+}
+
+// AI Agent System Message API
+export const systemMessageApi = {
+  getConfig: () => api.get('/api/ai-agent/system-message'),
+  updateConfig: (config: {
+    role?: string;
+    personality?: string;
+    responsibilities?: string;
+    dos?: string;
+    donts?: string;
+    tone?: string;
+    custom_instructions?: string;
+  }) => api.put('/api/ai-agent/system-message', config),
+  resetToDefault: () => api.post('/api/ai-agent/system-message/reset'),
 }
 
 // Settings API

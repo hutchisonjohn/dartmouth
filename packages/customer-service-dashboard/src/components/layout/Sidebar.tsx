@@ -35,8 +35,8 @@ export default function Sidebar({
   const [isStaffExpanded, setIsStaffExpanded] = useState(false)
   const [isCommunicationExpanded, setIsCommunicationExpanded] = useState(false)
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false)
-  const [isChatWidgetExpanded, setIsChatWidgetExpanded] = useState(false)
   const [isAssignedExpanded, setIsAssignedExpanded] = useState(false)
+  const [isAIAgentExpanded, setIsAIAgentExpanded] = useState(false)
 
   const isActive = (path: string) => location.pathname === path
 
@@ -359,27 +359,28 @@ export default function Sidebar({
             <SubNavLink to="/settings/shopify">Shopify</SubNavLink>
             <SubNavLink to="/settings/perp">PERP Integration</SubNavLink>
             <SubNavLink to="/settings/integrations">Integrations</SubNavLink>
-            {/* AI Chat Widget with nested submenu */}
+            {/* AI Agent nested submenu */}
             <div className="mb-1">
               <button
-                onClick={() => setIsChatWidgetExpanded(!isChatWidgetExpanded)}
+                onClick={() => setIsAIAgentExpanded(!isAIAgentExpanded)}
                 className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${
-                  location.pathname.startsWith('/settings/chat')
+                  location.pathname.startsWith('/ai-agent')
                     ? 'bg-indigo-50 text-indigo-700 font-medium'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                <span>AI Chat Widget</span>
-                {isChatWidgetExpanded ? (
+                <span>AI Agent</span>
+                {isAIAgentExpanded ? (
                   <ChevronUp className="w-4 h-4 text-gray-400" />
                 ) : (
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 )}
               </button>
-              {isChatWidgetExpanded && (
+              {isAIAgentExpanded && (
                 <div className="ml-4 mt-1 space-y-1">
-                  <SubNavLink to="/settings/chat-widget">Settings</SubNavLink>
-                  <SubNavLink to="/settings/chat-embed">Embed Code</SubNavLink>
+                  <SubNavLink to="/ai-agent/widget">Widget & Embed</SubNavLink>
+                  <SubNavLink to="/ai-agent/knowledge">RAG Knowledge</SubNavLink>
+                  <SubNavLink to="/ai-agent/system-message">System Message</SubNavLink>
                 </div>
               )}
             </div>
