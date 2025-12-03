@@ -89,6 +89,8 @@ export const ticketsApi = {
     api.delete(`/api/tickets/${id}`),
   merge: (primaryTicketId: string, secondaryTicketIds: string[]) =>
     api.post(`/api/tickets/${primaryTicketId}/merge`, { secondaryTicketIds }),
+  bulkAssign: (ticketIds: string[], assignedTo: string | null) =>
+    api.post('/api/tickets/bulk-assign', { ticketIds, assignedTo }),
 }
 
 // Mentions API
@@ -112,8 +114,56 @@ export const mentionsApi = {
 export const staffApi = {
   list: () => api.get('/api/staff'),
   get: (id: string) => api.get(`/api/staff/${id}`),
+  me: () => api.get('/api/staff/me'),
+  onlineCount: () => api.get('/api/staff/online-count'),
+  create: (data: {
+    email: string;
+    first_name: string;
+    last_name?: string;
+    role?: string;
+    job_title?: string;
+    phone?: string;
+    department?: string;
+    password: string;
+  }) => api.post('/api/staff', data),
+  update: (id: string, data: {
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    role?: string;
+    job_title?: string;
+    phone?: string;
+    department?: string;
+    password?: string;
+  }) => api.put(`/api/staff/${id}`, data),
   updatePresence: (id: string, isAvailable: boolean) =>
     api.put(`/api/staff/${id}/presence`, { isAvailable }),
+  updateAvailability: (id: string, status: 'online' | 'offline' | 'away') =>
+    api.put(`/api/staff/${id}/availability`, { status }),
+}
+
+// Chat Settings API
+export const chatApi = {
+  getSettings: () => api.get('/api/chat/settings'),
+  updateSettings: (settings: {
+    is_enabled?: boolean;
+    primary_color?: string;
+    secondary_color?: string;
+    button_text?: string;
+    welcome_message?: string;
+    offline_message?: string;
+    timezone?: string;
+    show_business_hours?: boolean;
+    require_email_when_offline?: boolean;
+  }) => api.put('/api/chat/settings', settings),
+  getBusinessHours: () => api.get('/api/chat/business-hours'),
+  updateBusinessHours: (hours: Array<{
+    day_of_week: number;
+    is_open: boolean;
+    open_time: string | null;
+    close_time: string | null;
+  }>) => api.put('/api/chat/business-hours', { hours }),
+  getStatus: () => api.get('/api/chat/status'),
 }
 
 // Settings API

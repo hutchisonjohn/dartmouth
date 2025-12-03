@@ -80,6 +80,13 @@ export default function DashboardLayout() {
       t.status !== 'resolved' &&
       t.status !== 'closed'
     ).length,
+    // All Assigned: All tickets assigned to any staff member (open, in-progress, snoozed - excludes resolved/closed)
+    allAssigned: tickets.filter((t: any) => 
+      t.assigned_to && 
+      t.assigned_to !== null &&
+      t.status !== 'resolved' &&
+      t.status !== 'closed'
+    ).length,
     // Staff member counts (includes open, in-progress, AND snoozed - excludes resolved/closed)
     sam: tickets.filter((t: any) => 
       (t.assigned_to === '00000000-0000-0000-0000-000000000003' || 

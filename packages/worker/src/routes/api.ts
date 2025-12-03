@@ -19,6 +19,8 @@ import * as staffController from '../controllers/staff';
 import * as emailsV2Controller from '../controllers/emails-v2';
 import * as emailTestController from '../controllers/email-test';
 import * as analyticsController from '../controllers/analytics';
+import * as chatController from '../controllers/chat';
+import * as chatMessagesController from '../controllers/chat-messages';
 
 /**
  * Create API router
@@ -60,6 +62,7 @@ export function createAPIRouter() {
   app.post('/api/tickets/:id/resolve-escalation', authenticate, ticketsController.resolveEscalation);
   app.post('/api/tickets/:id/schedule-reply', authenticate, ticketsController.scheduleReply);
   app.delete('/api/tickets/:id', authenticate, requireAdmin, ticketsController.deleteTicket);
+  app.post('/api/tickets/bulk-assign', authenticate, ticketsController.bulkAssignTickets);
   app.post('/api/tickets/:id/merge', authenticate, ticketsController.mergeTickets);
   app.get('/api/tickets/:id/scheduled-messages', authenticate, ticketsController.getScheduledMessages);
   app.put('/api/scheduled-messages/:messageId', authenticate, ticketsController.updateScheduledMessage);
@@ -95,8 +98,43 @@ export function createAPIRouter() {
   // ========================================================================
 
   app.get('/api/staff', authenticate, staffController.listStaff);
+  app.get('/api/staff/me', authenticate, staffController.getCurrentStaff);
+  app.get('/api/staff/online-count', authenticate, staffController.getOnlineStaffCount);
   app.get('/api/staff/:id', authenticate, staffController.getStaff);
+  app.post('/api/staff', authenticate, staffController.createStaff);
+  app.put('/api/staff/:id', authenticate, staffController.updateStaff);
   app.put('/api/staff/:id/presence', authenticate, staffController.updatePresence);
+  app.put('/api/staff/:id/availability', authenticate, staffController.updateAvailability);
+
+  // ========================================================================
+  // BUSINESS HOURS & CHAT SETTINGS ROUTES
+  // ========================================================================
+
+  app.get('/api/chat/settings', authenticate, chatController.getChatSettings);
+  app.put('/api/chat/settings', authenticate, requireAdmin, chatController.updateChatSettings);
+  app.get('/api/chat/business-hours', authenticate, chatController.getBusinessHours);
+  app.put('/api/chat/business-hours', authenticate, requireAdmin, chatController.updateBusinessHours);
+  app.get('/api/chat/status', chatController.getChatStatus); // Public endpoint for widget
+
+  // Live Chat Messaging (public endpoint for widget)
+  app.post('/api/chat/message', chatMessagesController.sendMessage);
+  app.post('/api/chat/callback', chatMessagesController.submitCallback); // Callback request when offline
+  
+  // Chat - Public endpoints for widget
+  app.post('/api/chat/start', chatMessagesController.startConversation); // Start conversation when user enters name/email
+  
+  // Embed Code Generator (authenticated)
+  app.get('/api/chat/embed-code', authenticate, chatMessagesController.getEmbedCode);
+  
+  // Chat Conversations (authenticated - for staff dashboard)
+  app.get('/api/chat/conversations', authenticate, chatMessagesController.listConversations);
+  app.get('/api/chat/conversation/:id', authenticate, chatMessagesController.getConversation);
+  app.get('/api/chat/conversation/:id/poll', chatMessagesController.pollMessages); // Public - for widget polling
+  app.get('/api/chat/conversation/by-ticket/:ticketId', authenticate, chatMessagesController.getConversationByTicket);
+  app.post('/api/chat/conversation/:id/takeover', authenticate, chatMessagesController.takeoverConversation);
+  app.post('/api/chat/conversation/:id/reply', authenticate, chatMessagesController.staffReply);
+  app.post('/api/chat/conversation/:id/pickup', authenticate, chatMessagesController.pickupFromQueue);
+  app.post('/api/chat/conversation/:id/close', authenticate, chatMessagesController.closeConversation);
 
   // ========================================================================
   // ANALYTICS ROUTES

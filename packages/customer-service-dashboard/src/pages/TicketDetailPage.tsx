@@ -221,10 +221,10 @@ export default function TicketDetailPage() {
     refetch()
   }
 
-  const handleReassign = async (staffId: string) => {
+  const handleReassign = async (staffId: string | null, _staffName: string) => {
     if (!ticket) return
     try {
-      await ticketsApi.assign(ticket.ticket_id, staffId)
+      await ticketsApi.assign(ticket.ticket_id, staffId || '')
       setShowReassignModal(false)
       refetch()
     } catch (error: any) {
@@ -1182,14 +1182,32 @@ export default function TicketDetailPage() {
                                   }
                                 });
                               }
-                              // Handle SNOOZE_TIME
+                              // Handle SNOOZE_TIME - capture full ISO timestamp (e.g., 2025-12-03T02:04:20.494Z)
                               if (content.includes('SNOOZE_TIME:')) {
-                                content = content.replace(/SNOOZE_TIME:([^\s.]+)/g, (_: string, timestamp: string) => {
+                                content = content.replace(/SNOOZE_TIME:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/g, (_: string, timestamp: string) => {
                                   try {
                                     const date = new Date(timestamp.trim());
-                                    return date.toLocaleString('en-US', { 
-                                      month: 'numeric', 
-                                      day: 'numeric', 
+                                    return date.toLocaleString('en-AU', { 
+                                      day: 'numeric',
+                                      month: 'short', 
+                                      year: 'numeric', 
+                                      hour: 'numeric', 
+                                      minute: '2-digit', 
+                                      hour12: true 
+                                    });
+                                  } catch {
+                                    return timestamp;
+                                  }
+                                });
+                              }
+                              // Handle BULK_REASSIGN_TIME - capture full ISO timestamp
+                              if (content.includes('BULK_REASSIGN_TIME:')) {
+                                content = content.replace(/BULK_REASSIGN_TIME:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/g, (_: string, timestamp: string) => {
+                                  try {
+                                    const date = new Date(timestamp.trim());
+                                    return date.toLocaleString('en-AU', { 
+                                      day: 'numeric',
+                                      month: 'short', 
                                       year: 'numeric', 
                                       hour: 'numeric', 
                                       minute: '2-digit', 

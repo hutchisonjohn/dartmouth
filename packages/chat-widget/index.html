@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>McCarthy Chat Widget Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .demo-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .demo-header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+    .demo-header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    .demo-header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+    .demo-content {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+    .demo-content h2 {
+      color: #1f2937;
+      margin-bottom: 20px;
+    }
+    .demo-content p {
+      color: #6b7280;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+    .demo-content pre {
+      background: #1f2937;
+      color: #e5e7eb;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .demo-content code {
+      color: #a5f3fc;
+    }
+    .demo-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 30px;
+    }
+    .demo-btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .demo-btn-primary {
+      background: #4f46e5;
+      color: white;
+    }
+    .demo-btn-primary:hover {
+      background: #4338ca;
+    }
+    .demo-btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    .demo-btn-secondary:hover {
+      background: #e5e7eb;
+    }
+    .arrow-hint {
+      position: fixed;
+      bottom: 100px;
+      right: 100px;
+      color: white;
+      font-size: 16px;
+      animation: bounce 2s infinite;
+    }
+    .arrow-hint svg {
+      width: 40px;
+      height: 40px;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <div class="demo-header">
+      <h1>🤖 McCarthy Chat Widget</h1>
+      <p>AI-powered customer support chat for your website</p>
+    </div>
+    
+    <div class="demo-content">
+      <h2>Try it out!</h2>
+      <p>
+        Click the chat bubble in the bottom-right corner to open the chat widget. 
+        This is a fully functional demo showing the customer experience.
+      </p>
+      
+      <h2>How to embed</h2>
+      <p>Add this code to your website, just before the closing <code>&lt;/body&gt;</code> tag:</p>
+      
+      <pre><code>&lt;script&gt;
+  window.McCarthyChatConfig = {
+    apiUrl: 'https://dartmouth-os-worker.dartmouth.workers.dev',
+    primaryColor: '#4F46E5',
+    textColor: '#ffffff',
+    buttonText: 'Chat with us',
+    welcomeMessage: 'Hi! 👋 How can we help you today?',
+    offlineMessage: 'We are currently offline. Leave a message!'
+  };
+&lt;/script&gt;
+&lt;script src="https://your-cdn.com/mccarthy-chat.iife.js"&gt;&lt;/script&gt;</code></pre>
+
+      <div class="demo-buttons">
+        <button class="demo-btn demo-btn-primary" onclick="window.mccarthyChat?.open()">
+          Open Chat
+        </button>
+        <button class="demo-btn demo-btn-secondary" onclick="window.mccarthyChat?.close()">
+          Close Chat
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-hint">
+    Try it! →
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M5 12h14M12 5l7 7-7 7"/>
+    </svg>
+  </div>
+
+  <!-- Chat Widget Config -->
+  <script>
+    window.McCarthyChatConfig = {
+      apiUrl: 'https://dartmouth-os-worker.dartmouth.workers.dev',
+      primaryColor: '#4F46E5',
+      textColor: '#ffffff',
+      buttonText: 'Chat with us',
+      welcomeMessage: 'Hi there! 👋 How can we help you today?',
+      offlineMessage: 'We\'re currently offline. Leave us a message and we\'ll get back to you soon!',
+      position: 'bottom-right'
+    };
+  </script>
+  
+  <!-- Chat Widget Script (dev mode - loads from src) -->
+  <script type="module" src="/src/widget.ts"></script>
+</body>
+</html>
+

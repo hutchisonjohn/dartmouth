@@ -389,6 +389,12 @@ export async function snoozeTicket(c: Context<{ Bindings: Env }>) {
       WHERE ticket_id = ?
     `).bind(snoozedUntil, now, ticketId).run();
 
+    // Get staff member's first name
+    const staffUser = await c.env.DB.prepare(`
+      SELECT first_name FROM staff_users WHERE id = ?
+    `).bind(user.id).first<{ first_name: string }>();
+    const staffName = staffUser?.first_name || 'Staff';
+
     // Add an internal note about the snooze
     // Use SNOOZE_TIME: marker so frontend can format in user's timezone
     const noteId = crypto.randomUUID();
@@ -399,7 +405,7 @@ export async function snoozeTicket(c: Context<{ Bindings: Env }>) {
       noteId,
       ticketId,
       user.id,
-      `💤 Ticket snoozed until SNOOZE_TIME:${snoozedUntil}. Reason: ${reason || 'No reason provided'}`
+      `💤 Snoozed until SNOOZE_TIME:${snoozedUntil} by ${staffName}`
     ).run();
 
     return c.json({ message: 'Ticket snoozed', snoozedUntil });
@@ -1111,6 +1117,89 @@ export async function rejectAIDraftResponse(c: Context<{ Bindings: Env }>) {
  * Delete a ticket (soft delete)
  * DELETE /api/tickets/:id
  */
+/**
+ * Bulk assign multiple tickets to a staff member
+ * POST /api/tickets/bulk-assign
+ * Body: { ticketIds: string[], assignedTo: string | null }
+ */
+export async function bulkAssignTickets(c: Context<{ Bindings: Env }>) {
+  try {
+    const user = c.get('user') as AuthUser;
+    const body = await c.req.json();
+    const { ticketIds, assignedTo } = body;
+
+    if (!ticketIds || !Array.isArray(ticketIds) || ticketIds.length === 0) {
+      return c.json({ error: 'ticketIds array is required' }, 400);
+    }
+
+    console.log(`[Tickets] Bulk assign ${ticketIds.length} tickets to ${assignedTo || 'unassigned'} by ${user.email}`);
+
+    // Get staff name for the note
+    let staffName = 'Unassigned';
+    if (assignedTo) {
+      const staffUser = await c.env.DB.prepare(`
+        SELECT first_name, last_name FROM staff_users WHERE id = ?
+      `).bind(assignedTo).first<{ first_name: string; last_name: string }>();
+      
+      if (staffUser) {
+        staffName = `${staffUser.first_name} ${staffUser.last_name}`;
+      }
+    }
+
+    // Get the assigner's first name only
+    const assignerUser = await c.env.DB.prepare(`
+      SELECT first_name FROM staff_users WHERE id = ?
+    `).bind(user.id).first<{ first_name: string }>();
+    const assignerFirstName = assignerUser?.first_name || 'Staff';
+
+    const now = new Date().toISOString();
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const ticketId of ticketIds) {
+      try {
+        // Update the ticket assignment
+        await c.env.DB.prepare(`
+          UPDATE tickets
+          SET assigned_to = ?, updated_at = ?
+          WHERE ticket_id = ? AND (deleted_at IS NULL OR deleted_at = '')
+        `).bind(assignedTo, now, ticketId).run();
+
+        // Add a note about the reassignment
+        // Use BULK_REASSIGN_TIME: marker so frontend can format in user's timezone
+        const noteId = crypto.randomUUID();
+        await c.env.DB.prepare(`
+          INSERT INTO internal_notes (id, ticket_id, staff_id, note_type, content, created_at, updated_at)
+          VALUES (?, ?, ?, 'system', ?, datetime('now'), datetime('now'))
+        `).bind(
+          noteId,
+          ticketId,
+          user.id,
+          `📋 Reassigned to ${staffName}: Bulk BULK_REASSIGN_TIME:${now} by ${assignerFirstName}`
+        ).run();
+
+        successCount++;
+      } catch (err) {
+        console.error(`[Tickets] Failed to reassign ticket ${ticketId}:`, err);
+        failCount++;
+      }
+    }
+
+    console.log(`[Tickets] Bulk assign complete: ${successCount} success, ${failCount} failed`);
+
+    return c.json({
+      message: `Successfully reassigned ${successCount} ticket${successCount !== 1 ? 's' : ''}`,
+      successCount,
+      failCount,
+      assignedTo: assignedTo || null,
+      assignedToName: staffName
+    });
+  } catch (error) {
+    console.error('[Tickets] Bulk assign error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+}
+
 export async function deleteTicket(c: Context<{ Bindings: Env }>) {
   try {
     const ticketId = c.req.param('id');

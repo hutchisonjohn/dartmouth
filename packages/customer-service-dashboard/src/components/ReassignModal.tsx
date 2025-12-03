@@ -5,8 +5,11 @@ import { ticketsApi } from '../lib/api'
 interface ReassignModalProps {
   isOpen: boolean
   onClose: () => void
-  onReassign: (staffId: string, staffName: string) => void
+  onReassign: (staffId: string | null, staffName: string) => void
   currentAssignment?: string
+  // For bulk mode
+  bulkMode?: boolean
+  selectedTickets?: Array<{ ticket_id: string; ticket_number: string; subject: string }>
 }
 
 const staffMembersBase = [
@@ -15,7 +18,7 @@ const staffMembersBase = [
   { id: '00000000-0000-0000-0000-000000000003', name: 'Sam Johnson', role: 'Agent', online: false },
 ]
 
-export default function ReassignModal({ isOpen, onClose, onReassign, currentAssignment }: ReassignModalProps) {
+export default function ReassignModal({ isOpen, onClose, onReassign, currentAssignment, bulkMode, selectedTickets }: ReassignModalProps) {
   const [selectedStaff, setSelectedStaff] = useState<string>('')
   const [staffMembers, setStaffMembers] = useState(staffMembersBase.map(s => ({ ...s, openTickets: 0 })))
 
@@ -43,6 +46,13 @@ export default function ReassignModal({ isOpen, onClose, onReassign, currentAssi
     }
   }, [tickets])
 
+  // Reset selection when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedStaff('')
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   const onlineStaff = staffMembers.filter(s => s.online)
@@ -50,26 +60,53 @@ export default function ReassignModal({ isOpen, onClose, onReassign, currentAssi
 
   const handleReassign = () => {
     if (!selectedStaff) return
-    const staff = staffMembers.find(s => s.id === selectedStaff)
-    if (staff) {
-      onReassign(staff.id, staff.name)
-      onClose()
+    
+    if (selectedStaff === 'unassigned') {
+      onReassign(null, 'Unassigned')
+    } else {
+      const staff = staffMembers.find(s => s.id === selectedStaff)
+      if (staff) {
+        onReassign(staff.id, staff.name)
+      }
     }
+    onClose()
   }
+
+  const ticketCount = bulkMode && selectedTickets ? selectedTickets.length : 1
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] flex flex-col">
         {/* Fixed Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h3 className="text-lg font-semibold text-gray-900">Reassign Ticket</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {bulkMode ? `Reassign ${ticketCount} Ticket${ticketCount > 1 ? 's' : ''}` : 'Reassign Ticket'}
+          </h3>
         </div>
 
         {/* Scrollable Content */}
         <div className="px-6 py-4 overflow-y-auto flex-1">
-          <p className="text-sm text-gray-600 mb-4">
-            Reassign ticket #{currentAssignment || 'Unassigned'} to another staff member:
-          </p>
+          {bulkMode && selectedTickets && selectedTickets.length > 0 ? (
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                Reassign the following ticket{ticketCount > 1 ? 's' : ''} to another staff member:
+              </p>
+              <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
+                <ul className="space-y-1">
+                  {selectedTickets.map((ticket) => (
+                    <li key={ticket.ticket_id} className="flex items-center gap-2 text-sm">
+                      <span className="font-medium text-gray-900">{ticket.ticket_number}</span>
+                      <span className="text-gray-500 truncate">- {ticket.subject}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-600 mb-4">
+              Reassign ticket #{currentAssignment || 'Unassigned'} to another staff member:
+            </p>
+          )}
 
           {isOnlyStaffOnline && (
             <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -107,6 +144,29 @@ export default function ReassignModal({ isOpen, onClose, onReassign, currentAssi
                 </div>
               </label>
             ))}
+
+            {/* Unassigned option */}
+            <label
+              className={`flex items-center p-3 border rounded-lg transition-colors cursor-pointer hover:bg-gray-50 ${
+                selectedStaff === 'unassigned'
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-gray-300'
+              }`}
+            >
+              <input
+                type="radio"
+                name="staff"
+                value="unassigned"
+                checked={selectedStaff === 'unassigned'}
+                onChange={(e) => setSelectedStaff(e.target.value)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 flex-shrink-0 mr-3"
+              />
+              <div className="w-2 h-2 rounded-full mr-3 bg-gray-300" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Unassigned</p>
+                <p className="text-xs text-gray-500">Remove assignment</p>
+              </div>
+            </label>
           </div>
         </div>
 
@@ -123,11 +183,10 @@ export default function ReassignModal({ isOpen, onClose, onReassign, currentAssi
             disabled={!selectedStaff}
             className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Reassign Ticket
+            {bulkMode ? `Reassign ${ticketCount} Ticket${ticketCount > 1 ? 's' : ''}` : 'Reassign Ticket'}
           </button>
         </div>
       </div>
     </div>
   )
 }
-
