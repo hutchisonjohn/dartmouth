@@ -300,7 +300,6 @@ None! 🎉
 ### Medium Priority
 1. **Typing Indicators**: Not implemented for chat
 2. **Post-Chat Survey**: Not implemented
-3. **Vector Embeddings**: RAG uses keyword search, not semantic
 
 ### Low Priority
 1. **File Attachments UI**: Backend done, UI pending
@@ -319,8 +318,8 @@ None! 🎉
 ### Short Term (1-2 weeks)
 1. Post-chat survey
 2. Typing indicators
-3. Vector embeddings for RAG
-4. Mobile responsiveness
+3. Mobile responsiveness
+4. File attachments UI (chat)
 
 ### Medium Term (1 month)
 1. Shopify integration
@@ -338,26 +337,75 @@ None! 🎉
 
 ## Resources
 
-### Documentation
-- `McCarthy AI Dartmouth OS 2-12-25/MASTER_API_ARCHITECTURE.md` - API documentation
-- `McCarthy AI Dartmouth OS 2-12-25/NEW_FEATURES_BEYOND_ORIGINAL_ARCHITECTURE.md` - New features
-- `MASTER_BUILD_PLAN_DEC_2_2025.md` - Master plan
-- `TESTING_GUIDE.md` - Testing instructions
+### 📂 Project Directories
 
-### Deployment
-- Worker URL: https://dartmouth-os-worker.dartmouth.workers.dev
-- Dashboard URL: https://dartmouth-os-dashboard.pages.dev
-- Database: dartmouth-os-db (D1)
+| Location | Path | Description |
+|----------|------|-------------|
+| **Main Project** | `D:\coding\DARTMOUTH_OS_PROJECT\` | Working codebase |
+| **Backups** | `D:\coding\BACKUPS\` | Full project backups |
+| **RAG Documents** | `D:\coding\Customer Service AI Agent\RAG_Documents\` | Source knowledge documents |
 
-### Credentials
+### 💾 Latest Backups
+
+| Backup | Date | Time |
+|--------|------|------|
+| `DARTMOUTH_OS_2025-12-05_092318` | Dec 5, 2025 | 9:23 AM |
+| `DARTMOUTH_OS_2025-12-05_085548` | Dec 5, 2025 | 8:55 AM |
+| `DARTMOUTH_OS_2025-12-05_2350` | Dec 5, 2025 | 6:50 AM |
+
+### 🌐 GitHub Repository
+
+| Item | Value |
+|------|-------|
+| **Repository** | `https://github.com/hutchisonjohn/dartmouth.git` |
+| **Branch** | `master` |
+| **Latest Commit** | `a7a2600` - CustomerServiceAgent Vector RAG fix |
+
+### 📄 Documentation Files
+
+| Document | Path |
+|----------|------|
+| **Architecture Doc** | `McCarthy AI Dartmouth OS 2-12-25/NEW_FEATURES_BEYOND_ORIGINAL_ARCHITECTURE.md` |
+| **API Architecture** | `McCarthy AI Dartmouth OS 2-12-25/MASTER_API_ARCHITECTURE.md` |
+| **Build Plan** | `MASTER_BUILD_PLAN_DEC_2_2025.md` |
+| **Progress Doc** | `PROJECT_PROGRESS.md` (this file) |
+| **Testing Guide** | `TESTING_GUIDE.md` |
+| **RAG Test Results** | `packages/worker/scripts/RAG_TEST_RESULTS.md` |
+| **RAG Test Script** | `packages/worker/scripts/test-vector-rag.ps1` |
+
+### 🧪 Vector RAG Test Results (Dec 5, 2025)
+
+| Category | Tests | Result |
+|----------|-------|--------|
+| DTF Transfers | 5 | ✅ 5/5 PASS |
+| UV DTF | 3 | ✅ 3/3 PASS |
+| Shipping | 2 | ✅ 2/2 PASS |
+| Returns | 2 | ✅ 2/2 PASS |
+| Terms | 2 | ✅ 2/2 PASS |
+| Ordering | 3 | ✅ 3/3 PASS |
+| FAQ | 3 | ✅ 3/3 PASS |
+| **TOTAL** | **20** | **100% PASS** ✅ |
+
+**Key Verification:** AI now correctly answers "What temperature for DTF?" with **150-160°C** (from RAG docs) instead of generic **160-170°C**.
+
+### 🚀 Deployment URLs
+
+| Service | URL |
+|---------|-----|
+| **Worker API** | https://dartmouth-os-worker.dartmouth.workers.dev |
+| **Dashboard** | https://dartmouth-os-dashboard.pages.dev |
+| **Database** | dartmouth-os-db (Cloudflare D1) |
+| **Vectorize Index** | dartmouth-rag (53 vectors) |
+
+### 🔐 Credentials
 - Admin: john@directtofilm.com.au
 
 ---
 
 **Status**: ✅ ON TRACK  
 **Morale**: 🚀 HIGH  
-**Next Session**: Callback feature, testing, backup
+**Next Session**: Callback feature, testing
 
 ---
 
-*Last Updated: December 5, 2025, 11:30 PM AEST*
+*Last Updated: December 5, 2025, 9:25 AM AEST*
