@@ -30,6 +30,11 @@ preview_id = "ddbe6a75fde34a9daac1f58b217bfc61"
 [ai]
 binding = "WORKERS_AI"
 
+# Vectorize (RAG Vector Database)
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "dartmouth-rag"
+
 # Observability
 [observability]
 enabled = true

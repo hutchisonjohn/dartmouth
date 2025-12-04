@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 import type { Env } from '../types/shared';
+import { VectorRAGService } from '../services/VectorRAGService';
 
 // ============================================================================
 // RAG KNOWLEDGE DOCUMENTS
@@ -72,17 +73,46 @@ export async function uploadKnowledgeDocument(c: Context<{ Bindings: Env }>) {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
+    // Insert document metadata into D1
     await c.env.DB.prepare(`
       INSERT INTO ai_knowledge_documents (
         id, filename, title, category, content, word_count, 
         uploaded_at, uploaded_by, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'processing')
     `).bind(
       id, filename, title, category, content, wordCount,
       now, user.id
     ).run();
 
     console.log(`[AIAgent] Knowledge document uploaded: ${filename} (${wordCount} words)`);
+
+    // Process document with Vector RAG (generate embeddings)
+    let vectorStats = { chunksCreated: 0, vectorsStored: 0 };
+    try {
+      if (c.env.VECTORIZE && c.env.OPENAI_API_KEY) {
+        const vectorRAG = new VectorRAGService(c.env.DB, c.env.VECTORIZE, c.env.OPENAI_API_KEY);
+        vectorStats = await vectorRAG.processDocument(id, title, category, content);
+        
+        // Update status to active after successful processing
+        await c.env.DB.prepare(`
+          UPDATE ai_knowledge_documents SET status = 'active' WHERE id = ?
+        `).bind(id).run();
+        
+        console.log(`[AIAgent] Document vectorized: ${vectorStats.chunksCreated} chunks, ${vectorStats.vectorsStored} vectors`);
+      } else {
+        // Mark as active but without vectors (fallback to keyword search)
+        await c.env.DB.prepare(`
+          UPDATE ai_knowledge_documents SET status = 'active' WHERE id = ?
+        `).bind(id).run();
+        console.log('[AIAgent] Vectorize not available, document stored without embeddings');
+      }
+    } catch (vectorError: any) {
+      console.error('[AIAgent] Vector processing error:', vectorError);
+      // Mark as error but keep the document
+      await c.env.DB.prepare(`
+        UPDATE ai_knowledge_documents SET status = 'error' WHERE id = ?
+      `).bind(id).run();
+    }
 
     return c.json({
       message: 'Document uploaded successfully',
@@ -92,7 +122,9 @@ export async function uploadKnowledgeDocument(c: Context<{ Bindings: Env }>) {
         title,
         category,
         word_count: wordCount,
-        status: 'active'
+        status: 'active',
+        chunks_created: vectorStats.chunksCreated,
+        vectors_stored: vectorStats.vectorsStored
       }
     });
   } catch (error: any) {
@@ -110,6 +142,18 @@ export async function deleteKnowledgeDocument(c: Context<{ Bindings: Env }>) {
     const id = c.req.param('id');
     const now = new Date().toISOString();
 
+    // Delete vectors from Vectorize first
+    try {
+      if (c.env.VECTORIZE && c.env.OPENAI_API_KEY) {
+        const vectorRAG = new VectorRAGService(c.env.DB, c.env.VECTORIZE, c.env.OPENAI_API_KEY);
+        await vectorRAG.deleteDocument(id);
+      }
+    } catch (vectorError) {
+      console.error('[AIAgent] Error deleting vectors:', vectorError);
+      // Continue with soft delete even if vector deletion fails
+    }
+
+    // Soft delete the document
     await c.env.DB.prepare(`
       UPDATE ai_knowledge_documents 
       SET deleted_at = ?, status = 'deleted'
@@ -131,6 +175,23 @@ export async function deleteKnowledgeDocument(c: Context<{ Bindings: Env }>) {
  */
 export async function reprocessKnowledgeDocuments(c: Context<{ Bindings: Env }>) {
   try {
+    if (!c.env.VECTORIZE || !c.env.OPENAI_API_KEY) {
+      return c.json({ error: 'Vectorize or OpenAI API key not configured' }, 400);
+    }
+
+    // Get all active documents
+    const { results: documents } = await c.env.DB.prepare(`
+      SELECT id, title, category, content
+      FROM ai_knowledge_documents 
+      WHERE deleted_at IS NULL AND status != 'deleted'
+    `).all<{ id: string; title: string; category: string; content: string }>();
+
+    if (!documents || documents.length === 0) {
+      return c.json({ message: 'No documents to reprocess', processed: 0 });
+    }
+
+    console.log(`[AIAgent] Reprocessing ${documents.length} documents...`);
+
     // Mark all documents as processing
     await c.env.DB.prepare(`
       UPDATE ai_knowledge_documents 
@@ -138,20 +199,72 @@ export async function reprocessKnowledgeDocuments(c: Context<{ Bindings: Env }>)
       WHERE deleted_at IS NULL
     `).run();
 
-    // TODO: Trigger actual reprocessing (embedding generation, vector storage)
-    // For now, just mark them as active again
-    await c.env.DB.prepare(`
-      UPDATE ai_knowledge_documents 
-      SET status = 'active'
-      WHERE deleted_at IS NULL
-    `).run();
+    const vectorRAG = new VectorRAGService(c.env.DB, c.env.VECTORIZE, c.env.OPENAI_API_KEY);
+    
+    let totalChunks = 0;
+    let totalVectors = 0;
+    let successCount = 0;
+    let errorCount = 0;
 
-    console.log('[AIAgent] Knowledge documents reprocessed');
+    for (const doc of documents) {
+      try {
+        const stats = await vectorRAG.processDocument(doc.id, doc.title, doc.category, doc.content);
+        totalChunks += stats.chunksCreated;
+        totalVectors += stats.vectorsStored;
+        successCount++;
+        
+        // Mark as active
+        await c.env.DB.prepare(`
+          UPDATE ai_knowledge_documents SET status = 'active' WHERE id = ?
+        `).bind(doc.id).run();
+      } catch (docError: any) {
+        console.error(`[AIAgent] Error processing document ${doc.id}:`, docError);
+        errorCount++;
+        
+        // Mark as error
+        await c.env.DB.prepare(`
+          UPDATE ai_knowledge_documents SET status = 'error' WHERE id = ?
+        `).bind(doc.id).run();
+      }
+    }
 
-    return c.json({ message: 'Documents reprocessed successfully' });
+    console.log(`[AIAgent] Reprocessing complete: ${successCount} success, ${errorCount} errors`);
+
+    return c.json({ 
+      message: 'Documents reprocessed successfully',
+      processed: successCount,
+      errors: errorCount,
+      total_chunks: totalChunks,
+      total_vectors: totalVectors
+    });
   } catch (error: any) {
     console.error('[AIAgent] Reprocess documents error:', error);
     return c.json({ error: 'Failed to reprocess documents: ' + error.message }, 500);
+  }
+}
+
+/**
+ * Get Vector RAG statistics
+ * GET /api/ai-agent/knowledge/stats
+ */
+export async function getVectorRAGStats(c: Context<{ Bindings: Env }>) {
+  try {
+    if (!c.env.VECTORIZE || !c.env.OPENAI_API_KEY) {
+      return c.json({ 
+        error: 'Vectorize not configured',
+        totalChunks: 0,
+        totalDocuments: 0,
+        chunksByCategory: {}
+      });
+    }
+
+    const vectorRAG = new VectorRAGService(c.env.DB, c.env.VECTORIZE, c.env.OPENAI_API_KEY);
+    const stats = await vectorRAG.getStats();
+
+    return c.json(stats);
+  } catch (error: any) {
+    console.error('[AIAgent] Get stats error:', error);
+    return c.json({ error: 'Failed to get stats: ' + error.message }, 500);
   }
 }
 

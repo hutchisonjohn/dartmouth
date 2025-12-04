@@ -1,7 +1,7 @@
 # 🚀 NEW FEATURES BEYOND ORIGINAL ARCHITECTURE
 
 **Document Created:** December 4, 2025  
-**Last Updated:** December 5, 2025 (Late Night)  
+**Last Updated:** December 5, 2025 (11:45 PM AEST)  
 **Purpose:** Document all significant features added during development that were NOT in the original blueprint or build plan
 
 ---
@@ -98,6 +98,95 @@ During the development of McCarthy AI Dartmouth OS, numerous features were added
 - `packages/worker/src/services/KnowledgeService.ts`
 
 **Impact:** AI responses now use actual business knowledge, policies, and past high-quality responses instead of generic LLM output.
+
+---
+
+### 2B. VECTOR EMBEDDINGS RAG SYSTEM 🆕
+
+**Added:** December 5, 2025 (11:45 PM AEST)
+
+**What It Does:** Provides **semantic search** for RAG documents using OpenAI embeddings and Cloudflare Vectorize. This replaces keyword-based search with meaning-based search for accurate information retrieval.
+
+**Why It Matters:** This is a **CRITICAL FEATURE** for a commercial SaaS product. The AI now finds relevant information based on **meaning**, not just keyword matches. For example:
+- Query: "How hot should my press be for transfers?"
+- Keyword search: Might miss because "hot" doesn't match "temperature"
+- Vector search: ✅ Finds DTF application instructions because the **meaning** is similar
+
+**Architecture:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     RAG DOCUMENT UPLOAD                          │
+│                                                                  │
+│  1. Admin uploads document (e.g., DTF_Guide.md)                 │
+│  2. Document is chunked into sections (~300-500 tokens each)    │
+│  3. Each chunk → OpenAI Embeddings API → 1536-dim vector        │
+│  4. Vector + metadata stored in Cloudflare Vectorize            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     CUSTOMER ASKS QUESTION                       │
+│                                                                  │
+│  1. "What temperature for DTF?"                                 │
+│  2. Question → OpenAI Embeddings API → 1536-dim vector          │
+│  3. Vector similarity search in Cloudflare Vectorize            │
+│  4. Returns top 5 most similar chunks                           │
+│  5. Chunks injected into AI prompt                              │
+│  6. AI responds with ACCURATE information                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Technology Stack:**
+| Component | Technology | Why |
+|-----------|------------|-----|
+| **Embedding Model** | OpenAI `text-embedding-3-small` | Best quality, 1536 dimensions, $0.02/1M tokens |
+| **Vector Database** | Cloudflare Vectorize | Native to Workers, low latency, 5M vectors free |
+| **Chunking** | Custom (by markdown heading) | Preserves context, ~300-500 tokens per chunk |
+| **Similarity Search** | Cosine similarity | Standard for text embeddings |
+
+**Key Features:**
+| Feature | Description |
+|---------|-------------|
+| **Semantic Search** | Finds documents by meaning, not keywords |
+| **Automatic Chunking** | Splits documents by ## headings |
+| **Batch Embeddings** | Efficient processing of multiple chunks |
+| **Relevance Scores** | Shows how confident the match is |
+| **Fallback Support** | Falls back to keyword search if Vectorize unavailable |
+| **Document Reprocessing** | Admin can reprocess all documents at once |
+| **Stats Endpoint** | Shows total chunks, documents, categories |
+
+**Files Created:**
+- `packages/worker/src/services/VectorRAGService.ts` - Core vector service
+- `packages/worker/migrations/0015_rag_document_chunks.sql` - Chunk metadata table
+
+**Files Modified:**
+- `packages/worker/src/services/KnowledgeService.ts` - Uses VectorRAG when available
+- `packages/worker/src/controllers/ai-agent.ts` - Reprocess endpoint uses VectorRAG
+- `packages/worker/src/controllers/chat-messages.ts` - Passes Vectorize binding
+- `packages/worker/wrangler.toml` - Added Vectorize binding
+- `packages/worker/src/types/shared.ts` - Added VectorizeIndex type
+
+**Database:**
+- **Table:** `rag_document_chunks` - Stores chunk metadata
+- **Vectorize Index:** `dartmouth-rag` - Stores 1536-dim vectors
+
+**Current Stats (as of Dec 5, 2025):**
+- **Documents Processed:** 9
+- **Total Chunks:** 53
+- **Total Vectors:** 53
+- **Categories:** FAQ, Company Info, Ordering, Privacy, Returns, Shipping, T&C, DTF, UV DTF
+
+**Cost Estimate:**
+| Operation | Cost | Volume | Monthly Cost |
+|-----------|------|--------|--------------|
+| Embed documents (one-time) | $0.02/1M tokens | ~15K tokens | $0.0003 |
+| Embed queries | $0.02/1M tokens | 10K queries | $0.20 |
+| Vectorize storage | Free | Up to 5M vectors | $0 |
+| Vectorize queries | Free | Up to 30M/month | $0 |
+
+**Total: ~$0.20/month** for 10,000 customer queries
+
+**Impact:** AI responses are now **accurate** because they find the right information semantically. No more generic LLM hallucinations - the AI uses **your actual business knowledge**.
 
 ---
 
@@ -422,14 +511,16 @@ During the development of McCarthy AI Dartmouth OS, numerous features were added
 
 | Category | Count |
 |----------|-------|
-| **Major New Features** | 30+ |
-| **New Database Tables** | 12 |
+| **Major New Features** | 32+ |
+| **New Database Tables** | 13 |
 | **New Database Columns** | 30+ |
 | **New Frontend Pages** | 18+ |
 | **New Backend Controllers** | 8+ |
-| **New Services** | 5+ |
+| **New Services** | 6+ |
 | **New Packages** | 1 (chat-widget) |
-| **Database Migrations** | 35+ |
+| **Database Migrations** | 36+ |
+| **Vectorize Indexes** | 1 (dartmouth-rag) |
+| **Vector Embeddings** | 53 |
 
 ---
 
@@ -441,7 +532,7 @@ These are documented for future implementation:
 |---------|----------|--------|-------|
 | **Callback Feature (Form-Based)** | 🔴 High | Pending | Yes/No buttons, form in widget, email confirmation |
 | **Multi-Tenant Regional Settings** | 🔴 Critical | Pending | Tenant + Agent level settings for SaaS |
-| Vector Embeddings | High | Pending | Semantic search for RAG |
+| ~~Vector Embeddings~~ | ~~High~~ | ✅ **DONE** | Semantic search for RAG - Completed Dec 5, 2025 |
 | Queue Auto-Assign (Chat) | Medium | Pending | 5min timeout, round-robin |
 | AI Resolution Detection | Low | Pending | Auto-close on "thank you" |
 | Post-Chat Survey | Medium | Pending | Thumbs up/down in widget |
@@ -473,6 +564,7 @@ controllers/
 services/
   - AutoAssignmentService.ts
   - KnowledgeService.ts
+  - VectorRAGService.ts
 
 workers/
   - auto-assignment-job.ts
@@ -538,8 +630,8 @@ components/
 
 ---
 
-**Document Version:** 3.0  
-**Last Updated:** December 5, 2025 (Late Night)  
+**Document Version:** 4.0  
+**Last Updated:** December 5, 2025 (11:45 PM AEST)  
 **Author:** AI Assistant  
 
 ---

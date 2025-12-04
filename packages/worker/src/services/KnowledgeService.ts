@@ -4,13 +4,16 @@
  * Provides AI agents with knowledge from:
  * 1. Tenant Settings (regional preferences, business info)
  * 2. System Message Configuration (role, personality, do's/don'ts)
- * 3. RAG Documents (policies, FAQs, product info)
+ * 3. RAG Documents (policies, FAQs, product info) - NOW WITH VECTOR SEARCH
  * 4. Learning Examples (high-quality past responses)
  * 
  * This is the bridge between stored knowledge and AI prompts.
+ * 
+ * V2.0: Now supports Vector Embeddings RAG for semantic search
  */
 
-import type { D1Database } from '@cloudflare/workers-types';
+import type { D1Database, VectorizeIndex } from '@cloudflare/workers-types';
+import { VectorRAGService } from './VectorRAGService';
 
 export interface TenantSettings {
   tenant_id: string;
@@ -120,13 +123,31 @@ const DEFAULT_SYSTEM_MESSAGE: SystemMessageConfig = {
 
 export class KnowledgeService {
   private db: D1Database;
+  private vectorize: VectorizeIndex | null;
+  private openaiApiKey: string | null;
+  private vectorRAG: VectorRAGService | null = null;
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private tenantId: string;
 
-  constructor(db: D1Database, tenantId: string = 'test-tenant-dtf') {
+  constructor(
+    db: D1Database, 
+    tenantId: string = 'test-tenant-dtf',
+    vectorize?: VectorizeIndex,
+    openaiApiKey?: string
+  ) {
     this.db = db;
     this.tenantId = tenantId;
+    this.vectorize = vectorize || null;
+    this.openaiApiKey = openaiApiKey || null;
+    
+    // Initialize Vector RAG if both vectorize and openai key are available
+    if (this.vectorize && this.openaiApiKey) {
+      this.vectorRAG = new VectorRAGService(this.db, this.vectorize, this.openaiApiKey);
+      console.log('[KnowledgeService] Vector RAG initialized ✅');
+    } else {
+      console.log('[KnowledgeService] Vector RAG not available, using keyword search fallback');
+    }
   }
 
   /**
@@ -323,39 +344,181 @@ Learn from these excellent responses that your team has approved:\n`;
 
   /**
    * Search RAG documents for relevant content
-   * Uses simple keyword matching (can be upgraded to vector search later)
+   * 
+   * V2.0: Uses Vector Embeddings for semantic search when available
+   * Falls back to keyword-based search if Vector RAG is not configured
    */
-  async searchRAGDocuments(query: string, limit: number = 3): Promise<RAGDocument[]> {
-    try {
-      // Extract keywords from query (simple approach)
-      const keywords = query.toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .split(/\s+/)
-        .filter(w => w.length > 3)
-        .slice(0, 10);
+  async searchRAGDocuments(query: string, limit: number = 5): Promise<RAGDocument[]> {
+    console.log('[KnowledgeService] ========== RAG SEARCH START ==========');
+    console.log('[KnowledgeService] Query:', query);
 
-      if (keywords.length === 0) {
-        console.log('[KnowledgeService] No keywords extracted from query');
-        return [];
+    // TRY VECTOR SEARCH FIRST (if available)
+    if (this.vectorRAG) {
+      try {
+        console.log('[KnowledgeService] Using VECTOR SEARCH (semantic)');
+        const vectorResults = await this.vectorRAG.search(query, limit);
+        
+        if (vectorResults.chunks.length > 0) {
+          console.log(`[KnowledgeService] Vector search found ${vectorResults.chunks.length} chunks`);
+          console.log(`[KnowledgeService] Sources: ${vectorResults.sourcesUsed.join(', ')}`);
+          
+          // Convert vector results to RAGDocument format
+          // Group by document and use highest scoring chunk's content
+          const docMap = new Map<string, RAGDocument>();
+          
+          for (const chunk of vectorResults.chunks) {
+            const existingDoc = docMap.get(chunk.documentTitle);
+            if (!existingDoc || chunk.score > (existingDoc.relevance_score || 0)) {
+              docMap.set(chunk.documentTitle, {
+                id: chunk.id,
+                title: chunk.documentTitle,
+                category: chunk.category,
+                content: chunk.content,
+                relevance_score: chunk.score
+              });
+            }
+          }
+          
+          const results = Array.from(docMap.values());
+          console.log(`[KnowledgeService] Returning ${results.length} documents from vector search`);
+          console.log('[KnowledgeService] ========== RAG SEARCH END ==========');
+          return results;
+        } else {
+          console.log('[KnowledgeService] Vector search returned no results, falling back to keyword search');
+        }
+      } catch (vectorError) {
+        console.error('[KnowledgeService] Vector search error, falling back to keyword:', vectorError);
+      }
+    }
+
+    // FALLBACK: Keyword-based search (original implementation)
+    console.log('[KnowledgeService] Using KEYWORD SEARCH (fallback)');
+    return this.searchRAGDocumentsKeyword(query, limit);
+  }
+
+  /**
+   * Keyword-based RAG search (fallback when Vector RAG is not available)
+   */
+  private async searchRAGDocumentsKeyword(query: string, limit: number = 5): Promise<RAGDocument[]> {
+    const lowerQuery = query.toLowerCase();
+    const results: RAGDocument[] = [];
+    const loadedIds = new Set<string>();
+
+    try {
+      // STEP 1: TOPIC DETECTION - Load MUST-HAVE documents based on what customer is asking about
+      const mustLoadDocuments: string[] = [];
+      
+      // DTF-related questions (heat, temperature, press, application, transfer, settings)
+      if (lowerQuery.includes('dtf') || 
+          lowerQuery.includes('heat') || 
+          lowerQuery.includes('temperature') || 
+          lowerQuery.includes('press') ||
+          lowerQuery.includes('transfer') ||
+          lowerQuery.includes('setting') ||
+          lowerQuery.includes('apply') ||
+          lowerQuery.includes('application')) {
+        
+        // Check if it's specifically about UV DTF
+        if (lowerQuery.includes('uv') || lowerQuery.includes('sticker') || lowerQuery.includes('decal')) {
+          mustLoadDocuments.push('UV DTF Transfers');
+          console.log('[KnowledgeService] Topic detected: UV DTF');
+        } else {
+          // Regular DTF
+          mustLoadDocuments.push('DTF Transfers');
+          console.log('[KnowledgeService] Topic detected: DTF Transfers');
+        }
+      }
+      
+      // Shipping/delivery questions
+      if (lowerQuery.includes('ship') || lowerQuery.includes('delivery') || lowerQuery.includes('postage')) {
+        mustLoadDocuments.push('Shipping');
+        console.log('[KnowledgeService] Topic detected: Shipping');
+      }
+      
+      // Returns/refunds questions
+      if (lowerQuery.includes('return') || lowerQuery.includes('refund')) {
+        mustLoadDocuments.push('Returns');
+        console.log('[KnowledgeService] Topic detected: Returns');
+      }
+      
+      // Order/ordering questions
+      if (lowerQuery.includes('order') || lowerQuery.includes('ordering') || lowerQuery.includes('buy')) {
+        mustLoadDocuments.push('Ordering');
+        console.log('[KnowledgeService] Topic detected: Ordering');
+      }
+      
+      // FAQ for general questions
+      if (lowerQuery.includes('faq') || lowerQuery.includes('question')) {
+        mustLoadDocuments.push('FAQ');
+        console.log('[KnowledgeService] Topic detected: FAQ');
       }
 
-      console.log(`[KnowledgeService] Searching RAG docs with keywords: ${keywords.join(', ')}`);
+      // STEP 2: Load must-have documents by title matching
+      if (mustLoadDocuments.length > 0) {
+        console.log('[KnowledgeService] Must-load documents:', mustLoadDocuments);
+        
+        for (const docTopic of mustLoadDocuments) {
+          const doc = await this.db.prepare(`
+            SELECT id, title, category, content
+            FROM ai_knowledge_documents
+            WHERE status = 'active' 
+              AND deleted_at IS NULL
+              AND title LIKE ?
+            LIMIT 1
+          `).bind(`%${docTopic}%`).first<RAGDocument>();
+          
+          if (doc && !loadedIds.has(doc.id)) {
+            results.push(doc);
+            loadedIds.add(doc.id);
+            console.log(`[KnowledgeService] ✅ Loaded must-have doc: ${doc.title} (${doc.content.length} chars)`);
+            
+            // Verify it has the key info
+            if (doc.content.includes('150-160') || doc.content.includes('150°C') || doc.content.includes('160°C')) {
+              console.log('[KnowledgeService] ✅ Document contains temperature settings!');
+            }
+          }
+        }
+      }
 
-      // Build LIKE clauses for each keyword
-      const likeClauses = keywords.map(() => `(content LIKE ? OR title LIKE ?)`).join(' OR ');
-      const params = keywords.flatMap(k => [`%${k}%`, `%${k}%`]);
+      // STEP 3: Keyword search for additional context (if we haven't hit limit)
+      if (results.length < limit) {
+        const keywords = lowerQuery
+          .replace(/[^\w\s]/g, '')
+          .split(/\s+/)
+          .filter(w => w.length > 2)
+          .filter(w => !['the', 'and', 'for', 'are', 'was', 'were', 'what', 'how', 'can', 'you', 'your', 'with'].includes(w))
+          .slice(0, 10);
 
-      const { results } = await this.db.prepare(`
-        SELECT id, title, category, content
-        FROM ai_knowledge_documents
-        WHERE status = 'active' 
-          AND deleted_at IS NULL
-          AND (${likeClauses})
-        LIMIT ?
-      `).bind(...params, limit).all();
+        if (keywords.length > 0) {
+          console.log(`[KnowledgeService] Keyword search with: ${keywords.join(', ')}`);
+          
+          const likeClauses = keywords.map(() => `(content LIKE ? OR title LIKE ?)`).join(' OR ');
+          const params = keywords.flatMap(k => [`%${k}%`, `%${k}%`]);
 
-      console.log(`[KnowledgeService] Found ${results?.length || 0} relevant RAG documents`);
-      return (results || []) as RAGDocument[];
+          const { results: keywordResults } = await this.db.prepare(`
+            SELECT id, title, category, content
+            FROM ai_knowledge_documents
+            WHERE status = 'active' 
+              AND deleted_at IS NULL
+              AND (${likeClauses})
+            LIMIT ?
+          `).bind(...params, limit - results.length).all();
+
+          // Add keyword results that aren't already loaded
+          for (const doc of (keywordResults || []) as RAGDocument[]) {
+            if (!loadedIds.has(doc.id)) {
+              results.push(doc);
+              loadedIds.add(doc.id);
+              console.log(`[KnowledgeService] Added keyword match: ${doc.title}`);
+            }
+          }
+        }
+      }
+
+      console.log(`[KnowledgeService] Total RAG documents loaded: ${results.length}`);
+      console.log('[KnowledgeService] ========== RAG SEARCH END ==========');
+      
+      return results;
     } catch (error) {
       console.error('[KnowledgeService] Error searching RAG documents:', error);
       return [];

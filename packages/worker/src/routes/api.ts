@@ -156,6 +156,7 @@ export function createAPIRouter() {
 
   // RAG Knowledge Documents
   app.get('/api/ai-agent/knowledge', authenticate, aiAgentController.listKnowledgeDocuments);
+  app.get('/api/ai-agent/knowledge/stats', authenticate, aiAgentController.getVectorRAGStats);
   app.post('/api/ai-agent/knowledge/upload', authenticate, requireAdmin, aiAgentController.uploadKnowledgeDocument);
   app.delete('/api/ai-agent/knowledge/:id', authenticate, requireAdmin, aiAgentController.deleteKnowledgeDocument);
   app.post('/api/ai-agent/knowledge/reprocess', authenticate, requireAdmin, aiAgentController.reprocessKnowledgeDocuments);

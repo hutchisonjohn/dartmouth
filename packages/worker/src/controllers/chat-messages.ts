@@ -1454,44 +1454,92 @@ async function getAIResponse(env: Env, message: string, conversation: Conversati
       throw new Error('No OpenAI key');
     }
 
-    // Load knowledge context for enhanced responses
+    // Load knowledge context for enhanced responses (with Vector RAG if available)
     const { KnowledgeService } = await import('../services/KnowledgeService');
-    const knowledgeService = new KnowledgeService(env.DB);
+    const knowledgeService = new KnowledgeService(
+      env.DB, 
+      'test-tenant-dtf',
+      env.VECTORIZE,  // Pass Vectorize binding for semantic search
+      env.OPENAI_API_KEY  // Pass OpenAI key for embeddings
+    );
     const knowledge = await knowledgeService.getKnowledgeContext(message);
     
-    console.log('[Chat] Knowledge loaded for fallback:', {
-      systemMessageLength: knowledge.systemMessage.length,
-      learningExamples: knowledge.learningExamples.length,
-      ragDocuments: knowledge.ragDocuments.length,
-      ragContext: knowledge.ragContext?.substring(0, 200) || 'none'
-    });
-
-    // Log actual RAG document titles if any
+    console.log('[Chat] ========== KNOWLEDGE SERVICE DEBUG ==========');
+    console.log('[Chat] Query:', message);
+    console.log('[Chat] System message length:', knowledge.systemMessage.length);
+    console.log('[Chat] Learning examples:', knowledge.learningExamples.length);
+    console.log('[Chat] RAG documents found:', knowledge.ragDocuments.length);
+    
+    // Log actual RAG document titles and content preview
     if (knowledge.ragDocuments.length > 0) {
-      console.log('[Chat] RAG documents found:', knowledge.ragDocuments.map(d => d.title));
+      console.log('[Chat] RAG DOCUMENTS:');
+      knowledge.ragDocuments.forEach((doc, i) => {
+        console.log(`[Chat]   ${i + 1}. ${doc.title} (${doc.content.length} chars)`);
+        // Check if this doc has temperature info
+        if (doc.content.includes('150') || doc.content.includes('160')) {
+          console.log('[Chat]   ✅ Contains temperature info!');
+          // Find and log the temperature section
+          const tempMatch = doc.content.match(/Temperature[:\s]*[\d\-°CFcf\s\(\)]+/gi);
+          if (tempMatch) {
+            console.log('[Chat]   Temperature section:', tempMatch[0]);
+          }
+        }
+      });
+    } else {
+      console.log('[Chat] ⚠️ NO RAG DOCUMENTS FOUND - AI will use generic knowledge');
+    }
+    
+    console.log('[Chat] RAG Context preview:', knowledge.ragContext?.substring(0, 500) || 'EMPTY');
+    console.log('[Chat] ================================================');
+
+    // Build RAG-first system prompt - put RAG content FIRST so it takes priority
+    let ragFirstPrompt = '';
+    
+    if (knowledge.ragDocuments.length > 0) {
+      ragFirstPrompt = `#######################
+# VERIFIED COMPANY KNOWLEDGE BASE - USE THIS FIRST!
+#######################
+
+The following information is from our official company documents. 
+ALWAYS use these EXACT values when answering questions.
+DO NOT use generic internet knowledge - use ONLY what's written below.
+
+`;
+      // Add each RAG document's content directly
+      knowledge.ragDocuments.forEach(doc => {
+        ragFirstPrompt += `## ${doc.title}\n${doc.content}\n\n---\n\n`;
+      });
+      
+      ragFirstPrompt += `
+#######################
+# END OF KNOWLEDGE BASE
+#######################
+
+CRITICAL INSTRUCTION: When answering questions about DTF settings, temperatures, 
+application instructions, etc., you MUST quote the EXACT values from the 
+Knowledge Base above. For example, if it says "Temperature: 150-160°C", 
+you MUST say "150-160°C", NOT "160-170°C" or any other value.
+
+`;
+      console.log('[Chat] RAG-first prompt built, length:', ragFirstPrompt.length);
+    } else {
+      console.log('[Chat] WARNING: No RAG documents found for query!');
     }
 
-    const systemPrompt = `${knowledge.systemMessage}
+    const systemPrompt = `${ragFirstPrompt}${knowledge.systemMessage}
 
 # Current Chat Context
-You're chatting live with a customer. Be conversational, helpful, and concise. Keep responses under 100 words unless more detail is needed.
+You're chatting live with a customer. Be conversational, helpful, and concise.
 
 Customer: ${conversation.customer_name}
 Email: ${conversation.customer_email}
 
-# CRITICAL INSTRUCTIONS
-1. ALWAYS check the "Knowledge Base Context" section FIRST before answering any question
-2. If information is available in the Knowledge Base, USE IT - do not make up or guess information
-3. Quote specific details from the Knowledge Base (temperatures, times, pressures, etc.)
-4. If the Knowledge Base has specific values, use those EXACT values
-5. Only say "I don't have access to specific documents" if there truly is no relevant Knowledge Base content
-
-# Additional Guidelines
+# Guidelines
 - Be warm and professional
-- If you don't know something specific, offer to connect them with a human agent
-- Use emojis sparingly but appropriately
+- Use emojis sparingly
 - Don't make up order information or specific prices
-- If customer asks for a callback, ask for their phone number`;
+- If customer asks for a callback, ask for their phone number
+- ALWAYS check the Knowledge Base section above FIRST before answering technical questions`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
