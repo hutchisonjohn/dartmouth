@@ -173,7 +173,14 @@ Professional, empathetic, solution-oriented, and reassuring. Always maintain a h
     this.ticketManager = new TicketManager(config.env.DB);
     this.handoffProtocol = new AgentHandoffProtocol(config.env.DB);
     this.analytics = new AnalyticsService(config.env.DB);
-    this.knowledgeService = new KnowledgeService(config.env.DB);
+    // Initialize KnowledgeService with Vector RAG support
+    this.knowledgeService = new KnowledgeService(
+      config.env.DB,
+      config.tenantId,
+      config.env.VECTORIZE,      // Vectorize binding for semantic search
+      config.env.OPENAI_API_KEY  // OpenAI key for embeddings
+    );
+    console.log('[CustomerServiceAgent] KnowledgeService initialized with Vector RAG support');
     
     if (config.gmailCredentials) {
       this.gmail = new GmailIntegration(config.env.DB, config.gmailCredentials);
