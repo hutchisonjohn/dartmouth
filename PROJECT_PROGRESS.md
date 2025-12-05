@@ -1,9 +1,9 @@
 # Dartmouth OS - Customer Service System
 ## Project Progress Tracker
 
-**Last Updated**: December 5, 2025, 11:50 PM AEST  
+**Last Updated**: December 6, 2025, 12:05 AM AEST  
 **Overall Progress**: 96% Complete  
-**Status**: ✅ MAJOR MILESTONE - Vector Embeddings RAG Complete, Semantic Search Active
+**Status**: ✅ AI Chat Fixed, Shopify Complete, File Attachments In Progress
 
 ---
 
@@ -241,7 +241,12 @@ McCarthy AI Dartmouth OS is now a fully functional customer service platform wit
 
 ## Recent Achievements
 
-### December 5, 2025 (Today)
+### December 5, 2025 (Today) - LATE NIGHT SESSION
+- ✅ **CRITICAL FIX**: Fixed 500 error on chat poll endpoint (AI messages now reach widget)
+- ✅ **SHOPIFY INTEGRATION**: Complete backend + frontend integration
+- ✅ Rolled back Group Chat system (caused database blocking)
+- ✅ Started file attachment onClick handlers (3/4 pages done)
+- ✅ Created comprehensive SESSION_HANDOVER document
 - ✅ Fixed ticket filtering to allow all filters to combine
 - ✅ Fixed navigation arrows in chat dashboard
 - ✅ Fixed ticket number display (TKT-XXXXXX format)
@@ -365,6 +370,7 @@ None! 🎉
 
 | Document | Path |
 |----------|------|
+| **🔴 SESSION HANDOVER** | `SESSION_HANDOVER_DEC_5_2025.md` ← **START HERE AFTER REBOOT** |
 | **Architecture Doc** | `McCarthy AI Dartmouth OS 2-12-25/NEW_FEATURES_BEYOND_ORIGINAL_ARCHITECTURE.md` |
 | **API Architecture** | `McCarthy AI Dartmouth OS 2-12-25/MASTER_API_ARCHITECTURE.md` |
 | **Build Plan** | `MASTER_BUILD_PLAN_DEC_2_2025.md` |
@@ -394,8 +400,18 @@ None! 🎉
 |---------|-----|
 | **Worker API** | https://dartmouth-os-worker.dartmouth.workers.dev |
 | **Dashboard** | https://dartmouth-os-dashboard.pages.dev |
+| **Chat Widget (Local)** | http://localhost:5173/ |
 | **Database** | dartmouth-os-db (Cloudflare D1) |
 | **Vectorize Index** | dartmouth-rag (53 vectors) |
+
+### 🧪 Local Development
+
+#### Starting Chat Widget Server
+```powershell
+cd D:\coding\DARTMOUTH_OS_PROJECT\packages\chat-widget
+npm run dev
+```
+Then open: http://localhost:5173/
 
 ### 🔐 Credentials
 - Admin: john@directtofilm.com.au
@@ -404,8 +420,18 @@ None! 🎉
 
 **Status**: ✅ ON TRACK  
 **Morale**: 🚀 HIGH  
-**Next Session**: Callback feature, testing
+**Next Session**: Complete file attachment fixes, then callback feature
 
 ---
 
-*Last Updated: December 5, 2025, 9:25 AM AEST*
+## 🔄 AFTER PC REBOOT - START HERE
+
+1. **Open Project:** `D:\coding\DARTMOUTH_OS_PROJECT\`
+2. **Read First:** `SESSION_HANDOVER_DEC_5_2025.md` ← Complete handover document
+3. **Then Read:** `PROJECT_PROGRESS.md` (this file)
+4. **Start Chat Widget:** `cd packages\chat-widget && npm run dev`
+5. **Tell AI:** "Continue with file attachment fixes from SESSION_HANDOVER_DEC_5_2025.md"
+
+---
+
+*Last Updated: December 6, 2025, 12:05 AM AEST*

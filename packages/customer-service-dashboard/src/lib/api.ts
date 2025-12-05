@@ -56,8 +56,8 @@ export const ticketsApi = {
     api.put(`/api/tickets/${id}/assign`, { assignedTo }),
   updateStatus: (id: string, status: string) =>
     api.put(`/api/tickets/${id}/status`, { status }),
-  reply: (id: string, content: string) =>
-    api.post(`/api/tickets/${id}/reply`, { content }),
+  reply: (id: string, content: string, attachments?: Array<{ name: string; content: string; type: string; size: number }>) =>
+    api.post(`/api/tickets/${id}/reply`, { content, attachments }),
   addNote: (id: string, content: string, noteType?: string) =>
     api.post(`/api/tickets/${id}/notes`, { content, noteType }),
   snooze: (id: string, snoozedUntil: string, reason?: string) =>
@@ -248,5 +248,32 @@ export const autoAssignmentApi = {
     autoAssignMax?: number | null;
     autoAssignChannels?: string[] | null;
   }) => api.put(`/api/auto-assignment/staff/${staffId}`, settings),
+}
+
+// Shopify Integration API
+export const shopifyApi = {
+  // Get full Shopify data for a ticket (customer + orders + tracking)
+  getTicketData: (email: string) => 
+    api.get('/api/shopify/ticket-data', { params: { email } }),
+  
+  // Get customer info by email
+  getCustomer: (email: string) => 
+    api.get('/api/shopify/customer', { params: { email } }),
+  
+  // Get customer's orders
+  getCustomerOrders: (customerId: string, limit?: number) => 
+    api.get(`/api/shopify/customer/${customerId}/orders`, { params: { limit } }),
+  
+  // Get orders by email
+  getOrdersByEmail: (email: string, limit?: number) => 
+    api.get('/api/shopify/orders', { params: { email, limit } }),
+  
+  // Search for a specific order by number
+  searchOrder: (orderNumber: string) => 
+    api.get('/api/shopify/order', { params: { number: orderNumber } }),
+  
+  // Get a specific order by ID
+  getOrder: (orderId: string) => 
+    api.get(`/api/shopify/order/${orderId}`),
 }
 

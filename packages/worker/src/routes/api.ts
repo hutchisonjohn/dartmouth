@@ -24,6 +24,7 @@ import * as chatMessagesController from '../controllers/chat-messages';
 import * as aiAgentController from '../controllers/ai-agent';
 import * as tenantSettingsController from '../controllers/tenant-settings';
 import * as autoAssignmentController from '../controllers/auto-assignment';
+import * as shopifyController from '../controllers/shopify';
 
 /**
  * Create API router
@@ -125,6 +126,7 @@ export function createAPIRouter() {
   // Live Chat Messaging (public endpoint for widget)
   app.post('/api/chat/message', chatMessagesController.sendMessage);
   app.post('/api/chat/callback', chatMessagesController.submitCallback); // Callback request when offline
+  app.post('/api/chat/callback-from-chat', chatMessagesController.submitCallbackFromChat); // Callback from active chat
   
   // Chat - Public endpoints for widget
   app.post('/api/chat/start', chatMessagesController.startConversation); // Start conversation when user enters name/email
@@ -141,6 +143,7 @@ export function createAPIRouter() {
   app.post('/api/chat/conversation/:id/reply', authenticate, chatMessagesController.staffReply);
   app.post('/api/chat/conversation/:id/pickup', authenticate, chatMessagesController.pickupFromQueue);
   app.post('/api/chat/conversation/:id/close', authenticate, chatMessagesController.closeConversation);
+  app.post('/api/chat/conversation/:id/rate', chatMessagesController.submitChatRating); // Public - for customers
   app.post('/api/chat/conversation/:id/reassign', authenticate, chatMessagesController.reassignConversation);
 
   // ========================================================================
@@ -211,6 +214,17 @@ export function createAPIRouter() {
   app.get('/api/auto-assignment/history', authenticate, requireAdmin, autoAssignmentController.getHistory);
   app.get('/api/auto-assignment/staff/:staffId', authenticate, autoAssignmentController.getStaffSettings);
   app.put('/api/auto-assignment/staff/:staffId', authenticate, autoAssignmentController.updateStaffSettings);
+
+  // ========================================================================
+  // SHOPIFY INTEGRATION ROUTES
+  // ========================================================================
+
+  app.get('/api/shopify/customer', authenticate, shopifyController.getCustomerByEmail);
+  app.get('/api/shopify/customer/:customerId/orders', authenticate, shopifyController.getCustomerOrders);
+  app.get('/api/shopify/orders', authenticate, shopifyController.getOrdersByEmail);
+  app.get('/api/shopify/order', authenticate, shopifyController.searchOrder);
+  app.get('/api/shopify/order/:orderId', authenticate, shopifyController.getOrder);
+  app.get('/api/shopify/ticket-data', authenticate, shopifyController.getTicketShopifyData);
 
   return app;
 }

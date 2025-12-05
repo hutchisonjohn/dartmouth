@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Send, UserPlus, Sparkles, Clock, CheckCircle, XCircle, Bot, Users, Inbox, Archive, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, Send, UserPlus, Sparkles, Clock, CheckCircle, XCircle, Bot, Users, Inbox, Archive, ChevronLeft, ChevronRight, Paperclip } from 'lucide-react';
 import { api } from '../lib/api';
 import { useSearchParams, Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -103,6 +103,7 @@ export default function ChatDashboardPage() {
   const [showOrders, setShowOrders] = useState(false);
   const [showShopify, setShowShopify] = useState(false);
   const [staffFilter, setStaffFilter] = useState<string>('all');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Keyboard shortcut: Ctrl+Y for Staff Notes
   useEffect(() => {

@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ticketsApi, api } from '../lib/api'
 import { formatDistanceToNow } from 'date-fns'
-import { User, Package, ShoppingBag, ChevronLeft, ChevronRight, Sparkles, Send, UserPlus, CheckCircle, XCircle } from 'lucide-react'
+import { User, Package, ShoppingBag, ChevronLeft, ChevronRight, Sparkles, Send, UserPlus, CheckCircle, XCircle, Paperclip } from 'lucide-react'
 // import { useAuthStore } from '../store/authStore'
 // Using inline chat reassign modal instead of ReassignModal component
 
@@ -119,6 +119,7 @@ export default function ChatTicketDetailPage() {
   const [showChatReassignModal, setShowChatReassignModal] = useState(false)
   const [reassignTo, setReassignTo] = useState('')
   const [reassignReason, setReassignReason] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Fetch ticket data
   const { data: ticketData, isLoading: ticketLoading } = useQuery({
@@ -730,7 +731,19 @@ export default function ChatTicketDetailPage() {
                   placeholder="Add internal notes for other staff members... (Press Enter to save)"
                   className="w-full flex-1 border border-yellow-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-500 resize-none bg-white min-h-0"
                 />
-                <button className="mt-2 text-xs px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 self-start flex-shrink-0">
+                {/* Hidden file input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mt-2 text-xs px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 self-start flex-shrink-0 flex items-center gap-1"
+                >
+                  <Paperclip className="w-3 h-3" />
                   Attach File
                 </button>
               </div>

@@ -251,10 +251,10 @@ export async function replyToTicket(c: Context<{ Bindings: Env }>) {
   try {
     const user = c.get('user') as AuthUser;
     const ticketId = c.req.param('id');
-    const { content } = await c.req.json();
+    const { content, attachments } = await c.req.json();
 
-    if (!content) {
-      return c.json({ error: 'content required' }, 400);
+    if (!content && (!attachments || attachments.length === 0)) {
+      return c.json({ error: 'content or attachments required' }, 400);
     }
 
     const messageId = crypto.randomUUID();
@@ -307,6 +307,13 @@ export async function replyToTicket(c: Context<{ Bindings: Env }>) {
         ? `Re: ${ticket.subject}`
         : ticket.subject as string;
 
+      // Format attachments for email if present
+      const emailAttachments = attachments?.map((att: { name: string; content: string; type: string }) => ({
+        filename: att.name,
+        content: att.content.split(',')[1] || att.content, // Remove data URL prefix if present
+        type: att.type
+      }));
+
       await sendEmailThroughResend(c.env, {
         tenantId: 'test-tenant-dtf', // TODO: Get from ticket/mailbox
         conversationId,
@@ -316,11 +323,12 @@ export async function replyToTicket(c: Context<{ Bindings: Env }>) {
         fromEmail: mailbox.email_address,
         fromName: staffName,
         subject: replySubject,
-        bodyHtml: textToHtml(content),
-        bodyText: content,
+        bodyHtml: textToHtml(content || ''),
+        bodyText: content || '',
+        attachments: emailAttachments,
       });
 
-      console.log(`[Tickets] ✅ Email sent to ${ticket.customer_email} via Resend`);
+      console.log(`[Tickets] ✅ Email sent to ${ticket.customer_email} via Resend (${attachments?.length || 0} attachments)`);
     } catch (emailError) {
       console.error(`[Tickets] Failed to send email:`, emailError);
       // Don't fail the entire request if email fails - still save the message

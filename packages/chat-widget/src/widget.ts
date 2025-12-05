@@ -14,12 +14,20 @@ interface ChatConfig {
   position?: 'bottom-right' | 'bottom-left';
 }
 
+interface ActionButton {
+  type: 'button' | 'form';
+  label: string;
+  action: string;
+}
+
 interface ChatMessage {
   id: string;
   content: string;
   sender: 'customer' | 'agent' | 'ai' | 'system';
   senderName?: string;
   timestamp: Date;
+  actions?: ActionButton[];
+  showCallbackForm?: boolean;
 }
 
 interface ChatStatus {
@@ -447,29 +455,247 @@ class McCarthyChat {
       /* Typing indicator */
       .mccarthy-typing-indicator {
         display: flex;
-        gap: 4px;
+        align-items: center;
+        gap: 8px;
         padding: 12px 16px;
         align-self: flex-start;
-        background: white;
+        background: #f3f4f6;
         border-radius: 16px;
         border: 1px solid #e5e7eb;
       }
 
-      .mccarthy-typing-indicator span {
+      .mccarthy-typing-indicator .typing-label {
+        font-size: 12px;
+        color: #6b7280;
+        font-weight: 500;
+      }
+
+      .mccarthy-typing-indicator .typing-dots {
+        display: flex;
+        gap: 4px;
+      }
+
+      .mccarthy-typing-indicator .typing-dots span {
         width: 8px;
         height: 8px;
-        background: #9ca3af;
+        background: ${this.config.primaryColor};
         border-radius: 50%;
         animation: mccarthy-typing 1.4s infinite ease-in-out;
       }
 
-      .mccarthy-typing-indicator span:nth-child(1) { animation-delay: 0s; }
-      .mccarthy-typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-      .mccarthy-typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+      .mccarthy-typing-indicator .typing-dots span:nth-child(1) { animation-delay: 0s; }
+      .mccarthy-typing-indicator .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+      .mccarthy-typing-indicator .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 
       @keyframes mccarthy-typing {
         0%, 60%, 100% { transform: translateY(0); }
         30% { transform: translateY(-4px); }
+      }
+
+      /* Action Buttons */
+      .mccarthy-action-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+
+      .mccarthy-action-btn {
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1px solid ${this.config.primaryColor};
+        background: white;
+        color: ${this.config.primaryColor};
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .mccarthy-action-btn:hover {
+        background: ${this.config.primaryColor};
+        color: white;
+      }
+
+      /* Callback Form */
+      .mccarthy-callback-form {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 8px 0;
+      }
+
+      .mccarthy-callback-form-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 12px;
+        font-size: 15px;
+      }
+
+      .mccarthy-callback-icon {
+        font-size: 20px;
+      }
+
+      .mccarthy-callback-form .mccarthy-form-group {
+        margin-bottom: 12px;
+      }
+
+      .mccarthy-callback-form .mccarthy-form-group:last-of-type {
+        margin-bottom: 16px;
+      }
+
+      .mccarthy-callback-form label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 4px;
+      }
+
+      .mccarthy-callback-form input,
+      .mccarthy-callback-form textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        box-sizing: border-box;
+      }
+
+      .mccarthy-callback-form input:focus,
+      .mccarthy-callback-form textarea:focus {
+        outline: none;
+        border-color: ${this.config.primaryColor};
+        box-shadow: 0 0 0 3px ${this.config.primaryColor}20;
+      }
+
+      .mccarthy-callback-form textarea {
+        resize: vertical;
+        min-height: 60px;
+      }
+
+      .mccarthy-callback-submit {
+        width: 100%;
+        padding: 12px;
+        background: ${this.config.primaryColor};
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.1s;
+      }
+
+      .mccarthy-callback-submit:hover {
+        filter: brightness(1.1);
+      }
+
+      .mccarthy-callback-submit:active {
+        transform: scale(0.98);
+      }
+
+      .mccarthy-callback-submit:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      /* Post-Chat Survey */
+      .mccarthy-survey {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 1px solid #bae6fd;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 8px 0;
+        text-align: center;
+      }
+
+      .mccarthy-survey-header {
+        font-weight: 600;
+        color: #0369a1;
+        margin-bottom: 12px;
+        font-size: 15px;
+      }
+
+      .mccarthy-survey-stars {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .mccarthy-star {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #d1d5db;
+        cursor: pointer;
+        transition: color 0.2s, transform 0.2s;
+        padding: 4px;
+      }
+
+      .mccarthy-star:hover {
+        transform: scale(1.2);
+      }
+
+      .mccarthy-star.selected {
+        color: #fbbf24;
+      }
+
+      .mccarthy-star:hover,
+      .mccarthy-star:hover ~ .mccarthy-star {
+        color: #fcd34d;
+      }
+
+      .mccarthy-survey-feedback {
+        margin-top: 12px;
+      }
+
+      .mccarthy-survey-feedback textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        resize: vertical;
+        min-height: 50px;
+        box-sizing: border-box;
+        margin-bottom: 8px;
+      }
+
+      .mccarthy-survey-feedback textarea:focus {
+        outline: none;
+        border-color: ${this.config.primaryColor};
+        box-shadow: 0 0 0 3px ${this.config.primaryColor}20;
+      }
+
+      .mccarthy-survey-submit {
+        width: 100%;
+        padding: 10px;
+        background: ${this.config.primaryColor};
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .mccarthy-survey-submit:hover {
+        filter: brightness(1.1);
+      }
+
+      .mccarthy-survey-thanks {
+        color: #059669;
+        font-weight: 600;
+        font-size: 15px;
+        padding: 12px;
       }
 
       /* Input Area */
@@ -529,6 +755,129 @@ class McCarthyChat {
       .mccarthy-chat-send svg {
         width: 20px;
         height: 20px;
+      }
+
+      /* Attachment Button */
+      .mccarthy-chat-attach {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: transparent;
+        color: #6b7280;
+        border: 1px solid #e5e7eb;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.2s;
+      }
+
+      .mccarthy-chat-attach:hover {
+        background: #f3f4f6;
+        color: ${this.config.primaryColor};
+        border-color: ${this.config.primaryColor};
+      }
+
+      .mccarthy-chat-attach svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Attachment Preview */
+      .mccarthy-attachment-preview {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        background: #f3f4f6;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+      }
+
+      .mccarthy-attachment-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .mccarthy-attachment-icon {
+        width: 16px;
+        height: 16px;
+        color: #6b7280;
+        flex-shrink: 0;
+      }
+
+      .mccarthy-attachment-info span {
+        font-size: 13px;
+        color: #374151;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .mccarthy-attachment-remove {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9ca3af;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+
+      .mccarthy-attachment-remove:hover {
+        background: #fee2e2;
+        color: #ef4444;
+      }
+
+      .mccarthy-attachment-remove svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* Attachment in Messages */
+      .mccarthy-message-attachment {
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .mccarthy-message-attachment a {
+        color: ${this.config.primaryColor};
+        text-decoration: none;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .mccarthy-message-attachment a:hover {
+        text-decoration: underline;
+      }
+
+      .mccarthy-message-attachment svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .mccarthy-message-attachment img {
+        max-width: 200px;
+        max-height: 150px;
+        border-radius: 8px;
+        cursor: pointer;
       }
 
       /* Pre-chat form */
@@ -636,12 +985,88 @@ class McCarthyChat {
 
       /* Mobile responsive */
       @media (max-width: 480px) {
+        #mccarthy-chat-widget {
+          right: 10px;
+          bottom: 10px;
+        }
+
+        .mccarthy-chat-bubble {
+          padding: 10px 16px;
+        }
+
+        .mccarthy-bubble-text {
+          font-size: 13px;
+        }
+
         .mccarthy-chat-window {
           width: calc(100vw - 20px);
           height: calc(100vh - 100px);
+          max-height: calc(100vh - 80px);
           bottom: 70px;
           ${this.config.position === 'bottom-left' ? 'left: 10px;' : 'right: 10px;'}
           border-radius: 12px;
+        }
+
+        .mccarthy-chat-header {
+          padding: 12px 16px;
+        }
+
+        .mccarthy-chat-header-info h3 {
+          font-size: 15px;
+        }
+
+        .mccarthy-chat-messages {
+          padding: 12px;
+        }
+
+        .mccarthy-chat-message {
+          max-width: 90%;
+          padding: 8px 12px;
+          font-size: 14px;
+        }
+
+        .mccarthy-prechat-form {
+          padding: 16px;
+        }
+
+        .mccarthy-form-group input {
+          padding: 10px 12px;
+        }
+
+        .mccarthy-callback-form {
+          padding: 12px;
+        }
+
+        .mccarthy-callback-form .mccarthy-form-group {
+          margin-bottom: 10px;
+        }
+
+        .mccarthy-survey {
+          padding: 12px;
+        }
+
+        .mccarthy-star {
+          font-size: 24px;
+        }
+      }
+
+      /* Very small screens */
+      @media (max-width: 360px) {
+        .mccarthy-chat-window {
+          width: calc(100vw - 10px);
+          right: 5px;
+          left: 5px;
+        }
+
+        .mccarthy-bubble-text {
+          display: none;
+        }
+
+        .mccarthy-chat-bubble {
+          width: 50px;
+          height: 50px;
+          padding: 0;
+          border-radius: 50%;
         }
       }
     `;
@@ -720,7 +1145,28 @@ class McCarthyChat {
 
         <!-- Input Area (hidden until form submitted) -->
         <div class="mccarthy-chat-input-area" id="mccarthy-input-area" style="display: none;">
+          <!-- Attachment Preview -->
+          <div class="mccarthy-attachment-preview" id="mccarthy-attachment-preview" style="display: none;">
+            <div class="mccarthy-attachment-info">
+              <svg class="mccarthy-attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+              </svg>
+              <span id="mccarthy-attachment-name">file.pdf</span>
+            </div>
+            <button class="mccarthy-attachment-remove" id="mccarthy-attachment-remove" aria-label="Remove attachment">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
           <div class="mccarthy-chat-input-wrapper">
+            <input type="file" id="mccarthy-file-input" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt">
+            <button class="mccarthy-chat-attach" id="mccarthy-attach" aria-label="Attach file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+              </svg>
+            </button>
             <textarea 
               class="mccarthy-chat-input" 
               id="mccarthy-input"
@@ -780,6 +1226,8 @@ class McCarthyChat {
     `;
   }
 
+  private pendingAttachment: { file: File; dataUrl: string } | null = null;
+
   private attachEventListeners() {
     if (!this.container) return;
 
@@ -817,6 +1265,73 @@ class McCarthyChat {
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 100) + 'px';
     });
+
+    // File attachment button
+    const attachBtn = this.container.querySelector('#mccarthy-attach');
+    const fileInput = this.container.querySelector('#mccarthy-file-input') as HTMLInputElement;
+    
+    attachBtn?.addEventListener('click', () => {
+      fileInput?.click();
+    });
+
+    fileInput?.addEventListener('change', (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        this.handleFileSelect(file);
+      }
+    });
+
+    // Remove attachment button
+    const removeAttachBtn = this.container.querySelector('#mccarthy-attachment-remove');
+    removeAttachBtn?.addEventListener('click', () => {
+      this.clearPendingAttachment();
+    });
+  }
+
+  private handleFileSelect(file: File) {
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('File is too large. Maximum size is 5MB.');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+      alert('File type not supported. Please upload an image, PDF, or document.');
+      return;
+    }
+
+    // Read file as data URL for preview/upload
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.pendingAttachment = {
+        file,
+        dataUrl: e.target?.result as string
+      };
+      this.showAttachmentPreview(file.name);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  private showAttachmentPreview(fileName: string) {
+    const preview = this.container?.querySelector('#mccarthy-attachment-preview') as HTMLElement;
+    const nameEl = this.container?.querySelector('#mccarthy-attachment-name');
+    
+    if (preview && nameEl) {
+      nameEl.textContent = fileName;
+      preview.style.display = 'flex';
+    }
+  }
+
+  private clearPendingAttachment() {
+    this.pendingAttachment = null;
+    const preview = this.container?.querySelector('#mccarthy-attachment-preview') as HTMLElement;
+    const fileInput = this.container?.querySelector('#mccarthy-file-input') as HTMLInputElement;
+    
+    if (preview) preview.style.display = 'none';
+    if (fileInput) fileInput.value = '';
   }
 
   private toggleChat() {
@@ -924,16 +1439,227 @@ class McCarthyChat {
     this.saveState();
   }
 
+  private addMessageWithActions(content: string, sender: 'customer' | 'agent' | 'ai', senderName?: string, actions?: ActionButton[]) {
+    this.messages.push({
+      id: `msg-${Date.now()}`,
+      content,
+      sender,
+      senderName,
+      timestamp: new Date(),
+      actions
+    });
+    this.renderMessages();
+    this.saveState();
+  }
+
+  private async handleActionClick(action: string) {
+    console.log('[McCarthyChat] Action clicked:', action);
+    
+    // Send the action as a special message
+    this.showTypingIndicator();
+    
+    try {
+      const response = await fetch(`${this.config.apiUrl}/api/chat/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          conversationId: this.conversationId,
+          message: `__action:${action}`,
+          customer: this.customerInfo
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.hideTypingIndicator();
+        
+        // Handle callback form request
+        if (data.showCallbackForm) {
+          this.showCallbackForm();
+        }
+        
+        // Ensure polling is running
+        if (!this.pollingInterval) {
+          this.startPolling();
+        }
+      } else {
+        this.hideTypingIndicator();
+        this.addSystemMessage('Sorry, something went wrong. Please try again.');
+      }
+    } catch (error) {
+      console.error('[McCarthyChat] Action error:', error);
+      this.hideTypingIndicator();
+      this.addSystemMessage('Connection error. Please try again.');
+    }
+  }
+
+  private showCallbackForm() {
+    const messagesEl = this.container?.querySelector('#mccarthy-messages');
+    if (!messagesEl) return;
+
+    // Create callback form HTML
+    const formHtml = `
+      <div class="mccarthy-callback-form" id="mccarthy-callback-form">
+        <div class="mccarthy-callback-form-header">
+          <span class="mccarthy-callback-icon">📞</span>
+          <span>Callback Request</span>
+        </div>
+        <div class="mccarthy-form-group">
+          <label>First Name *</label>
+          <input type="text" id="mccarthy-cb-firstname" placeholder="John" required>
+        </div>
+        <div class="mccarthy-form-group">
+          <label>Last Name *</label>
+          <input type="text" id="mccarthy-cb-lastname" placeholder="Smith" required>
+        </div>
+        <div class="mccarthy-form-group">
+          <label>Email *</label>
+          <input type="email" id="mccarthy-cb-email" value="${this.customerInfo.email || ''}" placeholder="john@example.com" required>
+        </div>
+        <div class="mccarthy-form-group">
+          <label>Phone Number *</label>
+          <input type="tel" id="mccarthy-cb-phone" placeholder="+61 400 000 000" required>
+        </div>
+        <div class="mccarthy-form-group">
+          <label>Order ID (optional)</label>
+          <input type="text" id="mccarthy-cb-orderid" placeholder="ORD-12345">
+        </div>
+        <div class="mccarthy-form-group">
+          <label>Reason for Request *</label>
+          <textarea id="mccarthy-cb-reason" placeholder="Please describe why you need a callback..." rows="3" required></textarea>
+        </div>
+        <button class="mccarthy-callback-submit" id="mccarthy-cb-submit">
+          Submit Request
+        </button>
+      </div>
+    `;
+
+    // Add form to messages
+    const formDiv = document.createElement('div');
+    formDiv.innerHTML = formHtml;
+    messagesEl.appendChild(formDiv);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    // Attach submit handler
+    const submitBtn = this.container?.querySelector('#mccarthy-cb-submit');
+    submitBtn?.addEventListener('click', () => this.submitCallbackForm());
+
+    // Pre-fill first name from customer info
+    if (this.customerInfo.name) {
+      const firstNameInput = this.container?.querySelector('#mccarthy-cb-firstname') as HTMLInputElement;
+      if (firstNameInput) {
+        firstNameInput.value = this.customerInfo.name.split(' ')[0] || '';
+      }
+    }
+  }
+
+  private async submitCallbackForm() {
+    const firstName = (this.container?.querySelector('#mccarthy-cb-firstname') as HTMLInputElement)?.value.trim();
+    const lastName = (this.container?.querySelector('#mccarthy-cb-lastname') as HTMLInputElement)?.value.trim();
+    const email = (this.container?.querySelector('#mccarthy-cb-email') as HTMLInputElement)?.value.trim();
+    const phone = (this.container?.querySelector('#mccarthy-cb-phone') as HTMLInputElement)?.value.trim();
+    const orderId = (this.container?.querySelector('#mccarthy-cb-orderid') as HTMLInputElement)?.value.trim();
+    const reason = (this.container?.querySelector('#mccarthy-cb-reason') as HTMLTextAreaElement)?.value.trim();
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !phone || !reason) {
+      alert('Please fill in all required fields (marked with *)');
+      return;
+    }
+
+    // Disable submit button
+    const submitBtn = this.container?.querySelector('#mccarthy-cb-submit') as HTMLButtonElement;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+    }
+
+    try {
+      const response = await fetch(`${this.config.apiUrl}/api/chat/callback-from-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          conversationId: this.conversationId,
+          firstName,
+          lastName,
+          email,
+          phone,
+          orderId: orderId || undefined,
+          reason
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Remove the form
+        const form = this.container?.querySelector('#mccarthy-callback-form');
+        form?.parentElement?.remove();
+        
+        // Add success message
+        this.addSystemMessage(data.message);
+        
+        // If chat was closed, disable input
+        if (data.chatClosed) {
+          this.stopPolling();
+          const input = this.container?.querySelector('#mccarthy-input') as HTMLTextAreaElement;
+          const sendBtn = this.container?.querySelector('#mccarthy-send') as HTMLButtonElement;
+          if (input) {
+            input.disabled = true;
+            input.placeholder = 'Chat ended';
+          }
+          if (sendBtn) {
+            sendBtn.disabled = true;
+          }
+        }
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to submit callback request. Please try again.');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Request';
+        }
+      }
+    } catch (error) {
+      console.error('[McCarthyChat] Callback submit error:', error);
+      alert('Connection error. Please try again.');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
+      }
+    }
+  }
+
   private async sendMessage() {
     const input = this.container?.querySelector('#mccarthy-input') as HTMLTextAreaElement;
     const content = input?.value.trim();
     
-    if (!content) return;
+    // Must have content or attachment
+    if (!content && !this.pendingAttachment) return;
 
-    // Add customer message
-    this.addMessage(content, 'customer');
+    // Add customer message (with attachment indicator if present)
+    const displayContent = this.pendingAttachment 
+      ? (content ? `${content}\n📎 ${this.pendingAttachment.file.name}` : `📎 ${this.pendingAttachment.file.name}`)
+      : content;
+    this.addMessage(displayContent, 'customer');
     input.value = '';
     input.style.height = 'auto';
+
+    // Prepare attachment data if present
+    let attachmentData: { url: string; name: string; type: string; size: number } | undefined;
+    if (this.pendingAttachment) {
+      attachmentData = {
+        url: this.pendingAttachment.dataUrl,
+        name: this.pendingAttachment.file.name,
+        type: this.pendingAttachment.file.type,
+        size: this.pendingAttachment.file.size
+      };
+      this.clearPendingAttachment();
+    }
 
     // Show typing indicator
     this.showTypingIndicator();
@@ -947,8 +1673,9 @@ class McCarthyChat {
         },
         body: JSON.stringify({
           conversationId: this.conversationId,
-          message: content,
-          customer: this.customerInfo
+          message: content || '',
+          customer: this.customerInfo,
+          attachment: attachmentData
         })
       });
 
@@ -958,6 +1685,17 @@ class McCarthyChat {
         
         // Hide typing indicator
         this.hideTypingIndicator();
+        
+        // Handle action buttons in response
+        if (data.actions && data.actions.length > 0) {
+          // Add AI response with actions
+          this.addMessageWithActions(data.response, 'ai', data.senderName, data.actions);
+        }
+        
+        // Handle callback form request
+        if (data.showCallbackForm) {
+          this.showCallbackForm();
+        }
         
         // Don't add AI response here - let polling handle it to avoid duplicates
         // Just ensure polling is running
@@ -1057,20 +1795,151 @@ class McCarthyChat {
             this.saveState();
           }
         }
+
+        // Check if chat was closed and can be rated
+        if (data.isClosed && data.canRate) {
+          this.stopPolling();
+          this.showPostChatSurvey();
+          
+          // Disable input
+          const input = this.container?.querySelector('#mccarthy-input') as HTMLTextAreaElement;
+          const sendBtn = this.container?.querySelector('#mccarthy-send') as HTMLButtonElement;
+          if (input) {
+            input.disabled = true;
+            input.placeholder = 'Chat ended';
+          }
+          if (sendBtn) {
+            sendBtn.disabled = true;
+          }
+        } else if (data.isClosed) {
+          // Chat closed but already rated or can't rate
+          this.stopPolling();
+          
+          // Disable input
+          const input = this.container?.querySelector('#mccarthy-input') as HTMLTextAreaElement;
+          const sendBtn = this.container?.querySelector('#mccarthy-send') as HTMLButtonElement;
+          if (input) {
+            input.disabled = true;
+            input.placeholder = 'Chat ended';
+          }
+          if (sendBtn) {
+            sendBtn.disabled = true;
+          }
+        }
       }
     } catch (error) {
       console.error('[McCarthyChat] Poll error:', error);
     }
   }
 
-  private showTypingIndicator() {
+  private showPostChatSurvey() {
     const messagesEl = this.container?.querySelector('#mccarthy-messages');
     if (!messagesEl) return;
+
+    // Check if survey already shown
+    if (this.container?.querySelector('#mccarthy-survey')) return;
+
+    const surveyHtml = `
+      <div class="mccarthy-survey" id="mccarthy-survey">
+        <div class="mccarthy-survey-header">
+          <span>How was your experience?</span>
+        </div>
+        <div class="mccarthy-survey-stars">
+          <button class="mccarthy-star" data-rating="1" aria-label="1 star">★</button>
+          <button class="mccarthy-star" data-rating="2" aria-label="2 stars">★</button>
+          <button class="mccarthy-star" data-rating="3" aria-label="3 stars">★</button>
+          <button class="mccarthy-star" data-rating="4" aria-label="4 stars">★</button>
+          <button class="mccarthy-star" data-rating="5" aria-label="5 stars">★</button>
+        </div>
+        <div class="mccarthy-survey-feedback" id="mccarthy-survey-feedback" style="display: none;">
+          <textarea id="mccarthy-survey-comment" placeholder="Any additional feedback? (optional)" rows="2"></textarea>
+          <button class="mccarthy-survey-submit" id="mccarthy-survey-submit">Submit Feedback</button>
+        </div>
+        <div class="mccarthy-survey-thanks" id="mccarthy-survey-thanks" style="display: none;">
+          <span>🙏 Thank you for your feedback!</span>
+        </div>
+      </div>
+    `;
+
+    const surveyDiv = document.createElement('div');
+    surveyDiv.innerHTML = surveyHtml;
+    messagesEl.appendChild(surveyDiv);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    // Attach star click handlers
+    let selectedRating = 0;
+    const stars = this.container?.querySelectorAll('.mccarthy-star');
+    stars?.forEach((star, index) => {
+      star.addEventListener('click', () => {
+        selectedRating = index + 1;
+        // Update star visuals
+        stars.forEach((s, i) => {
+          s.classList.toggle('selected', i < selectedRating);
+        });
+        // Show feedback textarea
+        const feedbackEl = this.container?.querySelector('#mccarthy-survey-feedback') as HTMLElement;
+        if (feedbackEl) feedbackEl.style.display = 'block';
+      });
+    });
+
+    // Attach submit handler
+    const submitBtn = this.container?.querySelector('#mccarthy-survey-submit');
+    submitBtn?.addEventListener('click', async () => {
+      if (selectedRating === 0) {
+        alert('Please select a rating first');
+        return;
+      }
+      
+      const comment = (this.container?.querySelector('#mccarthy-survey-comment') as HTMLTextAreaElement)?.value.trim();
+      
+      try {
+        const response = await fetch(`${this.config.apiUrl}/api/chat/conversation/${this.conversationId}/rate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            rating: selectedRating,
+            feedback: comment || undefined
+          })
+        });
+
+        if (response.ok) {
+          // Show thank you message
+          const feedbackEl = this.container?.querySelector('#mccarthy-survey-feedback') as HTMLElement;
+          const starsEl = this.container?.querySelector('.mccarthy-survey-stars') as HTMLElement;
+          const thanksEl = this.container?.querySelector('#mccarthy-survey-thanks') as HTMLElement;
+          
+          if (feedbackEl) feedbackEl.style.display = 'none';
+          if (starsEl) starsEl.style.display = 'none';
+          if (thanksEl) thanksEl.style.display = 'block';
+        } else {
+          alert('Failed to submit feedback. Please try again.');
+        }
+      } catch (error) {
+        console.error('[McCarthyChat] Survey submit error:', error);
+        alert('Connection error. Please try again.');
+      }
+    });
+  }
+
+  private showTypingIndicator(label: string = 'AI is typing') {
+    const messagesEl = this.container?.querySelector('#mccarthy-messages');
+    if (!messagesEl) return;
+
+    // Remove existing indicator if any
+    const existing = this.container?.querySelector('#mccarthy-typing');
+    existing?.remove();
 
     const indicator = document.createElement('div');
     indicator.className = 'mccarthy-typing-indicator';
     indicator.id = 'mccarthy-typing';
-    indicator.innerHTML = '<span></span><span></span><span></span>';
+    indicator.innerHTML = `
+      <span class="typing-label">${label}</span>
+      <div class="typing-dots">
+        <span></span><span></span><span></span>
+      </div>
+    `;
     messagesEl.appendChild(indicator);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
@@ -1103,14 +1972,40 @@ class McCarthyChat {
         senderIcon = sparklesIcon;
       }
 
+      // Render action buttons if present
+      let actionsHtml = '';
+      if (msg.actions && msg.actions.length > 0) {
+        actionsHtml = `
+          <div class="mccarthy-action-buttons">
+            ${msg.actions.map(action => `
+              <button class="mccarthy-action-btn" data-action="${action.action}">
+                ${action.label}
+              </button>
+            `).join('')}
+          </div>
+        `;
+      }
+
       return `
         <div class="mccarthy-chat-message ${msg.sender}">
           ${msg.senderName ? `<div class="mccarthy-chat-message-sender">${senderIcon}${msg.senderName}</div>` : ''}
           ${msg.content}
+          ${actionsHtml}
           <div class="mccarthy-chat-message-time">${time}</div>
         </div>
       `;
     }).join('');
+
+    // Attach event listeners to action buttons
+    const actionBtns = messagesEl.querySelectorAll('.mccarthy-action-btn');
+    actionBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = (e.target as HTMLElement).getAttribute('data-action');
+        if (action) {
+          this.handleActionClick(action);
+        }
+      });
+    });
 
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }

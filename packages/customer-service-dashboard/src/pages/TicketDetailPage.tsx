@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { ticketsApi } from '../lib/api'
+import { useState, useEffect, useRef } from 'react'
+import { ticketsApi, shopifyApi } from '../lib/api'
 import { formatDistanceToNow } from 'date-fns'
-import { User, Package, ShoppingBag, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
+import { User, Package, ShoppingBag, ChevronLeft, ChevronRight, Sparkles, Paperclip, X } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import StatusModal from '../components/StatusModal'
 import ReassignModal from '../components/ReassignModal'
@@ -13,6 +13,13 @@ import ScheduleReplyModal from '../components/ScheduleReplyModal'
 import EditScheduledMessageModal from '../components/EditScheduledMessageModal'
 import { AIDraftResponsePanel } from '../components/AIDraftResponsePanel'
 import { AIDraftFeedbackModal } from '../components/AIDraftFeedbackModal'
+
+interface Attachment {
+  name: string;
+  content: string;
+  type: string;
+  size: number;
+}
 
 const statusColors = {
   open: 'bg-green-100 text-green-800 border-green-200',
@@ -61,6 +68,8 @@ export default function TicketDetailPage() {
   const [showShopify, setShowShopify] = useState(false)
   const [staffResponse, setStaffResponse] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [showReassignModal, setShowReassignModal] = useState(false)
   const [showEscalateModal, setShowEscalateModal] = useState(false)
@@ -81,6 +90,17 @@ export default function TicketDetailPage() {
   const [staffNotesHeight, setStaffNotesHeight] = useState(250)
   const [isResizingResponse, setIsResizingResponse] = useState(false)
   const [isResizingNotes, setIsResizingNotes] = useState(false)
+  
+  // Shopify integration state
+  const [shopifyData, setShopifyData] = useState<{
+    configured: boolean;
+    customer: any | null;
+    orders: any[];
+    latestOrder: any | null;
+    message: string | null;
+  } | null>(null)
+  const [shopifyLoading, setShopifyLoading] = useState(false)
+  const [shopifyError, setShopifyError] = useState<string | null>(null)
 
   const { data: ticketData, isLoading, refetch } = useQuery({
     queryKey: ['ticket', id],
@@ -188,15 +208,70 @@ export default function TicketDetailPage() {
     }
   }, [ticket, navigate, searchParams])
 
+  // Fetch Shopify data when the Shopify panel is opened
+  useEffect(() => {
+    if (showShopify && ticket?.customer_email && !shopifyData) {
+      setShopifyLoading(true)
+      setShopifyError(null)
+      
+      shopifyApi.getTicketData(ticket.customer_email)
+        .then(response => {
+          setShopifyData(response.data)
+        })
+        .catch(error => {
+          console.error('Failed to fetch Shopify data:', error)
+          setShopifyError(error.response?.data?.error || 'Failed to load Shopify data')
+        })
+        .finally(() => {
+          setShopifyLoading(false)
+        })
+    }
+  }, [showShopify, ticket?.customer_email, shopifyData])
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    Array.from(files).forEach(file => {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`File ${file.name} is too large. Maximum size is 5MB.`)
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const content = event.target?.result as string
+        setAttachments(prev => [...prev, {
+          name: file.name,
+          content,
+          type: file.type,
+          size: file.size
+        }])
+      }
+      reader.readAsDataURL(file)
+    })
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSendReply = async () => {
-    if (!staffResponse.trim() || !ticket) return
+    if ((!staffResponse.trim() && attachments.length === 0) || !ticket) return
     
     setIsSending(true)
     try {
-      console.log('Sending reply to ticket:', ticket.ticket_id)
-      const response = await ticketsApi.reply(ticket.ticket_id, staffResponse)
+      console.log('Sending reply to ticket:', ticket.ticket_id, 'with', attachments.length, 'attachments')
+      const response = await ticketsApi.reply(ticket.ticket_id, staffResponse, attachments)
       console.log('Reply sent successfully:', response)
       setStaffResponse('')
+      setAttachments([])
       // Refresh ticket data to show new message
       refetch()
     } catch (error: any) {
@@ -1039,6 +1114,23 @@ export default function TicketDetailPage() {
             
             {showResponseArea && (
               <div className="p-4 flex flex-col" style={{ height: `${responseAreaHeight}px` }}>
+                {/* Attachment Preview */}
+                {attachments.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {attachments.map((att, idx) => (
+                      <div key={idx} className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded-lg text-xs">
+                        <Paperclip className="w-3 h-3 text-gray-500" />
+                        <span className="max-w-[150px] truncate">{att.name}</span>
+                        <button 
+                          onClick={() => removeAttachment(idx)}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex-1 mb-2 min-h-0">
                   <textarea
                     value={staffResponse}
@@ -1048,9 +1140,22 @@ export default function TicketDetailPage() {
                   />
                 </div>
                 <div className="space-y-3 flex-shrink-0">
+                  {/* Hidden file input */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
+                  />
                   {/* Quick Action Buttons */}
                   <div className="flex flex-wrap gap-2">
-                    <button className="text-xs px-2.5 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs px-2.5 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-1"
+                    >
+                      <Paperclip className="w-3 h-3" />
                       Attach File
                     </button>
                     <button className="text-xs px-2.5 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -1098,13 +1203,13 @@ export default function TicketDetailPage() {
                   <div className="flex items-center justify-end gap-x-2">
                     <button 
                       onClick={handleSendReply}
-                      disabled={!staffResponse.trim() || isSending}
+                      disabled={(!staffResponse.trim() && attachments.length === 0) || isSending}
                       className="px-4 py-2 text-sm bg-purple-200 text-purple-800 border border-purple-300 rounded-lg hover:bg-purple-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                       </svg>
-                      {isSending ? 'Sending...' : 'Send Reply'}
+                      {isSending ? 'Sending...' : `Send Reply${attachments.length > 0 ? ` (${attachments.length})` : ''}`}
                     </button>
                     <button 
                       onClick={handleScheduleReply}
@@ -1298,16 +1403,20 @@ export default function TicketDetailPage() {
                   
                   {/* Add Note Input - Fixed at bottom */}
                   <div className="p-4 flex-1 flex flex-col min-h-0 border-t border-yellow-200">
-                    <textarea
-                      value={internalNote}
-                      onChange={(e) => setInternalNote(e.target.value)}
-                      onKeyDown={handleAddNote}
-                      placeholder="Add internal notes for other staff members... (Press Enter to save)"
-                      className="w-full flex-1 border border-yellow-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-500 resize-none bg-white min-h-0"
-                    />
-                    <button className="mt-2 text-xs px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 self-start flex-shrink-0">
-                      Attach File
-                    </button>
+                  <textarea
+                    value={internalNote}
+                    onChange={(e) => setInternalNote(e.target.value)}
+                    onKeyDown={handleAddNote}
+                    placeholder="Add internal notes for other staff members... (Press Enter to save)"
+                    className="w-full flex-1 border border-yellow-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-500 resize-none bg-white min-h-0"
+                  />
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-2 text-xs px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 self-start flex-shrink-0 flex items-center gap-1"
+                  >
+                    <Paperclip className="w-3 h-3" />
+                    Attach File
+                  </button>
                   </div>
                 </div>
               )}
@@ -1337,79 +1446,228 @@ export default function TicketDetailPage() {
               </button>
             </div>
 
-            {/* Customer Section */}
-            <div className="mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">CUSTOMER</h3>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{ticket.customer_name || 'Sarah Chen'}</p>
-                  <p className="text-xs text-gray-500">{ticket.customer_email || 'sarah@example.com'}</p>
-                  <p className="text-xs text-gray-500">+1 (555) 123-4567</p>
-                </div>
-                <div className="pt-2 border-t border-gray-100">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-500">Total Spent:</span>
-                    <span className="font-semibold text-indigo-600">$2,847.00</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Total Orders:</span>
-                    <span className="font-semibold text-gray-900">8</span>
-                  </div>
-                </div>
+            {/* Loading State */}
+            {shopifyLoading && (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
               </div>
-            </div>
+            )}
 
-            {/* Order Section */}
-            <div className="mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">ORDER</h3>
-              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Order #5421</p>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full font-medium">
-                      Fulfilled
-                    </span>
-                    <span className="text-xs text-gray-500">Total: <span className="font-semibold text-gray-900">$342.50</span></span>
-                  </div>
-                </div>
-                <div className="pt-2 border-t border-gray-200 space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Created:</span>
-                    <span className="text-gray-900">Oct 20, 2024</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Fulfillment:</span>
-                    <span className="text-green-600 font-medium">Fulfilled</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Payment:</span>
-                    <span className="text-green-600 font-medium">Paid</span>
-                  </div>
-                </div>
+            {/* Error State */}
+            {shopifyError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-red-600">{shopifyError}</p>
+                <button 
+                  onClick={() => {
+                    setShopifyData(null)
+                    setShopifyError(null)
+                  }}
+                  className="text-xs text-red-700 underline mt-2"
+                >
+                  Try again
+                </button>
               </div>
-            </div>
+            )}
 
-            {/* Fulfillment & Tracking Section */}
-            <div>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">FULFILLMENT & TRACKING</h3>
-              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Tracking:</p>
-                  <p className="text-sm font-mono font-semibold text-gray-900">1234567890123</p>
-                  <p className="text-xs text-gray-500 mt-1">Carrier: <span className="text-gray-900">FedEx</span></p>
-                </div>
-                <div className="pt-2 border-t border-gray-200 space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Shipped:</span>
-                    <span className="text-gray-900">Oct 25, 2024 10:30 AM</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Est. Delivery:</span>
-                    <span className="font-semibold text-gray-900">Oct 28, 2024</span>
-                  </div>
-                </div>
+            {/* Not Configured State */}
+            {shopifyData && !shopifyData.configured && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-yellow-700">{shopifyData.message}</p>
               </div>
-            </div>
+            )}
+
+            {/* Customer Not Found */}
+            {shopifyData && shopifyData.configured && !shopifyData.customer && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-gray-600">{shopifyData.message || 'Customer not found in Shopify'}</p>
+              </div>
+            )}
+
+            {/* Customer Data */}
+            {shopifyData && shopifyData.customer && (
+              <>
+                {/* Customer Section */}
+                <div className="mb-6">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">CUSTOMER</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {shopifyData.customer.firstName} {shopifyData.customer.lastName}
+                      </p>
+                      <p className="text-xs text-gray-500">{shopifyData.customer.email}</p>
+                      {shopifyData.customer.phone && (
+                        <p className="text-xs text-gray-500">{shopifyData.customer.phone}</p>
+                      )}
+                      {shopifyData.customer.isVIP && (
+                        <span className="inline-flex items-center mt-1 text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-medium">
+                          ⭐ VIP Customer
+                        </span>
+                      )}
+                    </div>
+                    <div className="pt-2 border-t border-gray-100">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-500">Total Spent:</span>
+                        <span className="font-semibold text-indigo-600">
+                          ${shopifyData.customer.totalSpent?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-500">Total Orders:</span>
+                        <span className="font-semibold text-gray-900">{shopifyData.customer.ordersCount || 0}</span>
+                      </div>
+                      {shopifyData.customer.lastOrderDate && (
+                        <div className="flex justify-between text-xs mt-1">
+                          <span className="text-gray-500">Last Order:</span>
+                          <span className="text-gray-900">
+                            {new Date(shopifyData.customer.lastOrderDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Latest Order Section */}
+                {shopifyData.latestOrder ? (
+                  <div className="mb-6">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">LATEST ORDER</h3>
+                    <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">Order {shopifyData.latestOrder.orderNumber}</p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            shopifyData.latestOrder.fulfillmentStatus === 'fulfilled' 
+                              ? 'bg-green-100 text-green-800'
+                              : shopifyData.latestOrder.fulfillmentStatus === 'partial'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {shopifyData.latestOrder.fulfillmentStatus || 'Unfulfilled'}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Total: <span className="font-semibold text-gray-900">
+                              ${shopifyData.latestOrder.totalPrice?.toFixed(2)} {shopifyData.latestOrder.currency}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-gray-200 space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-500">Created:</span>
+                          <span className="text-gray-900">
+                            {new Date(shopifyData.latestOrder.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-500">Payment:</span>
+                          <span className={`font-medium ${
+                            shopifyData.latestOrder.financialStatus === 'paid' 
+                              ? 'text-green-600' 
+                              : 'text-yellow-600'
+                          }`}>
+                            {shopifyData.latestOrder.financialStatus || 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Line Items */}
+                      {shopifyData.latestOrder.lineItems && shopifyData.latestOrder.lineItems.length > 0 && (
+                        <div className="pt-2 border-t border-gray-200">
+                          <p className="text-xs text-gray-500 mb-2">Items:</p>
+                          <div className="space-y-1">
+                            {shopifyData.latestOrder.lineItems.slice(0, 3).map((item: any, idx: number) => (
+                              <div key={idx} className="text-xs flex justify-between">
+                                <span className="text-gray-700 truncate max-w-[180px]">{item.title}</span>
+                                <span className="text-gray-500">x{item.quantity}</span>
+                              </div>
+                            ))}
+                            {shopifyData.latestOrder.lineItems.length > 3 && (
+                              <p className="text-xs text-gray-400">
+                                +{shopifyData.latestOrder.lineItems.length - 3} more items
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-6">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">ORDERS</h3>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-sm text-gray-500">No orders found</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fulfillment & Tracking Section */}
+                {shopifyData.latestOrder?.trackingNumber && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">FULFILLMENT & TRACKING</h3>
+                    <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Tracking:</p>
+                        <p className="text-sm font-mono font-semibold text-gray-900">
+                          {shopifyData.latestOrder.trackingNumber}
+                        </p>
+                        {shopifyData.latestOrder.trackingCompany && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Carrier: <span className="text-gray-900">{shopifyData.latestOrder.trackingCompany}</span>
+                          </p>
+                        )}
+                      </div>
+                      {shopifyData.latestOrder.trackingUrl && (
+                        <a 
+                          href={shopifyData.latestOrder.trackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-xs text-green-600 hover:text-green-700 font-medium"
+                        >
+                          Track Package →
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Order History (if multiple orders) */}
+                {shopifyData.orders && shopifyData.orders.length > 1 && (
+                  <div className="mt-6">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">
+                      ORDER HISTORY ({shopifyData.orders.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {shopifyData.orders.slice(1, 4).map((order: any) => (
+                        <div key={order.id} className="bg-gray-50 rounded-lg p-2 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-gray-900">{order.orderNumber}</span>
+                            <span className="text-gray-500">${order.totalPrice?.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between items-center mt-1">
+                            <span className="text-gray-500">
+                              {new Date(order.createdAt).toLocaleDateString()}
+                            </span>
+                            <span className={`${
+                              order.fulfillmentStatus === 'fulfilled' ? 'text-green-600' : 'text-gray-500'
+                            }`}>
+                              {order.fulfillmentStatus || 'Unfulfilled'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Fallback when no data is loaded yet */}
+            {!shopifyLoading && !shopifyError && !shopifyData && (
+              <div className="text-center py-8">
+                <ShoppingBag className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-500">Loading Shopify data...</p>
+              </div>
+            )}
           </div>
         )}
       </div>

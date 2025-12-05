@@ -266,11 +266,15 @@ export async function sendMessage(c: Context<{ Bindings: Env }>) {
     let aiResponse = '';
     let aiSenderName = 'McCarthy AI';
     let shouldCloseChat = false;
+    let actions: ActionButton[] | undefined;
+    let showCallbackForm = false;
 
     try {
       const aiResult = await getAIResponse(c.env, message, conversation, isNewConversation);
       aiResponse = aiResult.response;
       shouldCloseChat = aiResult.closeChat || false;
+      actions = aiResult.actions;
+      showCallbackForm = aiResult.showCallbackForm || false;
     } catch (error: any) {
       console.error('[Chat] AI response error:', error);
       aiResponse = "Thanks for your message! I'm processing your request. A team member will assist you shortly if needed.";
@@ -303,7 +307,9 @@ export async function sendMessage(c: Context<{ Bindings: Env }>) {
       response: aiResponse,
       sender: 'ai',
       senderName: aiSenderName,
-      chatClosed: shouldCloseChat
+      chatClosed: shouldCloseChat,
+      actions,
+      showCallbackForm
     });
 
   } catch (error: any) {
@@ -395,6 +401,11 @@ export async function pollMessages(c: Context<{ Bindings: Env }>) {
   try {
     const conversationId = c.req.param('id');
 
+    // Get conversation status
+    const conversation = await c.env.DB.prepare(`
+      SELECT status FROM chat_conversations WHERE id = ?
+    `).bind(conversationId).first<{ status: string }>();
+
     // Get all messages for this conversation including attachments
     const { results: messages } = await c.env.DB.prepare(`
       SELECT id, sender_type, sender_name, content, created_at, 
@@ -404,11 +415,17 @@ export async function pollMessages(c: Context<{ Bindings: Env }>) {
       ORDER BY created_at ASC
     `).bind(conversationId).all();
 
-    return c.json({ messages });
+    const isClosed = conversation?.status === 'closed';
+
+    return c.json({ 
+      messages, 
+      conversationStatus: conversation?.status || 'unknown',
+      isClosed
+    });
 
   } catch (error: any) {
     console.error('[Chat] Poll messages error:', error);
-    return c.json({ error: 'Failed to poll messages' }, 500);
+    return c.json({ error: 'Failed to poll messages: ' + error.message }, 500);
   }
 }
 
@@ -762,6 +779,106 @@ export async function closeConversation(c: Context<{ Bindings: Env }>) {
 }
 
 /**
+ * Submit a rating for a completed chat conversation
+ * POST /api/chat/conversation/:id/rate
+ * Public endpoint (for customers)
+ */
+export async function submitChatRating(c: Context<{ Bindings: Env }>) {
+  try {
+    const conversationId = c.req.param('id');
+    const { rating, feedback } = await c.req.json();
+
+    console.log('[Chat] Rating submitted:', { conversationId, rating, feedback });
+
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      return c.json({ error: 'Rating must be between 1 and 5' }, 400);
+    }
+
+    // Get conversation details
+    const conversation = await c.env.DB.prepare(`
+      SELECT id, ticket_id, customer_email, assigned_to, status, resolved_by
+      FROM chat_conversations WHERE id = ?
+    `).bind(conversationId).first<{
+      id: string;
+      ticket_id: string;
+      customer_email: string;
+      assigned_to: string | null;
+      status: string;
+      resolved_by: string | null;
+    }>();
+
+    if (!conversation) {
+      return c.json({ error: 'Conversation not found' }, 404);
+    }
+
+    // Check if already rated
+    const existingRating = await c.env.DB.prepare(`
+      SELECT id FROM chat_ratings WHERE conversation_id = ?
+    `).bind(conversationId).first();
+
+    if (existingRating) {
+      return c.json({ error: 'This conversation has already been rated' }, 400);
+    }
+
+    // Determine handler type
+    let handlerType: 'ai' | 'staff' | 'mixed' = 'ai';
+    let handlerId = 'ai-agent-001';
+
+    if (conversation.resolved_by && conversation.resolved_by !== 'ai-agent-001') {
+      handlerType = 'staff';
+      handlerId = conversation.resolved_by;
+    } else if (conversation.assigned_to && conversation.assigned_to !== 'ai-agent-001') {
+      handlerType = 'staff';
+      handlerId = conversation.assigned_to;
+    }
+
+    // Check if both AI and staff handled the conversation
+    const { results: messages } = await c.env.DB.prepare(`
+      SELECT DISTINCT sender_type FROM chat_messages 
+      WHERE conversation_id = ? AND sender_type IN ('ai', 'staff')
+    `).bind(conversationId).all<{ sender_type: string }>();
+
+    const senderTypes = messages?.map(m => m.sender_type) || [];
+    if (senderTypes.includes('ai') && senderTypes.includes('staff')) {
+      handlerType = 'mixed';
+    }
+
+    const now = new Date().toISOString();
+    const ratingId = `rating_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+    // Insert rating
+    await c.env.DB.prepare(`
+      INSERT INTO chat_ratings (
+        id, conversation_id, ticket_id, customer_email, 
+        rating, feedback, handler_type, handler_id, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      ratingId,
+      conversationId,
+      conversation.ticket_id,
+      conversation.customer_email,
+      rating,
+      feedback || null,
+      handlerType,
+      handlerId,
+      now
+    ).run();
+
+    console.log('[Chat] Rating saved:', ratingId);
+
+    return c.json({ 
+      success: true, 
+      message: 'Thank you for your feedback!' 
+    });
+
+  } catch (error: any) {
+    console.error('[Chat] Submit rating error:', error);
+    return c.json({ error: 'Failed to submit rating' }, 500);
+  }
+}
+
+/**
  * Reassign a conversation to another staff member or back to AI
  * POST /api/chat/conversation/:id/reassign
  */
@@ -938,6 +1055,138 @@ ${message}`;
 
   } catch (error: any) {
     console.error('[Chat] Callback submission error:', error);
+    return c.json({ error: 'Failed to submit callback request' }, 500);
+  }
+}
+
+/**
+ * Submit a callback request from within a chat conversation
+ * POST /api/chat/callback-from-chat
+ * Public endpoint
+ */
+export async function submitCallbackFromChat(c: Context<{ Bindings: Env }>) {
+  try {
+    const body = await c.req.json();
+    const { conversationId, firstName, lastName, email, phone, orderId, reason } = body;
+
+    console.log('[Chat] Callback from chat:', { conversationId, firstName, lastName, email, phone });
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !phone || !reason) {
+      return c.json({ error: 'First name, last name, email, phone, and reason are required' }, 400);
+    }
+
+    const now = new Date().toISOString();
+    const fullName = `${firstName} ${lastName}`;
+
+    // Create or get customer
+    const customerId = await getOrCreateCustomer(c.env.DB, fullName, email);
+
+    // Get chat history if conversation exists
+    let chatHistory = '';
+    if (conversationId) {
+      const { results: allMessages } = await c.env.DB.prepare(`
+        SELECT sender_type, sender_name, content, created_at FROM chat_messages 
+        WHERE conversation_id = ? ORDER BY created_at ASC
+      `).bind(conversationId).all<{ sender_type: string; sender_name: string; content: string; created_at: string }>();
+      
+      if (allMessages && allMessages.length > 0) {
+        chatHistory = '\n\n--- Chat History ---\n' + allMessages.map(m => 
+          `[${m.sender_type}${m.sender_name ? ` - ${m.sender_name}` : ''}]: ${m.content}`
+        ).join('\n');
+      }
+    }
+
+    // Create a ticket for the callback request
+    const ticketId = `ticket_callback_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const ticketNumber = await getNextTicketNumber(c.env.DB);
+
+    const description = `📞 CALLBACK REQUEST (from Live Chat)
+
+Name: ${fullName}
+Email: ${email}
+Phone: ${phone}
+${orderId ? `Order ID: ${orderId}` : ''}
+
+Reason for Request:
+${reason}${chatHistory}`;
+
+    await c.env.DB.prepare(`
+      INSERT INTO tickets (
+        ticket_id, ticket_number, customer_id, customer_email, customer_name, subject, description,
+        status, priority, category, sentiment, channel, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'open', 'high', 'callback_request', 'neutral', 'phone', ?, ?)
+    `).bind(
+      ticketId,
+      ticketNumber,
+      customerId,
+      email,
+      fullName,
+      `Callback Request from ${fullName}`,
+      description,
+      now,
+      now
+    ).run();
+
+    // Close the chat conversation if it exists
+    if (conversationId) {
+      await c.env.DB.prepare(`
+        UPDATE chat_conversations 
+        SET status = 'closed', resolution_type = 'callback_requested', updated_at = ?
+        WHERE id = ?
+      `).bind(now, conversationId).run();
+
+      // Add system message to chat
+      const sysMsgId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      await c.env.DB.prepare(`
+        INSERT INTO chat_messages (id, conversation_id, sender_type, sender_id, sender_name, content, created_at)
+        VALUES (?, ?, 'system', 'system', 'System', ?, ?)
+      `).bind(
+        sysMsgId,
+        conversationId,
+        `📞 Callback request submitted (Reference: ${ticketNumber}). A team member will call you back at ${phone} within 24 hours during business hours. This chat is now closed.`,
+        now
+      ).run();
+    }
+
+    // Send confirmation email
+    try {
+      const { sendEmailThroughResend } = await import('../services/ResendService');
+      await sendEmailThroughResend(c.env, {
+        to: email,
+        subject: 'Callback Request Received 📞',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4F46E5;">Callback Request Received</h2>
+            <p>Hi ${firstName},</p>
+            <p>We have received your request for a callback at this number: <strong>${phone}</strong></p>
+            <p>One of our staff will give you a call within the next 24 hours (Mon-Friday).</p>
+            <p><strong>Reference Number:</strong> ${ticketNumber}</p>
+            <p>Speak soon!</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">McCarthy AI Customer Service</p>
+          </div>
+        `,
+        text: `Hi ${firstName},\n\nWe have received your request for a callback at this number: ${phone}\n\nOne of our staff will give you a call within the next 24 hours (Mon-Friday).\n\nReference Number: ${ticketNumber}\n\nSpeak soon!\n\nMcCarthy AI Customer Service`,
+        from: 'support@directtofilm.com.au'
+      });
+      console.log('[Chat] Callback confirmation email sent to:', email);
+    } catch (emailError) {
+      console.error('[Chat] Failed to send callback confirmation email:', emailError);
+      // Don't fail the request if email fails
+    }
+
+    console.log('[Chat] Created callback ticket from chat:', ticketNumber);
+
+    return c.json({
+      success: true,
+      ticketNumber,
+      message: `Your callback request has been submitted (Reference: ${ticketNumber}). We will call you back at ${phone} within 24 hours during business hours.`,
+      chatClosed: true
+    });
+
+  } catch (error: any) {
+    console.error('[Chat] Callback from chat submission error:', error);
     return c.json({ error: 'Failed to submit callback request' }, 500);
   }
 }
@@ -1260,9 +1509,40 @@ async function getAvailableStaffWithCapacity(db: D1Database): Promise<{ id: stri
   return results.length > 0 ? results[0] : null;
 }
 
-async function getAIResponse(env: Env, message: string, conversation: Conversation, isNew: boolean): Promise<{ response: string; closeChat?: boolean }> {
+interface ActionButton {
+  type: 'button' | 'form';
+  label: string;
+  action: string;
+  fields?: Array<{ name: string; label: string; type: string; required: boolean; placeholder?: string }>;
+}
+
+interface AIResponseResult {
+  response: string;
+  closeChat?: boolean;
+  actions?: ActionButton[];
+  showCallbackForm?: boolean;
+}
+
+async function getAIResponse(env: Env, message: string, conversation: Conversation, isNew: boolean): Promise<AIResponseResult> {
   console.log('[Chat] Getting AI response for:', message.substring(0, 50));
   console.log('[Chat] Conversation ID:', conversation.id);
+
+  // Handle callback confirmation action
+  if (message === '__action:callback_confirm') {
+    console.log('[Chat] User confirmed callback request - showing form');
+    return {
+      response: "Great! Please fill out the callback request form below:",
+      showCallbackForm: true
+    };
+  }
+
+  // Handle callback decline action
+  if (message === '__action:callback_decline') {
+    console.log('[Chat] User declined callback');
+    return {
+      response: "No problem! Is there anything else I can help you with today?"
+    };
+  }
 
   // Check if message contains a phone number (customer providing callback number)
   const phoneNumber = extractPhoneNumber(message);
@@ -1312,7 +1592,11 @@ async function getAIResponse(env: Env, message: string, conversation: Conversati
   if (isRequestingCallback(message)) {
     console.log('[Chat] Customer requesting callback');
     return {
-      response: "I'd be happy to arrange a callback for you! 📞\n\nPlease provide your phone number and one of our team members will call you back within 24 hours during business hours."
+      response: "I'd be happy to arrange a callback for you! 📞\n\nWould you like me to organize this for you now?",
+      actions: [
+        { type: 'button', label: 'Yes, arrange callback', action: 'callback_confirm' },
+        { type: 'button', label: 'No thanks', action: 'callback_decline' }
+      ]
     };
   }
 
