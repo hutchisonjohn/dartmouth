@@ -55,6 +55,7 @@ class McCarthyChat {
   private pollingInterval: number | null = null;
   private lastMessageId: string | null = null;
   private storageKey = 'mccarthy-chat-state';
+  private callbackFormShown = false; // Track if callback form has been shown
 
   constructor(config: ChatConfig) {
     this.config = {
@@ -124,7 +125,14 @@ class McCarthyChat {
           return;
         }
         
-        this.conversationId = state.conversationId || null;
+        // Don't restore if conversation ID doesn't exist (prevents restoring old/invalid conversations)
+        if (!state.conversationId) {
+          console.log('[McCarthyChat] No conversation ID in saved state - starting fresh');
+          sessionStorage.removeItem(this.storageKey);
+          return;
+        }
+        
+        this.conversationId = state.conversationId;
         this.customerInfo = state.customerInfo || {};
         this.messages = (state.messages || []).map((m: any) => ({
           ...m,
@@ -139,6 +147,8 @@ class McCarthyChat {
       }
     } catch (e) {
       console.warn('[McCarthyChat] Failed to restore state:', e);
+      // Clear corrupted state
+      sessionStorage.removeItem(this.storageKey);
     }
   }
 
@@ -1390,7 +1400,10 @@ class McCarthyChat {
         console.log('[McCarthyChat] Conversation started:', this.conversationId);
         this.saveState();
         
-        // Start polling for messages (staff might take over at any time)
+        // Show typing indicator immediately
+        this.showTypingIndicator();
+        
+        // Start polling for messages (AI greeting should arrive immediately)
         this.startPolling();
       } else {
         console.error('[McCarthyChat] Failed to start conversation');
@@ -1499,38 +1512,39 @@ class McCarthyChat {
     const messagesEl = this.container?.querySelector('#mccarthy-messages');
     if (!messagesEl) return;
 
-    // Create callback form HTML
+    // Create callback form HTML with explicit styles to ensure inputs work
     const formHtml = `
-      <div class="mccarthy-callback-form" id="mccarthy-callback-form">
+      <div class="mccarthy-callback-form" id="mccarthy-callback-form" style="pointer-events: auto;">
         <div class="mccarthy-callback-form-header">
           <span class="mccarthy-callback-icon">📞</span>
           <span>Callback Request</span>
         </div>
+        <p style="margin: 0 0 12px 0; font-size: 13px; color: #6b7280;">Please complete the form and submit.</p>
         <div class="mccarthy-form-group">
           <label>First Name *</label>
-          <input type="text" id="mccarthy-cb-firstname" placeholder="John" required>
+          <input type="text" id="mccarthy-cb-firstname" placeholder="John" required style="pointer-events: auto; user-select: text;">
         </div>
         <div class="mccarthy-form-group">
           <label>Last Name *</label>
-          <input type="text" id="mccarthy-cb-lastname" placeholder="Smith" required>
+          <input type="text" id="mccarthy-cb-lastname" placeholder="Smith" required style="pointer-events: auto; user-select: text;">
         </div>
         <div class="mccarthy-form-group">
           <label>Email *</label>
-          <input type="email" id="mccarthy-cb-email" value="${this.customerInfo.email || ''}" placeholder="john@example.com" required>
+          <input type="email" id="mccarthy-cb-email" value="${this.customerInfo.email || ''}" placeholder="john@example.com" required style="pointer-events: auto; user-select: text;">
         </div>
         <div class="mccarthy-form-group">
           <label>Phone Number *</label>
-          <input type="tel" id="mccarthy-cb-phone" placeholder="+61 400 000 000" required>
+          <input type="tel" id="mccarthy-cb-phone" placeholder="+61 400 000 000" required style="pointer-events: auto; user-select: text;">
         </div>
         <div class="mccarthy-form-group">
           <label>Order ID (optional)</label>
-          <input type="text" id="mccarthy-cb-orderid" placeholder="ORD-12345">
+          <input type="text" id="mccarthy-cb-orderid" placeholder="ORD-12345" style="pointer-events: auto; user-select: text;">
         </div>
         <div class="mccarthy-form-group">
           <label>Reason for Request *</label>
-          <textarea id="mccarthy-cb-reason" placeholder="Please describe why you need a callback..." rows="3" required></textarea>
+          <textarea id="mccarthy-cb-reason" placeholder="Please describe why you need a callback..." rows="3" required style="pointer-events: auto; user-select: text;"></textarea>
         </div>
-        <button class="mccarthy-callback-submit" id="mccarthy-cb-submit">
+        <button class="mccarthy-callback-submit" id="mccarthy-cb-submit" style="pointer-events: auto;">
           Submit Request
         </button>
       </div>
@@ -1540,7 +1554,15 @@ class McCarthyChat {
     const formDiv = document.createElement('div');
     formDiv.innerHTML = formHtml;
     messagesEl.appendChild(formDiv);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    
+    // Scroll to show the form header and first field (not all the way to bottom)
+    // Get the form element and scroll it into view at the top
+    setTimeout(() => {
+      const form = this.container?.querySelector('#mccarthy-callback-form');
+      if (form) {
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
 
     // Attach submit handler
     const submitBtn = this.container?.querySelector('#mccarthy-cb-submit');
@@ -1577,6 +1599,8 @@ class McCarthyChat {
     }
 
     try {
+      console.log('[McCarthyChat] Submitting callback:', { conversationId: this.conversationId, firstName, lastName, email, phone, orderId, reason });
+      
       const response = await fetch(`${this.config.apiUrl}/api/chat/callback-from-chat`, {
         method: 'POST',
         headers: {
@@ -1593,19 +1617,34 @@ class McCarthyChat {
         })
       });
 
+      console.log('[McCarthyChat] Callback response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        
+        console.log('[McCarthyChat] Callback submitted successfully:', data);
         
         // Remove the form
         const form = this.container?.querySelector('#mccarthy-callback-form');
         form?.parentElement?.remove();
         
-        // Add success message
+        // Reset the callback form flag
+        this.callbackFormShown = false;
+        
+        // Add success message as a system message
         this.addSystemMessage(data.message);
+        
+        // Render messages to show the success message
+        this.renderMessages();
+        
+        // Scroll to bottom to show the message
+        const messagesEl = this.container?.querySelector('#mccarthy-messages');
+        if (messagesEl) {
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
         
         // If chat was closed, disable input
         if (data.chatClosed) {
-          this.stopPolling();
           const input = this.container?.querySelector('#mccarthy-input') as HTMLTextAreaElement;
           const sendBtn = this.container?.querySelector('#mccarthy-send') as HTMLButtonElement;
           if (input) {
@@ -1617,7 +1656,8 @@ class McCarthyChat {
           }
         }
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[McCarthyChat] Callback submission failed:', errorData);
         alert(errorData.error || 'Failed to submit callback request. Please try again.');
         if (submitBtn) {
           submitBtn.disabled = false;
@@ -1626,7 +1666,7 @@ class McCarthyChat {
       }
     } catch (error) {
       console.error('[McCarthyChat] Callback submit error:', error);
-      alert('Connection error. Please try again.');
+      alert(`Connection error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit Request';
@@ -1683,24 +1723,29 @@ class McCarthyChat {
         const data = await response.json();
         this.conversationId = data.conversationId;
         
-        // Hide typing indicator
-        this.hideTypingIndicator();
+        // Keep typing indicator visible - let polling hide it when message arrives
+        // This prevents the awkward gap between typing stopping and message appearing
         
         // Handle action buttons in response
         if (data.actions && data.actions.length > 0) {
           // Add AI response with actions
+          this.hideTypingIndicator();
           this.addMessageWithActions(data.response, 'ai', data.senderName, data.actions);
         }
         
         // Handle callback form request
         if (data.showCallbackForm) {
+          this.hideTypingIndicator();
           this.showCallbackForm();
         }
         
         // Don't add AI response here - let polling handle it to avoid duplicates
-        // Just ensure polling is running
+        // Ensure polling is running and poll immediately for faster response
         if (!this.pollingInterval) {
           this.startPolling();
+        } else {
+          // Poll immediately to get the response faster
+          this.pollForMessages();
         }
         
         // If chat was closed (e.g., after callback request), stop polling and disable input
@@ -1739,10 +1784,10 @@ class McCarthyChat {
     
     console.log('[McCarthyChat] Starting message polling');
     
-    // Poll every 2 seconds for new messages
+    // Poll every 1 second for new messages (faster for better UX)
     this.pollingInterval = window.setInterval(() => {
       this.pollForMessages();
-    }, 2000);
+    }, 1000);
     
     // Also poll immediately
     this.pollForMessages();
@@ -1760,10 +1805,18 @@ class McCarthyChat {
     if (!this.conversationId) return;
     
     try {
+      console.log('[McCarthyChat] Polling for conversation:', this.conversationId);
       const response = await fetch(`${this.config.apiUrl}/api/chat/conversation/${this.conversationId}/poll`);
+      
+      console.log('[McCarthyChat] Poll response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
+        console.log('[McCarthyChat] Poll data:', { 
+          messageCount: data.messages?.length, 
+          isClosed: data.isClosed, 
+          status: data.conversationStatus 
+        });
         
         // Replace all messages with server messages to avoid duplicates
         if (data.messages && Array.isArray(data.messages)) {
@@ -1790,40 +1843,86 @@ class McCarthyChat {
           const lastLocalMsgId = this.messages.length > 0 ? this.messages[this.messages.length - 1].id : null;
           
           if (serverMessages.length !== this.messages.length || lastServerMsgId !== lastLocalMsgId) {
-            this.messages = serverMessages;
+            // Check for callback form marker before updating messages
+            const hasFormMarker = serverMessages.some(msg => msg.content === '__SHOW_CALLBACK_FORM__');
+            
+            // Filter out the form marker message (don't show it to user)
+            const filteredMessages = serverMessages.filter(msg => msg.content !== '__SHOW_CALLBACK_FORM__');
+            
+            this.messages = filteredMessages;
             this.renderMessages();
             this.saveState();
+            
+            // Check if we just received the first callback message (keep typing indicator)
+            const lastVisibleMessage = filteredMessages[filteredMessages.length - 1];
+            const isFirstCallbackMessage = lastVisibleMessage && 
+                (lastVisibleMessage.sender === 'ai' || lastVisibleMessage.sender === 'agent') && 
+                lastVisibleMessage.content.includes('📞') &&
+                !lastVisibleMessage.content.toLowerCase().includes('fill out the form');
+            
+            // Check if we received the second callback message (keep typing for form)
+            const isSecondCallbackMessage = lastVisibleMessage && 
+                (lastVisibleMessage.sender === 'ai' || lastVisibleMessage.sender === 'agent') && 
+                lastVisibleMessage.content.toLowerCase().includes('fill out the form below') &&
+                lastVisibleMessage.content.toLowerCase().includes('callback');
+            
+            if (isFirstCallbackMessage) {
+              // First callback message - keep showing typing indicator
+              console.log('[McCarthyChat] First callback message received, keeping typing indicator');
+              // Don't hide typing indicator - let it continue for next message
+            } else if (isSecondCallbackMessage) {
+              // Second callback message - keep showing typing for form
+              console.log('[McCarthyChat] Second callback message received, keeping typing for form');
+              this.showTypingIndicator('Preparing form');
+            } else if (hasFormMarker && !this.callbackFormShown) {
+              // Form marker received - hide typing and show form (ONLY ONCE)
+              console.log('[McCarthyChat] Form marker received, showing form');
+              this.hideTypingIndicator();
+              this.callbackFormShown = true; // Mark as shown
+              this.showCallbackForm();
+              // STOP POLLING while form is visible to prevent re-renders
+              this.stopPolling();
+            } else {
+              // Normal message - hide typing indicator
+              this.hideTypingIndicator();
+            }
           }
         }
 
-        // Check if chat was closed and can be rated
-        if (data.isClosed && data.canRate) {
-          this.stopPolling();
-          this.showPostChatSurvey();
-          
-          // Disable input
-          const input = this.container?.querySelector('#mccarthy-input') as HTMLTextAreaElement;
-          const sendBtn = this.container?.querySelector('#mccarthy-send') as HTMLButtonElement;
-          if (input) {
-            input.disabled = true;
-            input.placeholder = 'Chat ended';
-          }
-          if (sendBtn) {
-            sendBtn.disabled = true;
-          }
-        } else if (data.isClosed) {
-          // Chat closed but already rated or can't rate
-          this.stopPolling();
-          
-          // Disable input
-          const input = this.container?.querySelector('#mccarthy-input') as HTMLTextAreaElement;
-          const sendBtn = this.container?.querySelector('#mccarthy-send') as HTMLButtonElement;
-          if (input) {
-            input.disabled = true;
-            input.placeholder = 'Chat ended';
-          }
-          if (sendBtn) {
-            sendBtn.disabled = true;
+        // IMPORTANT: DON'T close chat if callback form is active
+        const hasCallbackForm = this.container?.querySelector('#mccarthy-callback-form');
+        
+        // Only process isClosed if callback form is NOT active
+        if (!hasCallbackForm) {
+          // Check if chat was closed and can be rated
+          if (data.isClosed && data.canRate) {
+            this.stopPolling();
+            this.showPostChatSurvey();
+            
+            // Disable input
+            const input = this.container?.querySelector('#mccarthy-input') as HTMLTextAreaElement;
+            const sendBtn = this.container?.querySelector('#mccarthy-send') as HTMLButtonElement;
+            if (input) {
+              input.disabled = true;
+              input.placeholder = 'Chat ended';
+            }
+            if (sendBtn) {
+              sendBtn.disabled = true;
+            }
+          } else if (data.isClosed) {
+            // Chat closed but already rated or can't rate
+            this.stopPolling();
+            
+            // Disable input
+            const input = this.container?.querySelector('#mccarthy-input') as HTMLTextAreaElement;
+            const sendBtn = this.container?.querySelector('#mccarthy-send') as HTMLButtonElement;
+            if (input) {
+              input.disabled = true;
+              input.placeholder = 'Chat ended';
+            }
+            if (sendBtn) {
+              sendBtn.disabled = true;
+            }
           }
         }
       }
@@ -1953,6 +2052,10 @@ class McCarthyChat {
     const messagesEl = this.container?.querySelector('#mccarthy-messages');
     if (!messagesEl) return;
 
+    // Save the callback form if it exists (so we don't delete it)
+    const existingForm = messagesEl.querySelector('#mccarthy-callback-form');
+    const formParent = existingForm?.parentElement;
+
     // Icons for different sender types
     const personIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
     const sparklesIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"></path><path d="M5 19l1 3 1-3 3-1-3-1-1-3-1 3-3 1 3 1z"></path></svg>`;
@@ -1996,6 +2099,21 @@ class McCarthyChat {
       `;
     }).join('');
 
+    // Re-append the callback form if it existed
+    if (formParent && existingForm) {
+      messagesEl.appendChild(formParent);
+      
+      // Re-attach submit handler since the form was moved
+      const submitBtn = messagesEl.querySelector('#mccarthy-cb-submit');
+      if (submitBtn) {
+        // Remove old listener by cloning and replacing
+        const newSubmitBtn = submitBtn.cloneNode(true);
+        submitBtn.parentNode?.replaceChild(newSubmitBtn, submitBtn);
+        // Add new listener
+        newSubmitBtn.addEventListener('click', () => this.submitCallbackForm());
+      }
+    }
+
     // Attach event listeners to action buttons
     const actionBtns = messagesEl.querySelectorAll('.mccarthy-action-btn');
     actionBtns.forEach(btn => {
@@ -2007,7 +2125,10 @@ class McCarthyChat {
       });
     });
 
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    // Only auto-scroll if callback form is NOT visible (don't scroll away from form)
+    if (!this.callbackFormShown) {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
   }
 
   // Public methods
@@ -2032,6 +2153,7 @@ class McCarthyChat {
     this.customerInfo = {};
     this.messages = [];
     this.isOpen = false;
+    this.callbackFormShown = false; // Reset callback form flag
     
     // Clear saved state
     try {

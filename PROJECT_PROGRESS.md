@@ -1,9 +1,9 @@
 # Dartmouth OS - Customer Service System
 ## Project Progress Tracker
 
-**Last Updated**: December 6, 2025, 12:05 AM AEST  
-**Overall Progress**: 96% Complete  
-**Status**: ✅ AI Chat Fixed, Shopify Complete, File Attachments In Progress
+**Last Updated**: December 6, 2025, 12:30 AM AEST  
+**Overall Progress**: 97% Complete  
+**Status**: ✅ Callback Feature Complete, Shopify Complete, File Attachments In Progress
 
 ---
 
@@ -110,7 +110,7 @@ McCarthy AI Dartmouth OS is now a fully functional customer service platform wit
 - [x] AI Analytics dashboard
 - [x] **Vector Embeddings RAG** (53 vectors, Cloudflare Vectorize) 🆕
 
-### 🚧 Phase 8: Advanced Features (75% Complete)
+### ✅ Phase 8: Advanced Features (85% Complete)
 - [x] Scheduled replies
 - [x] Ticket snooze (30m, 1h, 4h, tomorrow, next week)
 - [x] Ticket merging
@@ -120,7 +120,7 @@ McCarthy AI Dartmouth OS is now a fully functional customer service platform wit
 - [x] Duplicate detection
 - [x] Email auto-assignment
 - [x] **Vector Embeddings for RAG** - ✅ **COMPLETE** 🆕
-- [ ] Callback feature (form-based) - Pending
+- [x] **Callback feature (form-based)** - ✅ **COMPLETE** 🆕
 - [ ] Post-chat survey - Pending
 - [ ] Typing indicators - Pending
 
@@ -169,7 +169,7 @@ McCarthy AI Dartmouth OS is now a fully functional customer service platform wit
 | Priority/Sentiment | ✅ Working | AI analyzes chat messages |
 | File attachments | 🚧 Backend Only | UI pending |
 | Typing indicator | ⬜ Not Started | Planned |
-| Callback feature | ⬜ Not Started | Form-based flow planned |
+| Callback feature | ✅ Working | Multi-step flow with form & email |
 
 ### AI Agent
 | Feature | Status | Notes |
@@ -241,7 +241,20 @@ McCarthy AI Dartmouth OS is now a fully functional customer service platform wit
 
 ## Recent Achievements
 
-### December 5, 2025 (Today) - LATE NIGHT SESSION
+### December 6, 2025 (12:30 AM) - CALLBACK FEATURE COMPLETE! 🎉
+- ✅ **CALLBACK FEATURE COMPLETE**: Multi-step form-based callback flow
+  - AI detects "callback" keyword and initiates flow
+  - Displays 2 messages with typing indicators (bouncing dots)
+  - Shows callback form with all required fields
+  - Creates ticket with "callback_request" category
+  - Sends confirmation email to customer via Resend API
+  - Closes chat conversation automatically
+  - Fixed multiple issues: form repeating, disappearing, non-editable fields
+  - Fixed email sending (bypassed ResendService, used Resend API directly)
+  - Fixed chat history formatting for staff view
+  - Hidden internal system messages from chat display
+
+### December 5, 2025 - LATE NIGHT SESSION
 - ✅ **CRITICAL FIX**: Fixed 500 error on chat poll endpoint (AI messages now reach widget)
 - ✅ **SHOPIFY INTEGRATION**: Complete backend + frontend integration
 - ✅ Rolled back Group Chat system (caused database blocking)
@@ -299,8 +312,7 @@ McCarthy AI Dartmouth OS is now a fully functional customer service platform wit
 None! 🎉
 
 ### High Priority
-1. **Callback Feature**: Form-based callback flow not yet implemented
-2. **Mobile Responsiveness**: Dashboard needs mobile optimization
+1. **Mobile Responsiveness**: Dashboard needs mobile optimization
 
 ### Medium Priority
 1. **Typing Indicators**: Not implemented for chat
@@ -316,9 +328,9 @@ None! 🎉
 ## Next Milestones
 
 ### Immediate (Next Session)
-1. Implement Callback Feature (form-based flow)
-2. Test all recent fixes
-3. Full backup and commit
+1. ✅ ~~Implement Callback Feature (form-based flow)~~ - COMPLETE!
+2. Post-chat survey
+3. Typing indicators for chat
 
 ### Short Term (1-2 weeks)
 1. Post-chat survey

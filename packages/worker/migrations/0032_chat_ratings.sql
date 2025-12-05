@@ -20,3 +20,4 @@ CREATE INDEX IF NOT EXISTS idx_chat_ratings_handler_type ON chat_ratings (handle
 CREATE INDEX IF NOT EXISTS idx_chat_ratings_rating ON chat_ratings (rating);
 CREATE INDEX IF NOT EXISTS idx_chat_ratings_created_at ON chat_ratings (created_at);
 
+
